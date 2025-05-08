@@ -9,35 +9,39 @@ import android.speech.SpeechRecognizer
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.openai.OpenAIClient
-import com.example.openai.SharedData // ✅ Import shared object
+import com.example.openai.SharedData
 import com.example.tts_helper.TextToSpeechHelper
 
 class SpeechRecognitionService : Service() {
     private lateinit var speechRecognizer: SpeechRecognizer
-    private var isListening = false
     private lateinit var recognizerIntent: Intent
+    private var isListening = false
+    private var isStandby = true
+
     private lateinit var openAIClient: OpenAIClient
     private lateinit var ttsHelper: TextToSpeechHelper
-    inner class LocalBinder : Binder() {
-        fun getService(): SpeechRecognitionService = this@SpeechRecognitionService
-    }
 
-    private val binder = LocalBinder()
+//    inner class LocalBinder : Binder() {
+//        fun getService(): SpeechRecognitionService = this@SpeechRecognitionService
+//    }
+//
+//    private val binder = LocalBinder()
 
-    override fun onBind(intent: Intent?): IBinder = binder
+    override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
         startForegroundService()
+
         initializeSpeechRecognizer()
 
-        // ✅ Initialize OpenAIClient with API key, authToken, and projects
         openAIClient = OpenAIClient(
             apiKey = "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",
             authToken = SharedData.authToken,
             projects = SharedData.projects
         )
+
         ttsHelper = TextToSpeechHelper(this)
     }
 
@@ -55,8 +59,8 @@ class SpeechRecognitionService : Service() {
 
     private fun startForegroundService() {
         val notification: Notification = NotificationCompat.Builder(this, "speech_recognition_channel")
-            .setContentTitle("Speech Recognition")
-            .setContentText("Listening for voice commands")
+            .setContentTitle("Jarvis Assistant")
+            .setContentText("Listening in standby mode")
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .build()
         startForeground(1, notification)
@@ -77,24 +81,43 @@ class SpeechRecognitionService : Service() {
 
             override fun onResults(results: Bundle?) {
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                if (!matches.isNullOrEmpty()) {
-                    val userMessage = matches[0]
-                    Log.d("SpeechRecognizer", "Recognized: $userMessage")
+                val text = matches?.firstOrNull()?.lowercase()?.trim()
 
-                    openAIClient.sendMessage(
-                        userMessage,
-                        onResponse = { reply ->
-                            Log.d("OpenAI", "Assistant: $reply")
-                            ttsHelper.speak(reply)
+                Log.d("SpeechRecognizer", "Recognized: $text")
 
-                        },
-                        onError = { error ->
-                            Log.e("OpenAI", "Error: $error")
-                        }
-                    )
-
-                    SpeechResultListener.sendResult(userMessage)
+                if (text == null) {
+                    if (isListening) restartListening()
+                    return
                 }
+
+                when {
+                    text.contains("standby") -> {
+                        isStandby = true
+                        ttsHelper.speak("Going into standby mode")
+                        Log.d("Jarvis", "Switched to standby")
+                    }
+                    text.contains("hey jarvis") -> {
+                        isStandby = false
+                        ttsHelper.speak("I'm listening")
+                        Log.d("Jarvis", "Activated from standby")
+                    }
+                    !isStandby -> {
+                        openAIClient.sendMessage(
+                            text,
+                            onResponse = { reply ->
+                                Log.d("OpenAI", "Assistant: $reply")
+                                ttsHelper.speak(reply)
+                            },
+                            onError = { error ->
+                                Log.e("OpenAI", "Error: $error")
+                            }
+                        )
+                    }
+                    else -> {
+                        Log.d("Jarvis", "In standby, ignored input.")
+                    }
+                }
+
                 if (isListening) restartListening()
             }
 
@@ -127,8 +150,12 @@ class SpeechRecognitionService : Service() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
         stopListening()
         speechRecognizer.destroy()
+        super.onDestroy()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        return START_STICKY // Restart if the service is killed
     }
 }
