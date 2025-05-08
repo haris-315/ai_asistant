@@ -2,7 +2,7 @@
 
 import 'package:ai_asistant/Controller/auth_Controller.dart';
 import 'package:ai_asistant/core/shared/functions/show_snackbar.dart';
-import 'package:ai_asistant/data/models/emails/threadDetail.dart';
+// import 'package:ai_asistant/data/models/emails/threadDetail.dart';
 import 'package:ai_asistant/data/models/threadmodel.dart';
 import 'package:ai_asistant/state_mgmt/email/cubit/email_cubit.dart';
 import 'package:ai_asistant/ui/screen/home/emails/email_details_screen.dart';
@@ -62,7 +62,7 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
   void _scrollToTop() {
     _scrollController.animateTo(
       0,
-      duration: Duration(milliseconds: 400),
+      duration: Duration(milliseconds: 660),
       curve: Curves.easeOut,
     );
   }
@@ -130,21 +130,21 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
     }
   }
 
-  Future<void> _handleReply(EmailThread email) async {
-    final res = await authcontroller.GetThreadbyID(email.conversationId, email);
-    if (res != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder:
-              (_) => NewMessageScreen(
-                isReplying: true,
-                toEmail: (res['thread_mails'] as List<EmailMessage>).last,
-              ),
-        ),
-      );
-    }
-  }
+  // Future<void> _handleReply(EmailThread email) async {
+  //   final res = await authcontroller.GetThreadbyID(email.conversationId, email);
+  //   if (res != null) {
+  //     Navigator.push(
+  //       context,
+  //       MaterialPageRoute(
+  //         builder:
+  //             (_) => NewMessageScreen(
+  //               isReplying: true,
+  //               toEmail: (res['thread_mails'] as List<EmailMessage>).last,
+  //             ),
+  //       ),
+  //     );
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -289,229 +289,292 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                         ),
                       ),
                       SizedBox(height: 12),
+                      if (state is EmailLoading && emails.isEmpty)
+                        Center(
+                          child: CircularProgressIndicator(color: Colors.blue),
+                        )
+                      else
+                        Expanded(
+                          child: ListView.builder(
+                            controller: _scrollController,
+                            itemCount: emails.length,
+                            itemBuilder: (context, index) {
+                              EmailThread email = emails[index];
+                              final senderName = _getSenderName(
+                                email.lastSender,
+                              );
+                              final priorityColor = getPriorityColor(
+                                email.priority_score ?? 10,
+                              );
 
-                      // 📩 Email List
-                      Expanded(
-                        child: ListView.builder(
-                          controller: _scrollController,
-                          itemCount: emails.length,
-                          itemBuilder: (context, index) {
-                            final email = emails[index];
-                            final senderName = _getSenderName(email.lastSender);
-                            final priorityColor = getPriorityColor(
-                              email.priority_score ?? 10,
-                            );
+                              final isExpanded =
+                                  expandedStates[email.conversationId] ?? false;
+                              final isLoadingSummary =
+                                  summaryLoadingStates[email.conversationId] ??
+                                  false;
 
-                            final isExpanded =
-                                expandedStates[email.conversationId] ?? false;
-                            final isLoadingSummary =
-                                summaryLoadingStates[email.conversationId] ??
-                                false;
-
-                            return Container(
-                              margin: EdgeInsets.only(bottom: 12),
-                              decoration: BoxDecoration(
-                                color: priorityColor.withValues(
-                                  alpha: 0.65,
-                                ), // Increased opacity to 25%
-                                borderRadius: BorderRadius.circular(14),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black12,
-                                    blurRadius: 4,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                children: [
-                                  ListTile(
-                                    contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
+                              return Container(
+                                margin: EdgeInsets.only(bottom: 12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(14),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black12,
+                                      blurRadius: 4,
+                                      offset: Offset(0, 2),
                                     ),
-                                    onTap: () async {
-                                      String? emailId = email.conversationId;
-                                      if (emailId.isEmpty) {
-                                        showCustomSnackbar(
-                                          title: "Error",
-                                          message: "Invalid email ID.",
-                                          backgroundColor: Colors.red,
-                                        );
-                                        return;
-                                      }
-                                      var threadData =
-                                          await authcontroller.GetThreadbyID(
-                                            emailId,
-                                            email,
-                                          );
-                                      if (threadData != null &&
-                                          threadData.isNotEmpty) {
-                                        Get.to(
-                                          () => EmailDetailScreen(
-                                            threadAndData: threadData,
-                                          ),
-                                        );
-                                      } else {
-                                        showCustomSnackbar(
-                                          title: "Error",
-                                          message:
-                                              "Failed to load email details.",
-                                          backgroundColor: Colors.red,
-                                        );
-                                      }
-                                    },
-                                    leading: CircleAvatar(
-                                      backgroundColor:
-                                          Colors.primaries[(email
-                                                      .lastSender
-                                                      ?.hashCode ??
-                                                  0) %
-                                              Colors.primaries.length],
-                                      child: Text(
-                                        senderName.isNotEmpty
-                                            ? senderName[0].toUpperCase()
-                                            : "U",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                    title: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          senderName,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        SizedBox(height: 6),
-                                      ],
-                                    ),
-                                    subtitle: Padding(
-                                      padding: const EdgeInsets.only(top: 8.0),
-                                      child: Text(
-                                        email.subject ?? "No Subject",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w900,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    trailing: ConstrainedBox(
-                                      constraints: BoxConstraints(
-                                        maxWidth: 120, // Prevent overflow
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          if (email.hasAttachments)
-                                            Padding(
-                                              padding: const EdgeInsets.only(
-                                                right: 8.0,
-                                              ),
-                                              child: Icon(
-                                                Icons.attach_file,
-                                                size: 18,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          Text(
-                                            email.lastEmailAt != null
-                                                ? formatEmailDate(
-                                                  email.lastEmailAt!
-                                                      .toIso8601String(),
-                                                )
-                                                : "",
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                          IconButton(
-                                            icon: Icon(
-                                              isExpanded
-                                                  ? Icons.keyboard_arrow_up
-                                                  : Icons.keyboard_arrow_down,
-                                              color: Colors.white,
-                                              size: 20,
-                                            ),
-                                            padding: EdgeInsets.zero,
-                                            constraints: BoxConstraints(),
-                                            onPressed: () {
-                                              _toggleExpandEmail(
-                                                email.conversationId,
-                                              );
-                                              if (isExpanded &&
-                                                  (email.summary == null ||
-                                                      email.summary!.isEmpty)) {
-                                                _loadSummary(email);
-                                              }
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-
-                                  if (isExpanded)
+                                  ],
+                                ),
+                                child: Column(
+                                  children: [
                                     Container(
-                                      padding: EdgeInsets.only(
-                                        top: 16.0,
-                                        left: 16.0,
-                                        right: 16.0,
-                                        bottom: 8,
-                                        // vertical: 12.0,
-                                      ),
-                                      margin: EdgeInsets.only(top: 12),
                                       decoration: BoxDecoration(
-                                        color: priorityColor.withValues(
-                                          alpha: 0.65,
+                                        border:
+                                            (email.priority_score ?? 10) >=
+                                                        80 &&
+                                                    (email.unreadCount ?? 0) !=
+                                                        0
+                                                ? BorderDirectional(
+                                                  start: BorderSide(
+                                                    color: Colors.redAccent,
+                                                    width: 6,
+                                                  ),
+                                                )
+                                                : null,
+
+                                        borderRadius: BorderRadius.only(
+                                          topLeft: Radius.circular(12),
+                                          topRight: Radius.circular(12),
+                                          bottomLeft: Radius.circular(
+                                            isExpanded ? 0 : 12,
+                                          ),
+                                          bottomRight: Radius.circular(
+                                            isExpanded ? 0 : 12,
+                                          ),
                                         ),
-                                        borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            "Summary:",
+                                      child: ListTile(
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
+                                        ),
+                                        onTap: () async {
+                                          setState(() {
+                                            int index = emails.indexOf(email);
+                                            if (index != -1) {
+                                              emails[index] = email.copyWith(
+                                                unreadCount: 0,
+                                              );
+                                            }
+                                          });
+                                          String? emailId =
+                                              email.conversationId;
+                                          if (emailId.isEmpty) {
+                                            showCustomSnackbar(
+                                              title: "Error",
+                                              message: "Invalid email ID.",
+                                              backgroundColor: Colors.red,
+                                            );
+                                            return;
+                                          }
+                                          var threadData =
+                                              await authcontroller.GetThreadbyID(
+                                                emailId,
+                                                email,
+                                              );
+                                          if (threadData != null &&
+                                              threadData.isNotEmpty) {
+                                            Get.to(
+                                              () => EmailDetailScreen(
+                                                threadAndData: threadData,
+                                              ),
+                                            );
+                                          } else {
+                                            showCustomSnackbar(
+                                              title: "Error",
+                                              message:
+                                                  "Failed to load email details.",
+                                              backgroundColor: Colors.red,
+                                            );
+                                          }
+                                        },
+                                        leading: CircleAvatar(
+                                          backgroundColor:
+                                              Colors.primaries[(email
+                                                          .lastSender
+                                                          ?.hashCode ??
+                                                      0) %
+                                                  Colors.primaries.length],
+                                          child: Text(
+                                            senderName.isNotEmpty
+                                                ? senderName[0].toUpperCase()
+                                                : "U",
                                             style: TextStyle(
-                                              fontWeight: FontWeight.bold,
                                               color: Colors.white,
-                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
                                             ),
                                           ),
-                                          SizedBox(height: 8),
-                                          isLoadingSummary
-                                              ? Center(
-                                                child:
-                                                    CircularProgressIndicator(),
-                                              )
-                                              : Text(
-                                                email.summary ??
-                                                    "No summary available",
+                                        ),
+                                        title: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              senderName,
+                                              style: TextStyle(
+                                                color: Colors.black,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                            SizedBox(height: 6),
+                                          ],
+                                        ),
+                                        subtitle: Padding(
+                                          padding: const EdgeInsets.only(
+                                            top: 8.0,
+                                          ),
+                                          child: Text(
+                                            email.subject ?? "No Subject",
+                                            style: TextStyle(
+                                              color: Colors.black,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        trailing: ConstrainedBox(
+                                          constraints: BoxConstraints(
+                                            maxWidth: 120, // Prevent overflow
+                                          ),
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceAround,
+                                            children: [
+                                              Text(
+                                                (email.totalCount ?? 0)
+                                                    .toString(),
                                                 style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.w700,
-                                                  fontSize: 14,
+                                                  color: priorityColor,
+                                                  fontWeight: FontWeight.w800,
+                                                  fontSize: 13,
                                                 ),
                                               ),
-                                        ],
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    email.lastEmailAt != null
+                                                        ? formatEmailDate(
+                                                          email.lastEmailAt!
+                                                              .toIso8601String(),
+                                                        )
+                                                        : "",
+                                                    style: TextStyle(
+                                                      color: Colors.black,
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                  IconButton(
+                                                    icon: Icon(
+                                                      isExpanded
+                                                          ? Icons
+                                                              .keyboard_arrow_up
+                                                          : Icons
+                                                              .keyboard_arrow_down,
+                                                      color: Colors.black,
+                                                      size: 20,
+                                                    ),
+                                                    padding: EdgeInsets.zero,
+                                                    constraints:
+                                                        BoxConstraints(),
+                                                    onPressed: () {
+                                                      _toggleExpandEmail(
+                                                        email.conversationId,
+                                                      );
+                                                      if (isExpanded &&
+                                                          (email.summary ==
+                                                                  null ||
+                                                              email
+                                                                  .summary!
+                                                                  .isEmpty)) {
+                                                        _loadSummary(email);
+                                                      }
+                                                    },
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                ],
-                              ),
-                            );
-                          },
+
+                                    if (isExpanded)
+                                      Container(
+                                        padding: EdgeInsets.only(
+                                          top: 16.0,
+                                          left: 16.0,
+                                          right: 16.0,
+                                          bottom: 8,
+                                          // vertical: 12.0,
+                                        ),
+                                        margin: EdgeInsets.only(top: 12),
+                                        decoration: BoxDecoration(
+                                          color: const Color.fromRGBO(
+                                            255,
+                                            255,
+                                            255,
+                                            1,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              "Summary:",
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.black,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                            SizedBox(height: 8),
+                                            isLoadingSummary
+                                                ? Center(
+                                                  child:
+                                                      CircularProgressIndicator(),
+                                                )
+                                                : Text(
+                                                  email.summary ??
+                                                      "No summary available",
+                                                  style: TextStyle(
+                                                    color: Colors.black,
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 14,
+                                                  ),
+                                                ),
+                                          ],
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
                         ),
-                      ),
+                      SizedBox(height: 20),
+                      if (state is EmailLoading && emails.isNotEmpty)
+                        Center(
+                          child: CircularProgressIndicator(color: Colors.blue),
+                        ),
+                      SizedBox(height: 5),
                     ],
                   ),
                 ),
@@ -524,7 +587,7 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                   right: 16,
                   child: FloatingActionButton(
                     mini: true,
-                    backgroundColor: Colors.grey[800],
+                    backgroundColor: Colors.blue[600],
                     onPressed: _scrollToTop,
                     child: Icon(Icons.arrow_upward, color: Colors.white),
                   ),

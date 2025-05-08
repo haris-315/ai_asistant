@@ -13,6 +13,7 @@ import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 import com.example.openai.SharedData
+import com.example.openai.ServiceManager
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.example.ai_assistant/stt"
@@ -24,7 +25,8 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         messenger = flutterEngine.dartExecutor.binaryMessenger
-
+        ServiceManager.serviceChannelName = CHANNEL
+        ServiceManager.resultEventChannel = EVENT_CHANNEL
         // Method channel for control commands
         MethodChannel(messenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
@@ -35,6 +37,8 @@ class MainActivity : FlutterActivity() {
                     SharedData.authToken = authToken
                     SharedData.projects = projects
 
+                    ServiceManager.isBound = true
+                    ServiceManager.isStoped = false
                     Log.d("MainActivity", "Received auth and projects")
 
                     if (checkAudioPermission()) {
@@ -46,6 +50,7 @@ class MainActivity : FlutterActivity() {
                 }
 
                 "stopListening" -> {
+                    ServiceManager.isStoped = true
                     stopSpeechService()
                     result.success(true)
                 }

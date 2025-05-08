@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat
 import com.example.openai.OpenAIClient
 import com.example.openai.SharedData
 import com.example.tts_helper.TextToSpeechHelper
+import com.example.openai.ServiceManager
 
 class SpeechRecognitionService : Service() {
     private lateinit var speechRecognizer: SpeechRecognizer
@@ -93,11 +94,13 @@ class SpeechRecognitionService : Service() {
                 when {
                     text.contains("standby") -> {
                         isStandby = true
+                        ServiceManager.isStandBy = true
                         ttsHelper.speak("Going into standby mode")
                         Log.d("Jarvis", "Switched to standby")
                     }
                     text.contains("hey jarvis") -> {
                         isStandby = false
+                        ServiceManager.isStandBy = false
                         ttsHelper.speak("I'm listening")
                         Log.d("Jarvis", "Activated from standby")
                     }

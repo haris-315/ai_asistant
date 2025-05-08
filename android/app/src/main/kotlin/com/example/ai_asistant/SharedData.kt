@@ -1,4 +1,3 @@
-// SharedData.kt
 package com.example.openai
 
 object SharedData {
