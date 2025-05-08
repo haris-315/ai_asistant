@@ -468,6 +468,7 @@ class AuthController extends GetxController {
         );
         return;
       } else {
+        print(response);
         List<EmailThread> threads =
             (response as List).map((e) => EmailThread.fromJson(e)).toList();
 

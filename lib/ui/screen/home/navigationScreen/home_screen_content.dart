@@ -1,13 +1,18 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:ai_asistant/Controller/auth_Controller.dart';
 import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:ai_asistant/core/shared/constants.dart';
 import 'package:ai_asistant/core/shared/functions/is_today.dart';
+import 'package:ai_asistant/data/models/threadmodel.dart';
+import 'package:ai_asistant/state_mgmt/email/cubit/email_cubit.dart';
 import 'package:ai_asistant/ui/screen/home/chat_screen.dart';
 import 'package:ai_asistant/ui/screen/home/emails/all_email_screen.dart';
 import 'package:ai_asistant/ui/screen/soonToBeDeleted.dart';
 import 'package:ai_asistant/ui/screen/task/create_task_sheet.dart';
 import 'package:ai_asistant/ui/screen/task/task_parent_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get/get.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
@@ -28,9 +33,10 @@ class _HomeContentState extends State<HomeContent> {
       return;
     }
     handleLoading();
+    context.read<EmailCubit>().getEmails();
+
     await authController.fetchTask(initialLoad: true);
     await authController.fetchProject(isInitialFetch: true);
-    await authController.fetchEmails(isInitialLoad: true);
     handleLoading();
   }
 
@@ -71,8 +77,10 @@ class _HomeContentState extends State<HomeContent> {
                       tasks.isEmpty
                           ? 0
                           : ((completedCount / tasks.length) * 100).round();
-                  final todayMails = authController.emailMessages.where(
-                    (e) => isToday(e.receivedAt),
+                  List<EmailThread> mails =
+                      context.watch<EmailCubit>().allEmails;
+                  final todayMails = mails.where(
+                    (e) => isToday(e.lastEmailAt ?? DateTime(1999)),
                   );
                   return Wrap(
                     children: [
@@ -138,24 +146,23 @@ class _HomeContentState extends State<HomeContent> {
                   ),
                   child: Column(
                     children: [
-
                       ListTile(
                         leading: Icon(Icons.assistant, color: Colors.blue),
                         title: Text("Assistant"),
                         trailing: Icon(Icons.arrow_forward_ios),
                         onTap:
-                        isSomeThingLoading
-                            ? null
-                            : () {
-                          handleLoading();
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => Soontobedeleted(),
-                            ),
-                          );
-                          handleLoading();
-                        },
+                            isSomeThingLoading
+                                ? null
+                                : () {
+                                  handleLoading();
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => Soontobedeleted(),
+                                    ),
+                                  );
+                                  handleLoading();
+                                },
                       ),
                       ListTile(
                         leading: Icon(MdiIcons.briefcase, color: Colors.blue),

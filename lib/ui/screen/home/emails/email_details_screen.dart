@@ -2,6 +2,7 @@ import 'package:ai_asistant/ui/screen/home/emails/newemail_screen.dart';
 import 'package:ai_asistant/ui/screen/home/emails/summarization_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:html/parser.dart' show parse;
 import 'package:responsive_sizer/responsive_sizer.dart';
 
 import '../../../../data/models/emails/threadDetail.dart';
@@ -26,17 +27,19 @@ class EmailDetailScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          "AI Assistant",
+          threadAndData['thread'].subject ?? "No Subject",
           style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.notifications, color: colorScheme.onSurface),
-            onPressed: () => print("Notification Clicked!"),
+            icon: Icon(Icons.star_border, color: colorScheme.onSurface),
+            onPressed: () => print("Star Thread Clicked!"),
+            tooltip: 'Star Thread',
           ),
           IconButton(
-            icon: Icon(Icons.person, color: colorScheme.onSurface),
-            onPressed: () => print("Profile Clicked!"),
+            icon: Icon(Icons.notifications, color: colorScheme.onSurface),
+            onPressed: () => print("Notification Clicked!"),
+            tooltip: 'Notifications',
           ),
         ],
       ),
@@ -46,7 +49,14 @@ class EmailDetailScreen extends StatelessWidget {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                ...emails.map((email) => _buildEmailMessage(context, email)),
+                ...emails.asMap().entries.map(
+                  (entry) => _buildEmailMessage(
+                    context,
+                    entry.value,
+                    entry.key,
+                    emails.length,
+                  ),
+                ),
                 SizedBox(height: 5.h),
                 if (emails.isNotEmpty &&
                     emails.last.quick_replies != null &&
@@ -64,7 +74,7 @@ class EmailDetailScreen extends StatelessWidget {
               color: colorScheme.surface,
               border: Border(
                 top: BorderSide(
-                  color: colorScheme.outline.withValues(alpha: 0.1),
+                  color: colorScheme.outline.withOpacity(0.1),
                   width: 1,
                 ),
               ),
@@ -82,7 +92,8 @@ class EmailDetailScreen extends StatelessWidget {
                       Get.to(
                         () => NewMessageScreen(
                           isReplying: true,
-                          toEmail: threadAndData['thread_mails'].first,
+                          toEmail: emails.last,
+                          subject: threadAndData['thread'].subject,
                         ),
                       );
                     },
@@ -111,18 +122,23 @@ class EmailDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmailMessage(BuildContext context, EmailMessage email) {
+  Widget _buildEmailMessage(
+    BuildContext context,
+    EmailMessage email,
+    int index,
+    int totalEmails,
+  ) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
     final colorScheme = theme.colorScheme;
-    final isLastEmail = email == threadAndData['thread_mails'].last;
+    final isLastEmail = index == totalEmails - 1;
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: colorScheme.outline.withValues(alpha: 0.1),
+            color: colorScheme.outline.withOpacity(0.1),
             width: 1,
           ),
         ),
@@ -130,7 +146,6 @@ class EmailDetailScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Sender info and actions
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -138,8 +153,8 @@ class EmailDetailScreen extends StatelessWidget {
                 radius: 20,
                 backgroundColor: _getAvatarColor(email.senderName),
                 child: Text(
-                  (email.senderName.toString().isNotEmpty)
-                      ? email.senderName.toString()[0].toUpperCase()
+                  email.senderName.isNotEmpty
+                      ? email.senderName[0].toUpperCase()
                       : "?",
                   style: textTheme.titleLarge?.copyWith(
                     color: colorScheme.onPrimary,
@@ -154,11 +169,15 @@ class EmailDetailScreen extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(
-                            email.senderName.toString(),
-                            style: textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
+                          child: Row(
+                            children: [
+                              Text(
+                                email.senderName,
+                                style: textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         Row(
@@ -167,9 +186,7 @@ class EmailDetailScreen extends StatelessWidget {
                             Text(
                               _formatDate(email.receivedAt),
                               style: textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurface.withValues(
-                                  alpha: 0.6,
-                                ),
+                                color: colorScheme.onSurface.withOpacity(0.6),
                               ),
                             ),
                             PopupMenuButton<String>(
@@ -179,6 +196,7 @@ class EmailDetailScreen extends StatelessWidget {
                                     () => NewMessageScreen(
                                       isReplying: true,
                                       toEmail: email,
+                                      subject: email.subject,
                                     ),
                                   );
                                 } else if (value == 'forward') {
@@ -210,27 +228,23 @@ class EmailDetailScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-
                     Row(
                       children: [
                         SizedBox(width: 6),
                         Icon(Icons.subdirectory_arrow_right_rounded, size: 22),
                         Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               "from ${email.sender}",
                               style: textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurface.withValues(
-                                  alpha: 0.6,
-                                ),
+                                color: colorScheme.onSurface.withOpacity(0.6),
                               ),
                             ),
                             Text(
                               "to ${email.recipients.join(', ')}",
                               style: textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurface.withValues(
-                                  alpha: 0.6,
-                                ),
+                                color: colorScheme.onSurface.withOpacity(0.6),
                               ),
                             ),
                           ],
@@ -243,7 +257,6 @@ class EmailDetailScreen extends StatelessWidget {
             ],
           ),
           SizedBox(height: 2.h),
-
           if (email.subject.isNotEmpty)
             Padding(
               padding: EdgeInsets.only(bottom: 1.h),
@@ -254,24 +267,14 @@ class EmailDetailScreen extends StatelessWidget {
                 ),
               ),
             ),
-
           Padding(
             padding: EdgeInsets.symmetric(vertical: 0.8.h),
-            child: Text(
-              email.bodyPreview,
-              style: textTheme.bodyMedium?.copyWith(
-                height: 1.6,
-                fontSize: 14,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
+            child: _buildEmailBody(email.bodyHtml),
           ),
-
           if (email.hasAttachments) ...[
             SizedBox(height: 2.h),
-            _buildAttachmentSection(context),
+            _buildAttachmentSection(context, email),
           ],
-
           if (isLastEmail)
             Padding(
               padding: EdgeInsets.only(top: 2.h),
@@ -280,8 +283,11 @@ class EmailDetailScreen extends StatelessWidget {
                   OutlinedButton.icon(
                     onPressed: () {
                       Get.to(
-                        () =>
-                            NewMessageScreen(isReplying: true, toEmail: email),
+                        () => NewMessageScreen(
+                          isReplying: true,
+                          toEmail: email,
+                          subject: email.subject,
+                        ),
                       );
                     },
                     icon: Icon(Icons.reply, size: 18),
@@ -292,14 +298,14 @@ class EmailDetailScreen extends StatelessWidget {
                         vertical: 1.h,
                       ),
                       side: BorderSide(
-                        color: colorScheme.outline.withValues(alpha: 0.5),
+                        color: colorScheme.outline.withOpacity(0.5),
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                   ),
-                  SizedBox(width: 10),
+                  SizedBox(width: 2.w),
                   OutlinedButton.icon(
                     onPressed: () {
                       Get.to(
@@ -317,7 +323,7 @@ class EmailDetailScreen extends StatelessWidget {
                         vertical: 1.h,
                       ),
                       side: BorderSide(
-                        color: colorScheme.outline.withValues(alpha: 0.5),
+                        color: colorScheme.outline.withOpacity(0.5),
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -330,6 +336,23 @@ class EmailDetailScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildEmailBody(String htmlContent) {
+    final plainText = _stripHtmlTags(htmlContent);
+    return Text(
+      plainText,
+      style: TextStyle(
+        height: 1.6,
+        fontSize: 14,
+        fontWeight: FontWeight.normal,
+      ),
+    );
+  }
+
+  String _stripHtmlTags(String htmlString) {
+    final document = parse(htmlString);
+    return document.body?.text.trim() ?? htmlString;
   }
 
   Widget _buildQuickRepliesSection(
@@ -348,7 +371,7 @@ class EmailDetailScreen extends StatelessWidget {
             "Quick Replies",
             style: theme.textTheme.bodyLarge?.copyWith(
               fontWeight: FontWeight.w600,
-              color: colorScheme.onSurface.withValues(alpha: 0.8),
+              color: colorScheme.onSurface.withOpacity(0.8),
             ),
           ),
           SizedBox(height: 1.5.h),
@@ -363,8 +386,9 @@ class EmailDetailScreen extends StatelessWidget {
                       Get.to(
                         () => NewMessageScreen(
                           isReplying: true,
-                          toEmail: threadAndData['thread_mails'].first,
+                          toEmail: threadAndData['thread_mails'].last,
                           body: reply.toString(),
+                          subject: threadAndData['thread'].subject,
                         ),
                       );
                     },
@@ -377,11 +401,11 @@ class EmailDetailScreen extends StatelessWidget {
                         color: colorScheme.surface,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: colorScheme.outline.withValues(alpha: 0.5),
+                          color: colorScheme.outline.withOpacity(0.5),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.14),
+                            color: Colors.black.withOpacity(0.14),
                             blurRadius: 4,
                             offset: Offset(0, 2),
                           ),
@@ -390,9 +414,9 @@ class EmailDetailScreen extends StatelessWidget {
                       child: Text(
                         reply.toString(),
                         style: theme.textTheme.bodyLarge?.copyWith(
-                          color: Colors.black.withValues(alpha: .8),
+                          color: Colors.black.withOpacity(0.8),
                           fontSize: 12,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -404,7 +428,7 @@ class EmailDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAttachmentSection(BuildContext context) {
+  Widget _buildAttachmentSection(BuildContext context, EmailMessage email) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -413,7 +437,7 @@ class EmailDetailScreen extends StatelessWidget {
         Container(
           padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.5.h),
           decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+            color: colorScheme.surfaceContainerHighest.withOpacity(0.4),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -424,13 +448,7 @@ class EmailDetailScreen extends StatelessWidget {
                 size: 18,
                 color: colorScheme.onSurfaceVariant,
               ),
-              SizedBox(width: 2.w),
-              Text(
-                "Attachment.pdf",
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
+
               SizedBox(width: 2.w),
               Icon(
                 Icons.download,
@@ -456,7 +474,7 @@ class EmailDetailScreen extends StatelessWidget {
     return TextButton(
       onPressed: onPressed,
       style: TextButton.styleFrom(
-        foregroundColor: colorScheme.onSurface.withValues(alpha: 0.8),
+        foregroundColor: colorScheme.onSurface.withOpacity(0.8),
         padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
       ),
       child: Column(
@@ -470,7 +488,7 @@ class EmailDetailScreen extends StatelessWidget {
     );
   }
 
-  Color _getAvatarColor(dynamic sender) {
+  Color _getAvatarColor(String? sender) {
     final colors = [
       Colors.blue.shade700,
       Colors.red.shade700,
@@ -479,7 +497,7 @@ class EmailDetailScreen extends StatelessWidget {
       Colors.orange.shade700,
       Colors.indigo.shade700,
     ];
-    final safeSender = sender?.toString() ?? "default";
+    final safeSender = sender ?? "default";
     return colors[safeSender.hashCode % colors.length];
   }
 
@@ -508,8 +526,13 @@ From: ${email.sender}
 To: ${email.recipients.join(', ')}
 Subject: ${email.subject}
 
-${email.bodyPreview}
+${_stripHtmlTags(email.bodyHtml)}
 ''';
       })
       .join('\n\n');
+}
+
+String _stripHtmlTags(String htmlString) {
+  final document = parse(htmlString);
+  return document.body?.text.trim() ?? htmlString;
 }

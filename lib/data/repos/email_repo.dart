@@ -16,6 +16,7 @@ class EmailRepo {
       );
 
       if (response.statusCode == 200) {
+        print(response);
         List<EmailThread> threads =
             (response.data as List)
                 .map((e) => EmailThread.fromJson(e))

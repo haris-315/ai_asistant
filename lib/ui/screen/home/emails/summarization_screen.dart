@@ -9,7 +9,7 @@ class EmailSummaryScreen extends StatelessWidget {
   const EmailSummaryScreen({
     super.key,
     required this.summary,
-    required this.topic,
+     this.topic = "Summary",
   });
 
   @override

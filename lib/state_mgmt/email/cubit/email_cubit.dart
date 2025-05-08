@@ -11,7 +11,7 @@ class EmailCubit extends Cubit<EmailState> {
   int numOfGotMails = 0;
   bool hasReachedEnd = false;
 
-  List<EmailThread> _allEmails = [];
+  List<EmailThread> allEmails = [];
 
   EmailCubit() : super(EmailInitial());
 
@@ -24,16 +24,16 @@ class EmailCubit extends Cubit<EmailState> {
       );
 
       if (loadAgain) {
-        _allEmails = res;
+        allEmails = res;
         numOfGotMails = res.length;
       } else {
-        _allEmails.addAll(res);
+        allEmails.addAll(res);
         numOfGotMails += res.length;
       }
 
       hasReachedEnd = res.length < 6;
 
-      emit(EmailSuccess(emails: _allEmails, hasReachedEnd: hasReachedEnd));
+      emit(EmailSuccess(emails: allEmails, hasReachedEnd: hasReachedEnd));
     } on DioException catch (de) {
       if (de.type == DioExceptionType.connectionError) {
         emit(EmailError(
@@ -75,11 +75,11 @@ class EmailCubit extends Cubit<EmailState> {
         query: query,
       );
 
-      _allEmails = res;
+      allEmails = res;
       numOfGotMails = res.length;
       hasReachedEnd = res.length < 15;
 
-      emit(EmailSuccess(emails: _allEmails, hasReachedEnd: hasReachedEnd));
+      emit(EmailSuccess(emails: allEmails, hasReachedEnd: hasReachedEnd));
     } catch (e) {
       emit(EmailError(message: e.toString()));
     }

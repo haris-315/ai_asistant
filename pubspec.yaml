@@ -64,6 +64,7 @@ dependencies:
   jumping_dot: ^0.0.7
   flutter_html: ^3.0.0
   material_design_icons_flutter: ^7.0.7296
+  html: ^0.15.6
 dev_dependencies:
   flutter_test:
     sdk: flutter

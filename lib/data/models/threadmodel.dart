@@ -14,12 +14,14 @@ class EmailThread {
   final String? extracted_tasks;
   final int? unreadCount;
   final int? totalCount;
+  final bool hasAttachments;
   final int? priority_score;
   final String? importance;
   final List<String>? quick_replies;
 
-  EmailThread({
+  EmailThread( {
     required this.conversationId,
+    required this.hasAttachments,
     this.subject,
     this.is_processing,
     this.extracted_tasks,
@@ -52,7 +54,7 @@ class EmailThread {
       extracted_tasks: json['extracted_tasks'] ?? "",
       priority_score: json['priority_score'],
       importance: json['importance'],
-      quick_replies: json['quick_replies']
+      quick_replies: json['quick_replies'], hasAttachments: json['has_attachments'] ?? false
     );
   }
 
@@ -93,7 +95,7 @@ class EmailThread {
       totalCount: totalCount ?? this.totalCount,
       priority_score: priority_score ?? this.priority_score,
       importance: importance ?? this.importance,
-      quick_replies: quick_replies ?? this.quick_replies,
+      quick_replies: quick_replies ?? this.quick_replies, hasAttachments: hasAttachments,
     );
   }
 }
