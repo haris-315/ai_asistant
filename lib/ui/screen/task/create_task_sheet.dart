@@ -1,4 +1,7 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:ai_asistant/Controller/auth_Controller.dart';
+import 'package:ai_asistant/data/models/projects/section_model.dart';
 import 'package:ai_asistant/data/models/projects/task_model.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -16,7 +19,8 @@ class TaskCreateEditSheet extends StatefulWidget {
 class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
   final _formKey = GlobalKey<FormState>();
   final _authController = Get.find<AuthController>();
-
+  bool areSectionsLoading = false;
+  List<SectionModel> sections = [];
   final _contentController = TextEditingController();
   final _descriptionController = TextEditingController();
 
@@ -171,6 +175,7 @@ class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
                       _buildProjectChip(),
                       _buildStatusChip(),
                       _buildDetailsChip(),
+                      _buildSectionChip(),
                     ],
                   ),
 
@@ -210,6 +215,13 @@ class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
                           maxLines: 3,
                           style: theme.textTheme.bodyLarge,
                         ),
+                        const SizedBox(height: 16),
+                        if (areSectionsLoading)
+                          Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.blue,
+                            ),
+                          ),
                         const SizedBox(height: 16),
                       ],
                     ),
@@ -319,6 +331,36 @@ class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
     );
   }
 
+  Widget _buildSectionChip() {
+    final color = Colors.cyanAccent;
+    final section =
+        _sectionId != null
+            ? _authController.sections.firstWhereOrNull(
+              (s) => s.id == _sectionId,
+            )
+            : null;
+
+    return ActionChip(
+      label: Text(
+        section != null ? section.name : 'Section',
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      backgroundColor: color.withValues(alpha: 0.2),
+      avatar: Icon(Icons.view_kanban, color: color),
+      onPressed: () async {
+        await loadSections();
+        _showSectionPicker(sections);
+      },
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: color.withValues(alpha: 0.5)),
+      ),
+    );
+  }
+
   void _showPrioritySelector() {
     showModalBottomSheet(
       context: context,
@@ -339,7 +381,7 @@ class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildPriorityOption(1, 'Low', Colors.greenAccent),
+                    _buildPriorityOption(1, 'Low', Colors.green),
                     _buildPriorityOption(2, 'Medium', Colors.orangeAccent),
                     _buildPriorityOption(3, 'High', Colors.redAccent),
                   ],
@@ -417,7 +459,11 @@ class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
                         ),
                         title: Text(project.name),
                         onTap: () {
-                          setState(() => _projectId = project.id);
+                          setState(() {
+                            _projectId = project.id;
+                            _sectionId =
+                                null; // Reset section when project changes
+                          });
                           Navigator.pop(context);
                         },
                         trailing:
@@ -431,6 +477,88 @@ class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
               ),
             ],
           ),
+    );
+  }
+
+  Future<List<SectionModel>> loadSections() async {
+    setState(() {
+      areSectionsLoading = true;
+    });
+    sections = await _authController.loadProjectSectionsid(_projectId) ?? [];
+    setState(() {
+      areSectionsLoading = false;
+    });
+    return sections;
+  }
+
+  void _showSectionPicker(List<SectionModel> sections) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder:
+          (context) =>
+              areSectionsLoading
+                  ? Center(child: CircularProgressIndicator(color: Colors.blue))
+                  : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          'Select Section',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                      ),
+                      Flexible(
+                        child: ListView(
+                          shrinkWrap: true,
+                          children: [
+                            ListTile(
+                              leading: Icon(
+                                Icons.clear,
+                                color: Colors.grey.shade400,
+                              ),
+                              title: Text('No Section'),
+                              onTap: () {
+                                setState(() => _sectionId = null);
+                                Navigator.pop(context);
+                              },
+                              trailing:
+                                  _sectionId == null
+                                      ? const Icon(
+                                        Icons.check,
+                                        color: Colors.cyan,
+                                      )
+                                      : null,
+                            ),
+                            if (sections.isNotEmpty)
+                              ...sections.map((section) {
+                                return ListTile(
+                                  leading: Icon(
+                                    Icons.view_kanban,
+                                    color: Colors.cyan.shade400,
+                                  ),
+                                  title: Text(section.name),
+                                  onTap: () {
+                                    setState(() => _sectionId = section.id);
+                                    Navigator.pop(context);
+                                  },
+                                  trailing:
+                                      _sectionId == section.id
+                                          ? const Icon(
+                                            Icons.check,
+                                            color: Colors.cyan,
+                                          )
+                                          : null,
+                                );
+                              }),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
     );
   }
 

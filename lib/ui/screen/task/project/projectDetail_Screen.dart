@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:ai_asistant/data/models/projects/project_model.dart';
+import 'package:ai_asistant/data/models/projects/section_model.dart';
 import 'package:ai_asistant/data/models/projects/task_model.dart';
 import 'package:ai_asistant/ui/screen/task/task_detail_screen.dart';
 import 'package:flutter/material.dart';
@@ -14,9 +15,7 @@ import 'create_edit_ProjectScreen.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   final Project project;
-
   const ProjectDetailScreen({super.key, required this.project});
-
   @override
   State<ProjectDetailScreen> createState() => _ProjectDetailScreenState();
 }
@@ -40,31 +39,303 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   }
 
   final AuthController controller = Get.find<AuthController>();
-  late List<TaskModel> tasks;
+  List<TaskModel> tasks = [];
+  bool isLoadingSections = true;
+  bool isSectionOperationInProgress = false;
+  List<SectionModel> sections = [];
+  String? selectedSectionId;
+  final TextEditingController _sectionNameController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    _fetchSections();
+  }
+
+  Future<void> _fetchSections() async {
+    setState(() {
+      isLoadingSections = true;
+    });
+    sections = await controller.loadProjectSectionsid(widget.project.id) ?? [];
     tasks =
         controller.task
             .where((t) => t.project_id == widget.project.id)
             .toList();
+    setState(() {
+      isLoadingSections = false;
+    });
   }
 
   Future<void> _refreshTasks() async {
     await controller.fetchTask();
-    setState(() {
-      tasks =
-          controller.task
-              .where((t) => t.project_id == widget.project.id)
-              .toList();
-    });
+    await _fetchSections();
+  }
+
+  void _showSectionDialog({SectionModel? section}) {
+    _sectionNameController.text = section?.name ?? '';
+    showDialog(
+      context: context,
+      builder:
+          (context) => StatefulBuilder(
+            builder: (context, setState) {
+              return Dialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                elevation: 8,
+                child: Container(
+                  padding: EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        section == null ? 'New Section' : 'Edit Section',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade800,
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      TextField(
+                        controller: _sectionNameController,
+                        decoration: InputDecoration(
+                          labelText: 'Section Name',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(
+                              color: getColorFromName(widget.project.color),
+                            ),
+                          ),
+                          labelStyle: TextStyle(color: Colors.grey.shade600),
+                        ),
+                        style: TextStyle(color: Colors.black),
+                      ),
+                      SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed:
+                                isSectionOperationInProgress
+                                    ? null
+                                    : () => Navigator.pop(context),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.grey.shade600,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
+                            child: Text('Cancel'),
+                          ),
+                          SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed:
+                                isSectionOperationInProgress
+                                    ? null
+                                    : () async {
+                                      if (_sectionNameController
+                                          .text
+                                          .isNotEmpty) {
+                                        setState(() {
+                                          isSectionOperationInProgress = true;
+                                        });
+                                        try {
+                                          if (section == null) {
+                                            // Add new section
+                                            final newSections = await controller
+                                                .createSection(
+                                                  SectionModel(
+                                                    name:
+                                                        _sectionNameController
+                                                            .text
+                                                            .trim(),
+                                                    project_id:
+                                                        widget.project.id,
+                                                    id: 0,
+                                                  ),
+                                                );
+                                            if (newSections != null) {
+                                              setState(() {
+                                                sections = newSections;
+                                              });
+                                              Navigator.pop(context);
+                                            }
+                                          } else {
+                                            // Update existing section
+                                            final updatedSections =
+                                                await controller.updateSection(
+                                                  section.copyWith(
+                                                    name:
+                                                        _sectionNameController
+                                                            .text
+                                                            .trim(),
+                                                  ),
+                                                );
+                                            if (updatedSections != null) {
+                                              setState(() {
+                                                sections = updatedSections;
+                                              });
+                                              Navigator.pop(context);
+                                            }
+                                          }
+                                        } finally {
+                                          setState(() {
+                                            isSectionOperationInProgress =
+                                                false;
+                                          });
+                                        }
+                                      }
+                                    },
+                            style: ElevatedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              backgroundColor: getColorFromName(
+                                widget.project.color,
+                              ),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child:
+                                isSectionOperationInProgress
+                                    ? SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                    : Text('Save'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+    );
+  }
+
+  void _showSectionOptions(SectionModel section) {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder:
+          (context) => Container(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                ListTile(
+                  leading: Icon(Icons.edit, color: Colors.blue),
+                  title: Text('Edit', style: TextStyle(color: Colors.blue)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showSectionDialog(section: section);
+                  },
+                ),
+                Divider(height: 1),
+                ListTile(
+                  leading: Icon(Icons.delete, color: Colors.red),
+                  title: Text('Delete', style: TextStyle(color: Colors.red)),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final shouldDelete = await showDialog(
+                      context: context,
+                      builder:
+                          (context) => AlertDialog(
+                            title: Text("Confirm Delete"),
+                            content: Text(
+                              "Are you sure you want to delete this section?",
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: Text("Cancel"),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: Text(
+                                  "Delete",
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
+                          ),
+                    );
+                    if (shouldDelete == true) {
+                      setState(() {
+                        isSectionOperationInProgress = true;
+                      });
+                      try {
+                        final newSections = await controller.deleteSection(
+                          section,
+                        );
+                        if (newSections != null) {
+                          setState(() {
+                            sections = newSections;
+                            if (selectedSectionId == section.id.toString()) {
+                              selectedSectionId = null;
+                            }
+                          });
+                        }
+                      } finally {
+                        setState(() {
+                          isSectionOperationInProgress = false;
+                        });
+                      }
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final isFavorite = widget.project.isFavorite == true;
     final color = getColorFromName(widget.project.color);
+    final filteredTasks =
+        selectedSectionId == null
+            ? tasks
+            : tasks
+                .where(
+                  (task) => task.section_id.toString() == selectedSectionId,
+                )
+                .toList();
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -80,17 +351,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
         ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
-              color: isFavorite ? Colors.amber : Colors.white,
-            ),
-            onPressed: () {
-              // toggle favorite logic
-            },
-          ),
-        ],
       ),
       body: RefreshIndicator(
         onRefresh: _refreshTasks,
@@ -256,11 +516,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                                                   .addPostFrameCallback((_) {
                                                     Navigator.pop(context);
                                                   });
-                                               await controller
-                                                  .deleteProject(
-                                                    widget.project.id
-                                                        .toString(),
-                                                  );
+                                              await controller.deleteProject(
+                                                widget.project.id.toString(),
+                                              );
                                             },
                                             child: const Text(
                                               "Delete",
@@ -349,7 +607,67 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 ),
               ),
             ),
-
+            Padding(
+              padding: const EdgeInsets.only(top: 12.0, left: 6),
+              child: Text(
+                "SECTIONS",
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16.sp),
+              ),
+            ),
+            const Divider(),
+            if (isLoadingSections)
+              const Center(child: CircularProgressIndicator())
+            else
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      child: FilterChip(
+                        label: const Text('All'),
+                        selected: selectedSectionId == null,
+                        onSelected: (selected) {
+                          setState(() {
+                            selectedSectionId = null;
+                          });
+                        },
+                      ),
+                    ),
+                    ...sections.map(
+                      (section) => Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        child: GestureDetector(
+                          onLongPress: () => _showSectionOptions(section),
+                          child: FilterChip(
+                            label: Text(section.name),
+                            selected:
+                                selectedSectionId == section.id.toString(),
+                            onSelected: (selected) {
+                              setState(() {
+                                selectedSectionId =
+                                    selected ? section.id.toString() : null;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      child: ActionChip(
+                        avatar: const Icon(Icons.add),
+                        label: const Text('New Section'),
+                        onPressed:
+                            isSectionOperationInProgress
+                                ? null
+                                : () => _showSectionDialog(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            SizedBox(height: 2.h),
             Padding(
               padding: const EdgeInsets.only(top: 12.0, left: 6),
               child: Text(
@@ -358,8 +676,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               ),
             ),
             const Divider(),
-
-            if (tasks.isEmpty)
+            if (isSectionOperationInProgress)
+              const Center(child: CircularProgressIndicator())
+            else if (filteredTasks.isEmpty)
               Align(
                 alignment: Alignment.center,
                 child: Column(
@@ -368,7 +687,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                     SizedBox(height: 48.sp),
                     Icon(MdiIcons.listBox, color: Colors.grey, size: 44),
                     Text(
-                      "This project contains no tasks.",
+                      selectedSectionId == null
+                          ? "This project contains no tasks."
+                          : "This section contains no tasks.",
                       style: TextStyle(
                         color: Colors.black,
                         fontWeight: FontWeight.bold,
@@ -378,7 +699,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 ),
               )
             else
-              ...tasks.map((task) {
+              ...filteredTasks.map((task) {
                 return ListTile(
                   title: Text(
                     task.content,

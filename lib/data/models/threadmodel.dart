@@ -10,18 +10,20 @@ class EmailThread {
   final String? summary;
   final String? category;
   final String? topic;
+  final String? last_sender_name;
   final bool? is_processing;
   final String? extracted_tasks;
   final int? unreadCount;
   final int? totalCount;
-  final bool hasAttachments;
   final int? priority_score;
   final String? importance;
   final List<String>? quick_replies;
+  final bool is_read;
 
-  EmailThread( {
+  EmailThread({
     required this.conversationId,
-    required this.hasAttachments,
+    required this.is_read,
+    this.last_sender_name,
     this.subject,
     this.is_processing,
     this.extracted_tasks,
@@ -35,13 +37,14 @@ class EmailThread {
     this.topic,
     this.category,
     this.importance,
-    this.quick_replies
+    this.quick_replies,
   });
 
   factory EmailThread.fromJson(Map<String, dynamic> json) {
     return EmailThread(
       conversationId: json['conversation_id'],
       subject: json['subject'],
+      is_read: json['is_read'] ?? true,
       lastSender: json['last_sender'],
       lastEmailAt: DateTime.parse(json['last_email_at']),
       lastBodyPreview: json['last_body_preview'],
@@ -54,7 +57,8 @@ class EmailThread {
       extracted_tasks: json['extracted_tasks'] ?? "",
       priority_score: json['priority_score'],
       importance: json['importance'],
-      quick_replies: json['quick_replies'], hasAttachments: json['has_attachments'] ?? false
+      quick_replies: json['quick_replies'],
+      last_sender_name: json['last_sender_name'] ?? ""
     );
   }
 
@@ -79,14 +83,18 @@ class EmailThread {
     int? priority_score,
     String? importance,
     List<String>? quick_replies,
+    bool? is_read,
+    String? last_sender_name
   }) {
     return EmailThread(
       conversationId: conversationId ?? this.conversationId,
       subject: subject ?? this.subject,
+      is_read: is_read ?? this.is_read,
       lastSender: lastSender ?? this.lastSender,
       lastEmailAt: lastEmailAt ?? this.lastEmailAt,
       lastBodyPreview: lastBodyPreview ?? this.lastBodyPreview,
       summary: summary ?? this.summary,
+      last_sender_name: last_sender_name ?? this.last_sender_name,
       category: category ?? this.category,
       topic: topic ?? this.topic,
       is_processing: is_processing ?? this.is_processing,
@@ -95,7 +103,7 @@ class EmailThread {
       totalCount: totalCount ?? this.totalCount,
       priority_score: priority_score ?? this.priority_score,
       importance: importance ?? this.importance,
-      quick_replies: quick_replies ?? this.quick_replies, hasAttachments: hasAttachments,
+      quick_replies: quick_replies ?? this.quick_replies,
     );
   }
 }

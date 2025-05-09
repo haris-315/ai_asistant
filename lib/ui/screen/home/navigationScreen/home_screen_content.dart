@@ -6,9 +6,9 @@ import 'package:ai_asistant/core/shared/constants.dart';
 import 'package:ai_asistant/core/shared/functions/is_today.dart';
 import 'package:ai_asistant/data/models/threadmodel.dart';
 import 'package:ai_asistant/state_mgmt/email/cubit/email_cubit.dart';
+import 'package:ai_asistant/ui/screen/assistant_control_page.dart';
 import 'package:ai_asistant/ui/screen/home/chat_screen.dart';
 import 'package:ai_asistant/ui/screen/home/emails/all_email_screen.dart';
-import 'package:ai_asistant/ui/screen/soonToBeDeleted.dart';
 import 'package:ai_asistant/ui/screen/task/create_task_sheet.dart';
 import 'package:ai_asistant/ui/screen/task/task_parent_screen.dart';
 import 'package:flutter/material.dart';
@@ -102,7 +102,7 @@ class _HomeContentState extends State<HomeContent> {
                             isSomeThingLoading
                                 ? null
                                 : () {
-                                  Get.to(() => TaskScreen());
+                                  Get.to(() => TaskScreen(toSpecialIndex: 0,));
                                 },
                         child: OverviewCard(
                           title: "Tasks",
@@ -158,7 +158,7 @@ class _HomeContentState extends State<HomeContent> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) => Soontobedeleted(),
+                                      builder: (_) => AssistantControlPage(),
                                     ),
                                   );
                                   handleLoading();

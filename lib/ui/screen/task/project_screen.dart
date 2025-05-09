@@ -86,7 +86,8 @@ class _ProjectScreenState extends State<ProjectScreen> {
                     child: Text('Inbox'),
                   ),
                   icon: Icon(Icons.inbox, color: Colors.blue),
-                  onPressed: _handleInboxPress,
+                  onPressed:
+                      _controller.projects.isEmpty ? null : _handleInboxPress,
                 ),
               ),
               SizedBox(width: 3.w),

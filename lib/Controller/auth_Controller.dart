@@ -10,6 +10,7 @@ import 'package:ai_asistant/data/models/emails/email_summarization_model.dart';
 import 'package:ai_asistant/data/models/emails/thread_summarization_model.dart';
 import 'package:ai_asistant/data/models/projects/label_model.dart';
 import 'package:ai_asistant/data/models/projects/project_model.dart';
+import 'package:ai_asistant/data/models/projects/section_model.dart';
 import 'package:ai_asistant/data/models/projects/task_model.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
@@ -31,6 +32,209 @@ class AuthController extends GetxController {
   RxList<Project> projects = <Project>[].obs;
   RxList<TaskModel> task = <TaskModel>[].obs;
   RxList<TaskModel> trashedTasks = <TaskModel>[].obs;
+  RxList<SectionModel> sections = <SectionModel>[].obs;
+  Future<List<SectionModel>?> loadProjectSectionsid(int id) async {
+    try {
+      String? token = await SecureStorage.getToken();
+      if (token!.isEmpty) {
+        hideLoader();
+        showCustomSnackbar(
+          title: "Authentication Error",
+          message: "User is not logged in.",
+          backgroundColor: Colors.red,
+        );
+        return null;
+      }
+
+      var response = await apiService.apiRequest(
+        "${AppConstants.baseUrl}todo/sections/project/$id",
+        "GET",
+        token: token,
+      );
+      hideLoader();
+
+      if (response == null) {
+        showCustomSnackbar(
+          title: "Error",
+          message: "Failed to fetch sections. No response received.",
+          backgroundColor: Colors.red,
+        );
+        return null;
+      }
+      try {
+        sections.assignAll(
+          (response as List).map((f) => SectionModel.fromMap(f)),
+        );
+        return sections;
+      } catch (e) {
+        showCustomSnackbar(
+          title: "Error",
+          message: "Invalid response format.",
+          backgroundColor: Colors.red,
+        );
+        return null;
+      }
+    } catch (e) {
+      showCustomSnackbar(
+        title: "Error",
+        message: "An error occurred: ${e.toString()}",
+        backgroundColor: Colors.red,
+      );
+      return null;
+    }
+  }
+
+  Future<List<SectionModel>?> deleteSection(SectionModel section) async {
+    try {
+      String? token = await SecureStorage.getToken();
+      if (token!.isEmpty) {
+        hideLoader();
+        showCustomSnackbar(
+          title: "Authentication Error",
+          message: "User is not logged in.",
+          backgroundColor: Colors.red,
+        );
+        return null;
+      }
+
+      var res = await apiService.apiRequest(
+        "${AppConstants.baseUrl}todo/sections/${section.id}",
+        "DELETE",
+        token: token,
+      );
+      hideLoader();
+
+      if (res is! Map || !res.containsKey("message")) {
+        showCustomSnackbar(
+          title: "Error",
+          message: "Failed to delete section. No response received.",
+          backgroundColor: Colors.red,
+        );
+        return null;
+      }
+      try {
+        sections.remove(section);
+        return sections;
+      } catch (e) {
+        showCustomSnackbar(
+          title: "Error",
+          message: "Invalid response format.",
+          backgroundColor: Colors.red,
+        );
+        return null;
+      }
+    } catch (e) {
+      showCustomSnackbar(
+        title: "Error",
+        message: "An error occurred: ${e.toString()}",
+        backgroundColor: Colors.red,
+      );
+      return null;
+    }
+  }
+
+  Future<List<SectionModel>?> updateSection(SectionModel section) async {
+    try {
+      String? token = await SecureStorage.getToken();
+      if (token!.isEmpty) {
+        hideLoader();
+        showCustomSnackbar(
+          title: "Authentication Error",
+          message: "User is not logged in.",
+          backgroundColor: Colors.red,
+        );
+        return null;
+      }
+
+      var res = await apiService.apiRequest(
+        "${AppConstants.baseUrl}todo/sections/${section.id}",
+        "PUT",
+        data: section.toMap(),
+        token: token,
+      );
+      hideLoader();
+
+      if (res == null) {
+        showCustomSnackbar(
+          title: "Error",
+          message: "Failed to update section. No response received.",
+          backgroundColor: Colors.red,
+        );
+        return null;
+      }
+      try {
+        int index = sections.indexWhere((s) => s.id == section.id);
+        if (index != -1) {
+          sections[index] = section;
+        }
+        return sections;
+      } catch (e) {
+        showCustomSnackbar(
+          title: "Error",
+          message: "Invalid response format.",
+          backgroundColor: Colors.red,
+        );
+        return null;
+      }
+    } catch (e) {
+      showCustomSnackbar(
+        title: "Error",
+        message: "An error occurred: ${e.toString()}",
+        backgroundColor: Colors.red,
+      );
+      return null;
+    }
+  }
+
+  Future<List<SectionModel>?> createSection(SectionModel section) async {
+    try {
+      String? token = await SecureStorage.getToken();
+      if (token!.isEmpty) {
+        hideLoader();
+        showCustomSnackbar(
+          title: "Authentication Error",
+          message: "User is not logged in.",
+          backgroundColor: Colors.red,
+        );
+        return null;
+      }
+
+      var res = await apiService.apiRequest(
+        "${AppConstants.baseUrl}todo/sections/",
+        "POST",
+        data: section.toMap()..remove("id"),
+        token: token,
+      );
+      hideLoader();
+
+      if (res == null) {
+        showCustomSnackbar(
+          title: "Error",
+          message: "Failed to create section. No response received.",
+          backgroundColor: Colors.red,
+        );
+        return null;
+      }
+      try {
+        sections.add(SectionModel.fromMap(res));
+        return sections;
+      } catch (e) {
+        showCustomSnackbar(
+          title: "Error",
+          message: "Invalid response format.",
+          backgroundColor: Colors.red,
+        );
+        return null;
+      }
+    } catch (e) {
+      showCustomSnackbar(
+        title: "Error",
+        message: "An error occurred: ${e.toString()}",
+        backgroundColor: Colors.red,
+      );
+      return null;
+    }
+  }
 
   void showLoader({bool isForEmailSummary = false, bool toShow = true}) {
     if (!(Get.isDialogOpen ?? false) && toShow) {
@@ -86,6 +290,15 @@ class AuthController extends GetxController {
                     ).colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
+
+                // SizedBox(height: 10),
+                // MaterialButton(
+                //   onPressed: () {
+                //     Navigator.of(Get.context!).pop();
+                //   },
+                //   color: Colors.blue,
+                //   child: Text("Stop!"),
+                // ),
               ],
             ),
           ),
@@ -113,7 +326,6 @@ class AuthController extends GetxController {
     }
   }
 
-  //auth
   Future<bool?> Registration(String name, String email, String password) async {
     try {
       Map<String, dynamic> requestBody = {
@@ -468,7 +680,6 @@ class AuthController extends GetxController {
         );
         return;
       } else {
-        print(response);
         List<EmailThread> threads =
             (response as List).map((e) => EmailThread.fromJson(e)).toList();
 
@@ -652,7 +863,6 @@ class AuthController extends GetxController {
     String reply, {
     List<Attachment>? attachments,
   }) async {
-    print(emailId);
     try {
       String? token = await SecureStorage.getToken();
       if (token!.isEmpty) {
@@ -677,7 +887,7 @@ class AuthController extends GetxController {
       );
 
       hideLoader();
-      print(response);
+
       if (response != null &&
           response is Map<String, dynamic> &&
           response.containsKey("message")) {
@@ -1148,8 +1358,6 @@ class AuthController extends GetxController {
       );
       hideLoader();
 
-      print(response);
-
       if (response == null) {
         showCustomSnackbar(
           title: "Error",
@@ -1175,7 +1383,6 @@ class AuthController extends GetxController {
           );
         }
       } catch (e) {
-        print(e);
         showCustomSnackbar(
           title: "Error",
           message: "Error! unexpected response.",
@@ -1424,7 +1631,7 @@ class AuthController extends GetxController {
         backgroundColor: Colors.red,
       );
     } finally {
-      // print(task.map((x) => print(x.project_id)));
+      //
     }
   }
 
@@ -1461,7 +1668,6 @@ class AuthController extends GetxController {
           var projectData = response;
           trashedTasks.assignAll(projectData.map((x) => TaskModel.fromMap(x)));
         } catch (e) {
-          print(e);
           showCustomSnackbar(
             title: "Error",
             message: "Unexpected response format.",
@@ -1490,7 +1696,7 @@ class AuthController extends GetxController {
         );
         return false;
       }
-      print(task2Create.toMap());
+
       showLoader();
       var response = await apiService.apiRequest(
         "${AppConstants.baseUrl}todo/tasks/",
@@ -1509,7 +1715,7 @@ class AuthController extends GetxController {
         );
         return false;
       }
-      print(response);
+
       task.add(TaskModel.fromMap(response));
       showCustomSnackbar(
         title: "Success",
@@ -1573,9 +1779,7 @@ class AuthController extends GetxController {
         backgroundColor: Colors.red,
       );
       return null;
-    } finally {
-      print(projects.map((x) => x.id));
-    }
+    } finally {}
   }
 
   Future<bool> restoreTask(TaskModel task2Restore) async {

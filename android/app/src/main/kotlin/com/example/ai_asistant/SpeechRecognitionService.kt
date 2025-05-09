@@ -11,7 +11,7 @@ import androidx.core.app.NotificationCompat
 import com.example.openai.OpenAIClient
 import com.example.openai.SharedData
 import com.example.tts_helper.TextToSpeechHelper
-import com.example.openai.ServiceManager
+import com.example.svc_mng.ServiceManager
 
 class SpeechRecognitionService : Service() {
     private lateinit var speechRecognizer: SpeechRecognizer

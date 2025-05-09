@@ -136,7 +136,7 @@ class _SideMenuState extends State<SideMenu> {
                     setState(() => selectedMenu = "Tasks");
                     Navigator.of(context).pop();
 
-                    Get.to(() => TaskScreen(filter: "all"));
+                    Get.to(() => TaskScreen(filter: "all", toSpecialIndex: 0));
                   },
                 ),
 

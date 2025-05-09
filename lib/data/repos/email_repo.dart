@@ -16,7 +16,7 @@ class EmailRepo {
       );
 
       if (response.statusCode == 200) {
-        print(response);
+        // print(response);
         List<EmailThread> threads =
             (response.data as List)
                 .map((e) => EmailThread.fromJson(e))
@@ -26,6 +26,7 @@ class EmailRepo {
         throw response.statusMessage ?? "There was an error fetching emails";
       }
     } catch (e) {
+      print(e);
       throw e.toString();
     }
   }

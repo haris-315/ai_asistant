@@ -13,7 +13,7 @@ import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 import com.example.openai.SharedData
-import com.example.openai.ServiceManager
+import com.example.svc_mng.ServiceManager
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.example.ai_assistant/stt"
@@ -51,10 +51,14 @@ class MainActivity : FlutterActivity() {
 
                 "stopListening" -> {
                     ServiceManager.isStoped = true
+                    ServiceManager.isBound = false
                     stopSpeechService()
                     result.success(true)
                 }
-
+                "getInfo" -> {
+                    
+                    result.success(mutableMapOf("isBound" to ServiceManager.isBound, "isStoped" to ServiceManager.isStoped, "isStandBy" to ServiceManager.isStandBy,"channel" to ServiceManager.serviceChannelName, "result_channel" to ServiceManager.resultEventChannel))
+                }
                 "isListening" -> {
                     // Since we don’t bind, just return a generic true/false
                     val isRunning = isSpeechServiceRunning()

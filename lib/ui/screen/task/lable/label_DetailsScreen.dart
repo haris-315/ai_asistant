@@ -15,18 +15,20 @@ class LabelDetailsscreen extends StatelessWidget {
   final AuthController controller = Get.find<AuthController>();
 
   Color getColorFromName(String colorName) {
-    switch (colorName.toLowerCase()) {
-      case 'charcoal':
-        return Colors.grey.shade800;
-      case 'red':
-        return Colors.red;
-      case 'blue':
-        return Colors.blue;
-      case 'green':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
+    final colors = {
+      'charcoal': Colors.grey.shade800,
+      'red': Colors.redAccent,
+      'blue': Colors.blueAccent,
+      'green': Colors.greenAccent,
+      'purple': Colors.purpleAccent,
+      'orange': Colors.orangeAccent,
+      'teal': Colors.tealAccent,
+      'yellow': Colors.yellow,
+      'pink': Colors.pinkAccent,
+      'amber': Colors.amber,
+      'cyan': Colors.cyan,
+    };
+    return colors[colorName] ?? Colors.blue;
   }
 
   @override
