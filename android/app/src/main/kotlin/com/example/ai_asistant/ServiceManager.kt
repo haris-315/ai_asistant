@@ -6,4 +6,5 @@ object ServiceManager {
     var isBound : Boolean = false
     var serviceChannelName : String = "com.example.ai_assistant/stt"
     var resultEventChannel : String = "com.example.ai_assistant/stt_results"
+    var recognizedText : String? = ""
 }

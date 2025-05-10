@@ -7,8 +7,10 @@ class AssistantServiceModel {
   final bool isStandBy;
   final String channel;
   final String resultChannel;
+  final String recognizedText;
 
   AssistantServiceModel({
+    required this.recognizedText,
     required this.isBound,
     required this.isStoped,
     required this.isStandBy,
@@ -23,6 +25,7 @@ class AssistantServiceModel {
       'isStandBy': isStandBy,
       'channel': channel,
       'result_channel': resultChannel,
+      'recognizedText': recognizedText,
     };
   }
 
@@ -33,6 +36,7 @@ class AssistantServiceModel {
       isStandBy: map['isStandBy'] as bool,
       channel: map['channel'] as String,
       resultChannel: map['result_channel'] as String,
+      recognizedText: map['recognizedText'] ?? "",
     );
   }
 
@@ -42,6 +46,7 @@ class AssistantServiceModel {
     isStandBy: false,
     channel: "empty",
     resultChannel: "empty",
+    recognizedText: '',
   );
 
   String toJson() => json.encode(toMap());
@@ -50,4 +55,22 @@ class AssistantServiceModel {
       AssistantServiceModel.fromMap(
         json.decode(source) as Map<String, dynamic>,
       );
+
+  AssistantServiceModel copyWith({
+    bool? isBound,
+    bool? isStoped,
+    bool? isStandBy,
+    String? channel,
+    String? resultChannel,
+    String? recognizedText,
+  }) {
+    return AssistantServiceModel(
+      isBound: isBound ?? this.isBound,
+      isStoped: isStoped ?? this.isStoped,
+      isStandBy: isStandBy ?? this.isStandBy,
+      channel: channel ?? this.channel,
+      resultChannel: resultChannel ?? this.resultChannel,
+      recognizedText: recognizedText ?? this.recognizedText,
+    );
+  }
 }

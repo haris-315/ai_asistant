@@ -57,7 +57,7 @@ class MainActivity : FlutterActivity() {
                 }
                 "getInfo" -> {
                     
-                    result.success(mutableMapOf("isBound" to ServiceManager.isBound, "isStoped" to ServiceManager.isStoped, "isStandBy" to ServiceManager.isStandBy,"channel" to ServiceManager.serviceChannelName, "result_channel" to ServiceManager.resultEventChannel))
+                    result.success(mutableMapOf("isBound" to ServiceManager.isBound, "isStoped" to ServiceManager.isStoped, "isStandBy" to ServiceManager.isStandBy,"recognizedText" to ServiceManager.recognizedText,"channel" to ServiceManager.serviceChannelName, "result_channel" to ServiceManager.resultEventChannel))
                 }
                 "isListening" -> {
                     // Since we don’t bind, just return a generic true/false

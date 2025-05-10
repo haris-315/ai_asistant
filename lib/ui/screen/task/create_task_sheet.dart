@@ -173,7 +173,7 @@ class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
                     children: [
                       _buildPriorityChip(),
                       _buildProjectChip(),
-                      _buildStatusChip(),
+                      // _buildStatusChip(),
                       _buildDetailsChip(),
                       _buildSectionChip(),
                     ],
@@ -285,28 +285,28 @@ class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
     );
   }
 
-  Widget _buildStatusChip() {
-    final color = _isCompleted ? Colors.tealAccent : Colors.blueAccent;
-    return ActionChip(
-      label: Text(
-        _isCompleted ? 'Completed' : 'Pending',
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.onSurface,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      backgroundColor: color.withValues(alpha: 0.2),
-      avatar: Icon(
-        _isCompleted ? Icons.check_circle : Icons.pending_actions,
-        color: color,
-      ),
-      onPressed: () => setState(() => _isCompleted = !_isCompleted),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: color.withValues(alpha: 0.5)),
-      ),
-    );
-  }
+  // Widget _buildStatusChip() {
+  //   final color = _isCompleted ? Colors.tealAccent : Colors.blueAccent;
+  //   return ActionChip(
+  //     label: Text(
+  //       _isCompleted ? 'Completed' : 'Pending',
+  //       style: TextStyle(
+  //         color: Theme.of(context).colorScheme.onSurface,
+  //         fontWeight: FontWeight.w500,
+  //       ),
+  //     ),
+  //     backgroundColor: color.withValues(alpha: 0.2),
+  //     avatar: Icon(
+  //       _isCompleted ? Icons.check_circle : Icons.pending_actions,
+  //       color: color,
+  //     ),
+  //     onPressed: () => setState(() => _isCompleted = !_isCompleted),
+  //     shape: RoundedRectangleBorder(
+  //       borderRadius: BorderRadius.circular(20),
+  //       side: BorderSide(color: color.withValues(alpha: 0.5)),
+  //     ),
+  //   );
+  // }
 
   Widget _buildDetailsChip() {
     final color = Colors.pinkAccent;

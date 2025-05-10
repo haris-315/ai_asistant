@@ -195,6 +195,13 @@ class EmailDetailScreen extends StatelessWidget {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            if (email.hasAttachments)
+                              Icon(
+                                Icons.attach_email,
+                                color: Colors.grey[600],
+                                size: 22,
+                              ),
+                            SizedBox(width: 5),
                             Text(
                               _formatDate(email.receivedAt),
                               style: textTheme.bodySmall?.copyWith(

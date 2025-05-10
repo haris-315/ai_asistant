@@ -65,6 +65,8 @@ dependencies:
   flutter_html: ^3.0.0
   material_design_icons_flutter: ^7.0.7296
   html: ^0.15.6
+  flutter_native_splash: ^2.4.6
+  flutter_markdown: ^0.7.7+1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -118,7 +120,16 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/Illustration.png"
+  image_path: "assets/launchericon.png"
   min_sdk_android: 21 # android min sdk min:16, default 21
   adaptive_icon_background: "#ffffff"
-  adaptive_icon_foreground: "assets/Illustration.png"
+  adaptive_icon_foreground: "assets/launchericon.png"
+
+
+
+flutter_native_splash:
+  color: "#ffffff"
+  image: "assets/splash.jpg"
+  fullscreen: true
+  android: true
+  ios: true

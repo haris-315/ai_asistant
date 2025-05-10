@@ -1,7 +1,9 @@
 package com.example.ai_asistant
 
 import android.app.*
+import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.os.*
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
@@ -18,15 +20,11 @@ class SpeechRecognitionService : Service() {
     private lateinit var recognizerIntent: Intent
     private var isListening = false
     private var isStandby = true
+    private lateinit var audioManager: AudioManager
+    private var originalSystemVolume: Int = -1
 
     private lateinit var openAIClient: OpenAIClient
     private lateinit var ttsHelper: TextToSpeechHelper
-
-//    inner class LocalBinder : Binder() {
-//        fun getService(): SpeechRecognitionService = this@SpeechRecognitionService
-//    }
-//
-//    private val binder = LocalBinder()
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -35,6 +33,8 @@ class SpeechRecognitionService : Service() {
         createNotificationChannel()
         startForegroundService()
 
+        // Initialize AudioManager
+        audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         initializeSpeechRecognizer()
 
         openAIClient = OpenAIClient(
@@ -67,20 +67,53 @@ class SpeechRecognitionService : Service() {
         startForeground(1, notification)
     }
 
+    private fun muteSystemSounds() {
+        try {
+            // Store the current system volume
+            originalSystemVolume = audioManager.getStreamVolume(AudioManager.STREAM_SYSTEM)
+            // Mute the system stream
+            audioManager.setStreamVolume(AudioManager.STREAM_SYSTEM, 0, 0)
+        } catch (e: Exception) {
+            Log.e("SpeechRecognizer", "Error muting system sounds: ${e.message}")
+        }
+    }
+
+    private fun restoreSystemSounds() {
+        try {
+            if (originalSystemVolume != -1) {
+                // Restore the original system volume
+                audioManager.setStreamVolume(AudioManager.STREAM_SYSTEM, originalSystemVolume, 0)
+            }
+        } catch (e: Exception) {
+            Log.e("SpeechRecognizer", "Error restoring system sounds: ${e.message}")
+        }
+    }
+
     private fun initializeSpeechRecognizer() {
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
         speechRecognizer.setRecognitionListener(object : RecognitionListener {
-            override fun onReadyForSpeech(params: Bundle?) {}
+            override fun onReadyForSpeech(params: Bundle?) {
+                // Mute system sounds when the recognizer is ready
+                muteSystemSounds()
+            }
+
             override fun onBeginningOfSpeech() {}
             override fun onRmsChanged(rmsdB: Float) {}
             override fun onBufferReceived(buffer: ByteArray?) {}
-            override fun onEndOfSpeech() {}
+            override fun onEndOfSpeech() {
+                // Restore system sounds when speech ends
+                restoreSystemSounds()
+            }
 
             override fun onError(error: Int) {
+                // Restore system sounds on error
+                restoreSystemSounds()
                 if (isListening) restartListening()
             }
 
             override fun onResults(results: Bundle?) {
+                // Restore system sounds when results are received
+                restoreSystemSounds()
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 val text = matches?.firstOrNull()?.lowercase()?.trim()
 
@@ -90,6 +123,9 @@ class SpeechRecognitionService : Service() {
                     if (isListening) restartListening()
                     return
                 }
+                
+                ServiceManager.recognizedText = text
+
 
                 when {
                     text.contains("standby") -> {
@@ -150,11 +186,13 @@ class SpeechRecognitionService : Service() {
     private fun stopListening() {
         isListening = false
         speechRecognizer.stopListening()
+        restoreSystemSounds() // Ensure sounds are restored when stopping
     }
 
     override fun onDestroy() {
         stopListening()
         speechRecognizer.destroy()
+        restoreSystemSounds() // Ensure sounds are restored on service destruction
         super.onDestroy()
     }
 

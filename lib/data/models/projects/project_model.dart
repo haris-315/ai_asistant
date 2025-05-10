@@ -22,7 +22,7 @@ class Project {
     required this.viewStyle,
     required this.id,
     this.url,
-   this.userId,
+    this.userId,
   });
 
   factory Project.fromMap(Map<String, dynamic> json) {
@@ -87,7 +87,6 @@ class Project {
 
   @override
   String toString() {
-    // TODO: implement toString
-    return "Project('name': $name, 'id': $id)";
+    return "('name': $name, 'id': $id)";
   }
 }

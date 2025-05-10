@@ -287,9 +287,9 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                           email.last_sender_name!.isNotEmpty
                                       ? email.last_sender_name
                                       : _getSenderName(email.lastSender);
-                              final priorityColor = getPriorityColor(
-                                email.priority_score ?? 10,
-                              );
+                              // final priorityColor = getPriorityColor(
+                              //   email.priority_score ?? 10,
+                              // );
 
                               final isExpanded =
                                   expandedStates[email.conversationId] ?? false;
@@ -427,6 +427,20 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                                   ),
                                                 ),
                                                 SizedBox(width: 3),
+                                                if ((email.totalCount ?? 0) !=
+                                                    1)
+                                                  Text(
+                                                    "(${(email.totalCount ?? 0).toString()})",
+                                                    style: TextStyle(
+                                                      color: Colors.grey[600],
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      fontSize: 9,
+                                                    ),
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                SizedBox(width: 2),
                                                 if (!email.is_read)
                                                   Container(
                                                     width: 7,
@@ -440,6 +454,11 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                                               BoxShape.circle,
                                                         ),
                                                   ),
+                                                if (email.has_attachments ??
+                                                    false) ...[
+                                                  SizedBox(width: 3),
+                                                  Icon(Icons.attach_email),
+                                                ],
                                               ],
                                             ),
                                             const SizedBox(height: 10),
@@ -467,6 +486,11 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                             _toggleExpandEmail(
                                               email.conversationId,
                                             );
+                                            if (!isExpanded &&
+                                                (email.summary == null ||
+                                                    email.summary!.isEmpty)) {
+                                              _loadSummary(email);
+                                            }
                                           },
                                           child: ConstrainedBox(
                                             constraints: BoxConstraints(
@@ -474,22 +498,14 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                                   MediaQuery.of(
                                                     context,
                                                   ).size.width *
-                                                  0.3,
+                                                  0.25,
                                             ),
                                             child: Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.end,
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
-                                                Text(
-                                                  (email.totalCount ?? 0)
-                                                      .toString(),
-                                                  style: TextStyle(
-                                                    color: priorityColor,
-                                                    fontWeight: FontWeight.w800,
-                                                    fontSize: 13,
-                                                  ),
-                                                ),
+                                                SizedBox(height: 4),
                                                 Row(
                                                   mainAxisSize:
                                                       MainAxisSize.min,
@@ -513,32 +529,15 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                                         maxLines: 1,
                                                       ),
                                                     ),
-                                                    IconButton(
-                                                      icon: Icon(
-                                                        isExpanded
-                                                            ? Icons
-                                                                .keyboard_arrow_up
-                                                            : Icons
-                                                                .keyboard_arrow_down,
-                                                        color: emailColor,
-                                                        size: 20,
-                                                      ),
-                                                      padding: EdgeInsets.zero,
-                                                      constraints:
-                                                          BoxConstraints(),
-                                                      onPressed: () {
-                                                        _toggleExpandEmail(
-                                                          email.conversationId,
-                                                        );
-                                                        if (isExpanded &&
-                                                            (email.summary ==
-                                                                    null ||
-                                                                email
-                                                                    .summary!
-                                                                    .isEmpty)) {
-                                                          _loadSummary(email);
-                                                        }
-                                                      },
+                                                    SizedBox(width: 4),
+                                                    Icon(
+                                                      isExpanded
+                                                          ? Icons
+                                                              .keyboard_arrow_up
+                                                          : Icons
+                                                              .keyboard_arrow_down,
+                                                      color: emailColor,
+                                                      size: 18,
                                                     ),
                                                   ],
                                                 ),

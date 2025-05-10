@@ -12,14 +12,14 @@ class EmailThread {
   final String? topic;
   final String? last_sender_name;
   final bool? is_processing;
-  final String? extracted_tasks;
+  final List? extracted_tasks;
   final int? unreadCount;
   final int? totalCount;
   final int? priority_score;
   final String? importance;
   final List<String>? quick_replies;
   final bool is_read;
-
+  final bool? has_attachments;
   EmailThread({
     required this.conversationId,
     required this.is_read,
@@ -38,9 +38,11 @@ class EmailThread {
     this.category,
     this.importance,
     this.quick_replies,
+    this.has_attachments,
   });
 
   factory EmailThread.fromJson(Map<String, dynamic> json) {
+    print(json['has_attachments']);
     return EmailThread(
       conversationId: json['conversation_id'],
       subject: json['subject'],
@@ -54,11 +56,12 @@ class EmailThread {
       category: json['category'],
       topic: json['topic'],
       is_processing: json['is_processing'],
-      extracted_tasks: json['extracted_tasks'] ?? "",
+      extracted_tasks: json['extracted_tasks'] ?? [],
       priority_score: json['priority_score'],
       importance: json['importance'],
       quick_replies: json['quick_replies'],
-      last_sender_name: json['last_sender_name'] ?? ""
+      last_sender_name: json['last_sender_name'] ?? "",
+      has_attachments: json['has_attachments'],
     );
   }
 
@@ -77,14 +80,15 @@ class EmailThread {
     String? category,
     String? topic,
     bool? is_processing,
-    String? extracted_tasks,
+    List? extracted_tasks,
     int? unreadCount,
     int? totalCount,
     int? priority_score,
     String? importance,
     List<String>? quick_replies,
     bool? is_read,
-    String? last_sender_name
+    bool? has_attachments,
+    String? last_sender_name,
   }) {
     return EmailThread(
       conversationId: conversationId ?? this.conversationId,
@@ -104,6 +108,7 @@ class EmailThread {
       priority_score: priority_score ?? this.priority_score,
       importance: importance ?? this.importance,
       quick_replies: quick_replies ?? this.quick_replies,
+      has_attachments: has_attachments ?? this.has_attachments,
     );
   }
 }

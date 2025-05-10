@@ -50,6 +50,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   void initState() {
     super.initState();
     _fetchSections();
+    sections = controller.sections;
   }
 
   Future<void> _fetchSections() async {
@@ -153,41 +154,31 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                                         try {
                                           if (section == null) {
                                             // Add new section
-                                            final newSections = await controller
-                                                .createSection(
-                                                  SectionModel(
-                                                    name:
-                                                        _sectionNameController
-                                                            .text
-                                                            .trim(),
-                                                    project_id:
-                                                        widget.project.id,
-                                                    id: 0,
-                                                  ),
-                                                );
-                                            if (newSections != null) {
-                                              setState(() {
-                                                sections = newSections;
-                                              });
-                                              Navigator.pop(context);
-                                            }
+                                            await controller.createSection(
+                                              SectionModel(
+                                                name:
+                                                    _sectionNameController.text
+                                                        .trim(),
+                                                project_id: widget.project.id,
+                                                id: 0,
+                                              ),
+                                            );
+                                            Navigator.pop(context);
+                                            Future.microtask(() {
+                                              setState(() {});
+                                            });
                                           } else {
-                                            // Update existing section
-                                            final updatedSections =
-                                                await controller.updateSection(
-                                                  section.copyWith(
-                                                    name:
-                                                        _sectionNameController
-                                                            .text
-                                                            .trim(),
-                                                  ),
-                                                );
-                                            if (updatedSections != null) {
-                                              setState(() {
-                                                sections = updatedSections;
-                                              });
-                                              Navigator.pop(context);
-                                            }
+                                            await controller.updateSection(
+                                              section.copyWith(
+                                                name:
+                                                    _sectionNameController.text
+                                                        .trim(),
+                                              ),
+                                            );
+                                            Navigator.pop(context);
+                                            Future.microtask(() {
+                                              setState(() {});
+                                            });
                                           }
                                         } finally {
                                           setState(() {
@@ -300,17 +291,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                         isSectionOperationInProgress = true;
                       });
                       try {
-                        final newSections = await controller.deleteSection(
-                          section,
-                        );
-                        if (newSections != null) {
-                          setState(() {
-                            sections = newSections;
-                            if (selectedSectionId == section.id.toString()) {
-                              selectedSectionId = null;
-                            }
-                          });
-                        }
+                        await controller.deleteSection(section);
                       } finally {
                         setState(() {
                           isSectionOperationInProgress = false;

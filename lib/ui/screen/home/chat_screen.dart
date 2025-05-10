@@ -9,6 +9,7 @@ import 'package:ai_asistant/state_mgmt/sessions/cubit/sessions_cubit.dart';
 import 'package:ai_asistant/ui/widget/animted_typing_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:jumping_dot/jumping_dot.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
@@ -32,7 +33,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool showAnimatedResponse = false;
   bool _showScrollDownFab = false;
 
-  final Set<String> _animatedMessages = {}; // NEW
+  final Set<String> _animatedMessages = {};
 
   void sendMessage(SessionModel session) {
     if (_controller.text.isNotEmpty) {
@@ -204,8 +205,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               final isLatestAI =
                                   isAI && index == lastAnimatedIndex;
 
-                              final messageId =
-                                  message.id;
+                              final messageId = message.id;
                               final shouldAnimate =
                                   isLatestAI &&
                                   showAnimatedResponse &&
@@ -267,6 +267,58 @@ class _ChatScreenState extends State<ChatScreen> {
                                                     fontWeight: FontWeight.w700,
                                                     fontSize: 16,
                                                   ),
+                                            )
+                                            : isAI
+                                            ? MarkdownBody(
+                                              data: message.content,
+                                              selectable: true,
+                                              styleSheet: MarkdownStyleSheet(
+                                                p: textTheme.bodyMedium
+                                                    ?.copyWith(
+                                                      color: Colors.black,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      fontSize: 16,
+                                                    ),
+                                                code: textTheme.bodyMedium
+                                                    ?.copyWith(
+                                                      backgroundColor:
+                                                          Colors.grey[200],
+                                                      fontFamily: 'monospace',
+                                                      fontSize: 14,
+                                                    ),
+
+                                                h1: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 18,
+                                                ),
+                                                h2: TextStyle(
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                                h3: TextStyle(
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                                h4: TextStyle(
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                                h5: TextStyle(
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                                listBullet: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16,
+                                                ),
+                                                codeblockPadding:
+                                                    const EdgeInsets.all(8),
+                                                codeblockDecoration:
+                                                    BoxDecoration(
+                                                      color: Colors.grey[200],
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            4,
+                                                          ),
+                                                    ),
+                                              ),
                                             )
                                             : Text(
                                               message.content,
@@ -380,7 +432,7 @@ class _ChatScreenState extends State<ChatScreen> {
         child: JumpingDots(
           color: Colors.blue,
           radius: 6,
-          animationDuration: Duration(milliseconds: 200),
+          animationDuration: const Duration(milliseconds: 200),
           innerPadding: 2,
           numberOfDots: 4,
         ),
@@ -472,19 +524,6 @@ class _ChatScreenState extends State<ChatScreen> {
             ],
           ),
           const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextButton.icon(
-                onPressed: () {},
-                icon: Icon(Icons.mic, color: Colors.grey.shade600),
-                label: Text(
-                  "Voice Message",
-                  style: TextStyle(color: Colors.grey.shade600),
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );

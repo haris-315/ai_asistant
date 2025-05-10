@@ -25,7 +25,6 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
 
-    // Initialize controllers
     _logoController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
@@ -36,7 +35,6 @@ class _SplashScreenState extends State<SplashScreen>
       vsync: this,
     );
 
-    // Create animations
     _logoAnimation = CurvedAnimation(
       parent: _logoController,
       curve: Curves.easeInOut,
@@ -47,10 +45,8 @@ class _SplashScreenState extends State<SplashScreen>
       curve: Curves.easeOut,
     );
 
-    // Start animations in sequence
     _startAnimations();
 
-    // Check authentication status
     _checkAuthStatus();
   }
 

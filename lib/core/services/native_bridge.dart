@@ -72,6 +72,7 @@ class NativeBridge {
         isStandBy: false,
         channel: "error",
         resultChannel: "error",
+        recognizedText: "There was an error!"
       );
     }
   }
