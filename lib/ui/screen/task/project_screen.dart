@@ -6,7 +6,6 @@ import 'package:get/get.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
 import '../../../Controller/auth_Controller.dart';
-import '../../widget/appbar.dart';
 import 'lable_screen.dart';
 import 'project/create_edit_ProjectScreen.dart';
 import 'project/projectDetail_Screen.dart';
@@ -46,30 +45,13 @@ class _ProjectScreenState extends State<ProjectScreen> {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      appBar: CustomAppBar(
-        title: "AI Assistant",
-        onNotificationPressed: _handleNotificationPress,
-        onProfilePressed: _handleProfilePress,
-      ),
-      backgroundColor: colorScheme.surface,
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blue,
-        heroTag: "project_screen_fab_tag",
-        elevation: 6,
-        shape: StarBorder.polygon(sides: 8),
-
-        onPressed: _handleAddProject,
-        child: Icon(Icons.add, color: Colors.white, size: 24),
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildQuickAccessSection(context),
-          _buildSearchAndFilterSection(colorScheme),
-          _buildProjectListSection(textTheme, colorScheme),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildQuickAccessSection(context),
+        _buildSearchAndFilterSection(colorScheme),
+        _buildProjectListSection(textTheme, colorScheme),
+      ],
     );
   }
 
@@ -560,13 +542,5 @@ class _ProjectScreenState extends State<ProjectScreen> {
       transition: Transition.rightToLeftWithFade,
       duration: const Duration(milliseconds: 300),
     );
-  }
-
-  void _handleNotificationPress() {
-    print("Notification Clicked!");
-  }
-
-  void _handleProfilePress() {
-    print("Profile Clicked!");
   }
 }

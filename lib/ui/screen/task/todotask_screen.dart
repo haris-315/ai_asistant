@@ -1,6 +1,5 @@
 import 'package:ai_asistant/data/models/projects/label_model.dart';
 import 'package:ai_asistant/data/models/projects/task_model.dart';
-import 'package:ai_asistant/ui/screen/home/emails/all_email_screen.dart';
 import 'package:ai_asistant/ui/screen/task/create_task_sheet.dart';
 import 'package:ai_asistant/ui/screen/task/task_detail_screen.dart';
 import 'package:ai_asistant/ui/widget/custom_linear_indicator.dart';
@@ -10,7 +9,6 @@ import 'package:intl/intl.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
 import '../../../Controller/auth_Controller.dart';
-import '../../widget/appbar.dart';
 
 class TodotaskScreen extends StatefulWidget {
   final String filter;
@@ -27,11 +25,12 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
   late String _currentFilter;
   String _currentSort = 'newest';
   bool isTrashing = false;
-
+  bool isExpanded = false;
   @override
   void initState() {
     super.initState();
-    _currentFilter = widget.filter;
+    
+
     _loadTasks();
   }
 
@@ -49,62 +48,51 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    if (widget.filter != "") {
+      _currentFilter = widget.filter;
+    } else {
+      _currentFilter = "today";
+    }
+
     final textTheme = Theme.of(context).textTheme;
-
-    return Scaffold(
-      backgroundColor: colorScheme.surfaceContainerHighest.withValues(
-        alpha: 0.1,
-      ),
-      appBar: CustomAppBar(
-        title: "My Tasks",
-        onNotificationPressed: _handleNotificationPress,
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blue,
-        heroTag: "todo_task_screen_fab",
-        elevation: 6,
-        shape: StarBorder.polygon(sides: 8),
-        onPressed: _handleAddTask,
-        child: Icon(Icons.add, color: colorScheme.onPrimary, size: 24),
-      ),
-      body: Column(
-        children: [
-          _buildSearchAndFilterSection(colorScheme),
-          Expanded(
-            child: Obx(() {
-              if (_controller.isLoading.value) {
-                return Center(
-                  child: CircularProgressIndicator(
-                    color: colorScheme.primary,
-                    strokeWidth: 2,
-                  ),
-                );
-              }
-
-              final filteredTasks = _getFilteredTasks();
-
-              if (filteredTasks.isEmpty) {
-                return _buildEmptyState(colorScheme);
-              }
-
-              return RefreshIndicator(
-                onRefresh: _loadTasks,
-                color: colorScheme.primary,
-                child: ListView.builder(
-                  controller: _scrollController,
-                  padding: EdgeInsets.all(2.h),
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  itemCount: filteredTasks.length,
-                  itemBuilder: (context, index) {
-                    final task = filteredTasks[index];
-                    return _buildTaskCard(task, colorScheme, textTheme);
-                  },
+    return Column(
+      children: [
+        _buildSearchAndFilterSection(colorScheme),
+        SizedBox(height: 2.3),
+        Expanded(
+          child: Obx(() {
+            if (_controller.isLoading.value) {
+              return Center(
+                child: CircularProgressIndicator(
+                  color: colorScheme.primary,
+                  strokeWidth: 2,
                 ),
               );
-            }),
-          ),
-        ],
-      ),
+            }
+
+            final filteredTasks = _getFilteredTasks();
+
+            if (filteredTasks.isEmpty) {
+              return _buildEmptyState(colorScheme);
+            }
+
+            return RefreshIndicator(
+              onRefresh: _loadTasks,
+              color: colorScheme.primary,
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: EdgeInsets.all(2.h),
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemCount: filteredTasks.length,
+                itemBuilder: (context, index) {
+                  final task = filteredTasks[index];
+                  return _buildTaskCard(task, colorScheme, textTheme);
+                },
+              ),
+            );
+          }),
+        ),
+      ],
     );
   }
 
@@ -122,6 +110,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
       onLongPress: () => _showTaskOptions(context, task),
       child: Card(
         elevation: 4,
+        shadowColor: Colors.black.withValues(alpha: .5),
         margin: EdgeInsets.only(bottom: 2.h),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: InkWell(
@@ -386,8 +375,6 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
               ),
             ],
           ),
-
-          SizedBox(height: 2.4),
         ],
       ),
     );
@@ -420,6 +407,8 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
     );
   }
+
+
 
   void _showSortOptions() {
     showModalBottomSheet(
@@ -652,7 +641,6 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
   }
 
   void _showSelectLabel(TaskModel task) {
-        
     List<LabelModel> labels = _controller.labels;
     showModalBottomSheet(
       context: context,
@@ -807,25 +795,6 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
       () => TaskDetailScreen(task: task),
       transition: Transition.rightToLeftWithFade,
       duration: const Duration(milliseconds: 300),
-    );
-  }
-
-  void _handleAddTask() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder:
-          (context) => TaskCreateEditSheet(
-            onSubmit: (task) => _controller.createTask(task),
-          ),
-    );
-  }
-
-  void _handleNotificationPress() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => AllEmailScreen()),
     );
   }
 }

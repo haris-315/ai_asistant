@@ -1,19 +1,17 @@
 import 'package:ai_asistant/core/shared/functions/show_snackbar.dart';
 import 'package:ai_asistant/state_mgmt/chats/cubit/chat_cubit.dart';
 import 'package:ai_asistant/state_mgmt/sessions/cubit/sessions_cubit.dart';
+import 'package:ai_asistant/ui/screen/assistant_control_page.dart';
 import 'package:ai_asistant/ui/screen/home/chat_screen.dart';
-import 'package:ai_asistant/ui/screen/home/emails/all_email_screen.dart';
-import 'package:ai_asistant/ui/screen/task/task_parent_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
+import 'package:page_transition/page_transition.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
 import '../../core/services/session_store_service.dart';
 import '../screen/auth/login_screen.dart';
-import '../screen/home/participants_Screen.dart';
-import '../screen/home/voictotext_screen.dart';
 
 class SideMenu extends StatefulWidget {
   const SideMenu({super.key});
@@ -27,11 +25,12 @@ class _SideMenuState extends State<SideMenu> {
   bool email = false;
   bool task = false;
   bool meeting = false;
-  bool aichat = false;
+  bool aichat = true;
 
   @override
   void initState() {
     super.initState();
+    context.read<SessionsCubit>().loadSessions(force: true);
   }
 
   @override
@@ -94,108 +93,112 @@ class _SideMenuState extends State<SideMenu> {
                     ),
                   ),
                 ),
-                menuItem(
-                  title: "Dashboard",
-                  icon: Icons.dashboard,
-                  isSelected: selectedMenu == "Dashboard",
-                  onTap: () {
-                    setState(() {
-                      selectedMenu = "Dashboard";
-                      email = false;
-                      meeting = false;
-                    });
-                    if ((ModalRoute.of(context)?.settings.name ?? "") ==
-                        "/home") {
-                      Navigator.pop(context);
-                      return;
-                    }
-                    Navigator.pushReplacementNamed(context, "/home");
-                  },
-                ),
-                menuItem(
-                  title: "Emails",
-                  icon: Icons.email,
-                  // iconf: email ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                  isSelected: selectedMenu == "Emails",
-                  onTap: () {
-                    setState(() {
-                      selectedMenu = "Emails";
-                      email = !email;
-                    });
-                    Get.to(() => AllEmailScreen());
-                  },
-                ),
-
-                menuItem(
-                  title: "Tasks",
-                  icon: Icons.task_alt,
-
-                  // iconf: task ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                  isSelected: selectedMenu == "Tasks",
-                  onTap: () {
-                    setState(() => selectedMenu = "Tasks");
-                    Navigator.of(context).pop();
-
-                    Get.to(() => TaskScreen(filter: "all", toSpecialIndex: 0));
-                  },
-                ),
 
                 // menuItem(
-                //   title: "Meetings",
-                //   icon: Icons.video_camera_front_outlined,
-                //   iconf: meeting ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-
-                //   isSelected: selectedMenu == "Meetings",
+                //   title: "Dashboard",
+                //   icon: Icons.dashboard,
+                //   isSelected: selectedMenu == "Dashboard",
                 //   onTap: () {
                 //     setState(() {
-                //       selectedMenu = "Meetings";
-                //       meeting = !meeting;
+                //       selectedMenu = "Dashboard";
+                //       email = false;
+                //       meeting = false;
                 //     });
+                //     if ((ModalRoute.of(context)?.settings.name ?? "") ==
+                //         "/home") {
+                //       Navigator.pop(context);
+                //       return;
+                //     }
+                //     Navigator.pushReplacementNamed(context, "/home");
                 //   },
                 // ),
-                if (meeting) ...[
-                  menuItem(
-                    title: "Voice To Text",
-                    icon: Icons.record_voice_over_outlined,
-                    isSelected: selectedMenu == "Voice To Text",
+                // menuItem(
+                //   title: "Emails",
+                //   icon: Icons.email,
+                //   // iconf: email ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                //   isSelected: selectedMenu == "Emails",
+                //   onTap: () {
+                //     setState(() {
+                //       selectedMenu = "Emails";
+                //       email = !email;
+                //     });
+                //     Get.to(() => AllEmailScreen());
+                //   },
+                // ),
 
-                    onTap: () {
-                      setState(() {
-                        selectedMenu = "Voice To Text";
-                        meeting = !meeting;
-                        Navigator.of(context).pop();
+                // menuItem(
+                //   title: "Tasks",
+                //   icon: Icons.task_alt,
 
-                        Get.to(() => VoiceToTextScreen());
-                      });
-                    },
-                  ),
-                  menuItem(
-                    title: "Participants",
-                    icon: Icons.person_outline_outlined,
+                //   // iconf: task ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                //   isSelected: selectedMenu == "Tasks",
+                //   onTap: () {
+                //     setState(() => selectedMenu = "Tasks");
+                //     Navigator.of(context).pop();
 
-                    isSelected: selectedMenu == "Participants",
-                    onTap: () {
-                      setState(() {
-                        selectedMenu = "Participants";
-                        meeting = !meeting;
-                        Get.to(() => ParticipantsScreen());
-                      });
-                    },
-                  ),
-                ],
+                //     Get.to(() => TaskScreen(filter: "all", toSpecialIndex: 0));
+                //   },
+                // ),
+                menuItem(
+                  title: "Assistant",
+                  icon: Icons.video_camera_front_outlined,
+                  // iconf: meeting ? Icons.arrow_drop_up : Icons.arrow_drop_down,
 
+                  isSelected: selectedMenu == "Assistant",
+                  onTap: () {
+                    setState(() {
+                      selectedMenu = "Assistant";
+                      meeting = !meeting;
+                    });
+                    Navigator.push(
+                      context,
+                      PageTransition(
+                        type: PageTransitionType.fade,
+                        child: AssistantControlPage(),
+                      ),
+                    );
+                  },
+                ),
+                // if (meeting) ...[
+                //   menuItem(
+                //     title: "Voice To Text",
+                //     icon: Icons.record_voice_over_outlined,
+                //     isSelected: selectedMenu == "Voice To Text",
+
+                //     onTap: () {
+                //       setState(() {
+                //         selectedMenu = "Voice To Text";
+                //         meeting = !meeting;
+                //         Navigator.of(context).pop();
+
+                //         Get.to(() => VoiceToTextScreen());
+                //       });
+                //     },
+                //   ),
+                //   menuItem(
+                //     title: "Participants",
+                //     icon: Icons.person_outline_outlined,
+
+                //     isSelected: selectedMenu == "Participants",
+                //     onTap: () {
+                //       setState(() {
+                //         selectedMenu = "Participants";
+                //         meeting = !meeting;
+                //         Get.to(() => ParticipantsScreen());
+                //       });
+                //     },
+                //   ),
+                // ],
                 menuItem(
                   title: "AI Chat",
                   icon: Icons.person,
                   iconf: aichat ? Icons.arrow_drop_up : Icons.arrow_drop_down,
                   isSelected: selectedMenu == "AI Chat",
                   onTap: () {
-                    context.read<SessionsCubit>().loadSessions(force: true);
-
-                    setState(() {
-                      selectedMenu = "AI Chat";
-                      aichat = !aichat;
-                    });
+                    // setState(() {
+                    //   selectedMenu = "AI Chat";
+                    //   aichat = !aichat;
+                    // });
                   },
                 ),
 

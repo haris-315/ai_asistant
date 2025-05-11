@@ -19,7 +19,7 @@ class SpeechRecognitionService : Service() {
     private lateinit var speechRecognizer: SpeechRecognizer
     private lateinit var recognizerIntent: Intent
     private var isListening = false
-    private var isStandby = true
+    private var isStandby = false
     private lateinit var audioManager: AudioManager
     private var originalSystemVolume: Int = -1
 
@@ -121,24 +121,26 @@ class SpeechRecognitionService : Service() {
                 ServiceManager.recognizedText = text
 
                 when {
-                    text.contains("standby") -> {
-                        isStandby = true
-                        ServiceManager.isStandBy = true
-                        ttsHelper.speak("Going into standby mode")
-                        Log.d("Jarvis", "Switched to standby")
-                    }
-                    text.contains("hey jarvis") -> {
+                    text.contains("hey jarvis") || text.contains("jarvis") || text.contains("hey") || text.contains("hi") || text.contains("hello") || text.contains("gpt") -> {
                         isStandby = false
                         ServiceManager.isStandBy = false
                         ttsHelper.speak("I'm listening")
                         Log.d("Jarvis", "Activated from standby")
                     }
+                    text.contains("standby") || text.contains("sleep") || text.contains("bye") || text.contains("thank") -> {
+                        isStandby = true
+                        ServiceManager.isStandBy = true
+                        ttsHelper.speak("Going into standby mode")
+                        Log.d("Jarvis", "Switched to standby")
+                    }
+                    
                     !isStandby -> {
                         openAIClient.sendMessage(
                             text,
                             onResponse = { reply ->
                                 Log.d("OpenAI", "Assistant: $reply")
                                 ttsHelper.speak(reply)
+
                             },
                             onError = { error ->
                                 Log.e("OpenAI", "Error: $error")

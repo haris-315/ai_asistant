@@ -3,15 +3,15 @@ import 'package:ai_asistant/core/services/session_store_service.dart';
 import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:ai_asistant/core/services/snackbar_service.dart';
 import 'package:ai_asistant/core/shared/constants.dart';
+import 'package:ai_asistant/core/themes/theme.dart';
 import 'package:ai_asistant/state_mgmt/chats/cubit/chat_cubit.dart';
 import 'package:ai_asistant/state_mgmt/email/cubit/email_cubit.dart';
 import 'package:ai_asistant/state_mgmt/sessions/cubit/sessions_cubit.dart';
 import 'package:ai_asistant/ui/screen/home/dashboard.dart';
-import 'package:ai_asistant/ui/screen/splash_Screen.dart';
+import 'package:ai_asistant/ui/screen/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
 import 'Controller/bar_controller.dart';
@@ -57,27 +57,8 @@ class MyApp extends StatelessWidget {
           scaffoldMessengerKey: SnackbarService.messengerKey,
           title: 'Flutter Demo',
           debugShowCheckedModeBanner: true,
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-            useMaterial3: true,
-            textTheme: TextTheme(
-              bodyLarge: GoogleFonts.nunito(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w300,
-                color: Colors.black,
-              ),
-              bodyMedium: GoogleFonts.lato(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w200,
-                color: Colors.black,
-              ),
-              titleLarge: GoogleFonts.montserrat(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.w600,
-                color: Colors.black,
-              ),
-            ),
-          ),
+          theme: appTheme(),
+         
           home: SplashScreen(),
           routes: {"/home": (context) => HomeScreen()},
         );

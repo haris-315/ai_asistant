@@ -41,14 +41,8 @@ class _TasksTrashScreenState extends State<TasksTrashScreen> {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: colorScheme.surfaceContainerHighest.withValues(
-        alpha: 0.1,
-      ),
-      appBar: CustomAppBar(
-        title: "Trashed Tasks",
-        onNotificationPressed: _handleNotificationPress,
-        onProfilePressed: _handleProfilePress,
-      ),
+      backgroundColor: Colors.white,
+      appBar: CustomAppBar(title: "Trashed Tasks"),
 
       body: Column(
         children: [
@@ -571,13 +565,4 @@ class _TasksTrashScreenState extends State<TasksTrashScreen> {
       duration: const Duration(milliseconds: 300),
     );
   }
-
-  void _handleNotificationPress() {
-    // Implement notification press logic
-  }
-
-  void _handleProfilePress() {
-    // Implement profile press logic
-  }
-  // ... [Keep all your existing methods below unchanged] ...
 }

@@ -1,3 +1,5 @@
+// ignore_for_file: library_private_types_in_public_api
+
 import 'package:ai_asistant/ui/screen/home/dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -57,8 +59,7 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _checkAuthStatus() async {
-    // Add slight delay to ensure animations complete
-    await Future.delayed(const Duration(milliseconds: 2500));
+    await Future.delayed(const Duration(milliseconds: 800));
 
     final token = await SecureStorage.getToken();
     if (!mounted) return;
@@ -92,8 +93,8 @@ class _SplashScreenState extends State<SplashScreen>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              theme.primaryColor.withOpacity(0.2),
-              theme.scaffoldBackgroundColor.withOpacity(0.3),
+              theme.primaryColor.withValues(alpha: 0.2),
+              theme.scaffoldBackgroundColor.withValues(alpha: 0.3),
             ],
           ),
         ),

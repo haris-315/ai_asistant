@@ -74,7 +74,7 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
   @override
   void dispose() {
     _mounted = false;
-    NativeBridge.stopListening();
+    // NativeBridge.stopListening();
     super.dispose();
   }
 

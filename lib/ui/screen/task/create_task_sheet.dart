@@ -84,7 +84,6 @@ class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
               child: ListView(
                 controller: scrollController,
                 children: [
-                  // Handle with gradient
                   Center(
                     child: Container(
                       width: 60,
@@ -97,7 +96,6 @@ class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
                     ),
                   ),
 
-                  // Title with gradient text
                   Row(
                     children: [
                       Expanded(
@@ -152,6 +150,8 @@ class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
                           color: theme.hintColor.withValues(alpha: 0.7),
                         ),
                         border: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+
                         contentPadding: const EdgeInsets.symmetric(
                           vertical: 12,
                         ),
@@ -159,14 +159,13 @@ class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
                       validator:
                           (value) =>
                               value == null || value.isEmpty
-                                  ? 'Task name is required'
+                                  ? "What's the Task?"
                                   : null,
                     ),
                   ),
 
                   const SizedBox(height: 16),
 
-                  // Colorful action chips
                   Wrap(
                     spacing: 10,
                     runSpacing: 10,
