@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:ai_asistant/data/models/projects/project_model.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -104,16 +106,22 @@ class _ProjectScreenState extends State<ProjectScreen> {
             ],
           ),
           SizedBox(height: 3.h),
-          Text(
-            "MY PROJECTS",
-            style: TextStyle(
-              fontSize: 15.sp,
-              fontWeight: FontWeight.w700,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.8),
-              letterSpacing: 0.5,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "MY PROJECTS",
+                style: TextStyle(
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.8),
+                  letterSpacing: 0.5,
+                ),
+              ),
+              IconButton(onPressed: _handleAddProject, icon: Icon(Icons.add)),
+            ],
           ),
           SizedBox(height: 1.h),
           Divider(
@@ -271,6 +279,7 @@ class _ProjectScreenState extends State<ProjectScreen> {
                                   await _controller.deleteProject(
                                     filteredProjects[index].id.toString(),
                                   );
+                                  Navigator.pop(context);
                                 },
                               ),
                               ListTile(
@@ -491,7 +500,6 @@ class _ProjectScreenState extends State<ProjectScreen> {
           }).toList();
     }
 
-    // Apply category filter
     switch (_currentFilter) {
       case 'favorites':
         projects =
@@ -507,7 +515,6 @@ class _ProjectScreenState extends State<ProjectScreen> {
         break;
     }
 
-    // Sort by ID (newest first)
     projects.sort((a, b) {
       try {
         int idA = a.id;

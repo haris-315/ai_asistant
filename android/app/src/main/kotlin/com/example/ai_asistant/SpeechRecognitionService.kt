@@ -33,7 +33,6 @@ class SpeechRecognitionService : Service() {
         createNotificationChannel()
         startForegroundService()
 
-        // Initialize AudioManager
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         initializeSpeechRecognizer()
 
@@ -43,7 +42,9 @@ class SpeechRecognitionService : Service() {
             projects = SharedData.projects
         )
 
-        ttsHelper = TextToSpeechHelper(this)
+        ttsHelper = TextToSpeechHelper(this) {
+            resumeListening()
+        }
     }
 
     private fun createNotificationChannel() {
@@ -69,9 +70,7 @@ class SpeechRecognitionService : Service() {
 
     private fun muteSystemSounds() {
         try {
-            // Store the current system volume
             originalSystemVolume = audioManager.getStreamVolume(AudioManager.STREAM_SYSTEM)
-            // Mute the system stream
             audioManager.setStreamVolume(AudioManager.STREAM_SYSTEM, 0, 0)
         } catch (e: Exception) {
             Log.e("SpeechRecognizer", "Error muting system sounds: ${e.message}")
@@ -81,7 +80,6 @@ class SpeechRecognitionService : Service() {
     private fun restoreSystemSounds() {
         try {
             if (originalSystemVolume != -1) {
-                // Restore the original system volume
                 audioManager.setStreamVolume(AudioManager.STREAM_SYSTEM, originalSystemVolume, 0)
             }
         } catch (e: Exception) {
@@ -93,7 +91,6 @@ class SpeechRecognitionService : Service() {
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
         speechRecognizer.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {
-                // Mute system sounds when the recognizer is ready
                 muteSystemSounds()
             }
 
@@ -101,18 +98,15 @@ class SpeechRecognitionService : Service() {
             override fun onRmsChanged(rmsdB: Float) {}
             override fun onBufferReceived(buffer: ByteArray?) {}
             override fun onEndOfSpeech() {
-                // Restore system sounds when speech ends
                 restoreSystemSounds()
             }
 
             override fun onError(error: Int) {
-                // Restore system sounds on error
                 restoreSystemSounds()
-                if (isListening) restartListening()
+                resumeListening()
             }
 
             override fun onResults(results: Bundle?) {
-                // Restore system sounds when results are received
                 restoreSystemSounds()
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 val text = matches?.firstOrNull()?.lowercase()?.trim()
@@ -120,12 +114,11 @@ class SpeechRecognitionService : Service() {
                 Log.d("SpeechRecognizer", "Recognized: $text")
 
                 if (text == null) {
-                    if (isListening) restartListening()
+                    resumeListening()
                     return
                 }
-                
-                ServiceManager.recognizedText = text
 
+                ServiceManager.recognizedText = text
 
                 when {
                     text.contains("standby") -> {
@@ -149,15 +142,14 @@ class SpeechRecognitionService : Service() {
                             },
                             onError = { error ->
                                 Log.e("OpenAI", "Error: $error")
+                                ttsHelper.speak("Sorry, there was a problem.")
                             }
                         )
                     }
                     else -> {
-                        Log.d("Jarvis", "In standby, ignored input.")
+                        Log.d("Jarvis", "In standby, input ignored.")
                     }
                 }
-
-                if (isListening) restartListening()
             }
 
             override fun onPartialResults(partialResults: Bundle?) {}
@@ -175,28 +167,42 @@ class SpeechRecognitionService : Service() {
 
     private fun startListening() {
         isListening = true
-        speechRecognizer.startListening(recognizerIntent)
+        Handler(Looper.getMainLooper()).post {
+            speechRecognizer.startListening(recognizerIntent)
+        }
     }
 
     private fun restartListening() {
-        speechRecognizer.cancel()
-        speechRecognizer.startListening(recognizerIntent)
+        Handler(Looper.getMainLooper()).post {
+            speechRecognizer.cancel()
+            speechRecognizer.startListening(recognizerIntent)
+        }
+    }
+
+    private fun resumeListening() {
+        if (isListening) {
+            Handler(Looper.getMainLooper()).post {
+                restartListening()
+            }
+        }
     }
 
     private fun stopListening() {
         isListening = false
-        speechRecognizer.stopListening()
-        restoreSystemSounds() // Ensure sounds are restored when stopping
+        Handler(Looper.getMainLooper()).post {
+            speechRecognizer.stopListening()
+            restoreSystemSounds()
+        }
     }
 
     override fun onDestroy() {
         stopListening()
         speechRecognizer.destroy()
-        restoreSystemSounds() // Ensure sounds are restored on service destruction
+        restoreSystemSounds()
         super.onDestroy()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        return START_STICKY // Restart if the service is killed
+        return START_STICKY
     }
 }

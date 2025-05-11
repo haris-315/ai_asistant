@@ -5,7 +5,10 @@ import android.speech.tts.TextToSpeech
 import android.util.Log
 import java.util.Locale
 
-class TextToSpeechHelper(context: Context) : TextToSpeech.OnInitListener {
+class TextToSpeechHelper(
+    context: Context,
+    private val onDoneCallback: () -> Unit
+) : TextToSpeech.OnInitListener {
 
     private var tts: TextToSpeech? = null
     private var isReady = false
@@ -26,9 +29,26 @@ class TextToSpeechHelper(context: Context) : TextToSpeech.OnInitListener {
 
     fun speak(text: String) {
         if (isReady && text.isNotBlank()) {
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+            val utteranceId = System.currentTimeMillis().toString()
+            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+            tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+                override fun onStart(utteranceId: String?) {
+                    Log.d("TTS", "Speech started")
+                }
+
+                override fun onDone(utteranceId: String?) {
+                    Log.d("TTS", "Speech done")
+                    onDoneCallback()
+                }
+
+                override fun onError(utteranceId: String?) {
+                    Log.e("TTS", "Speech error")
+                    onDoneCallback()
+                }
+            })
         } else {
             Log.e("TTS", "TTS not ready or empty text")
+            onDoneCallback()
         }
     }
 

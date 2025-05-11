@@ -72,9 +72,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     await _fetchSections();
   }
 
-  void _showSectionDialog({SectionModel? section}) {
+  void _showSectionDialog({SectionModel? section}) async {
     _sectionNameController.text = section?.name ?? '';
-    showDialog(
+    await showDialog(
       context: context,
       builder:
           (context) => StatefulBuilder(
@@ -222,6 +222,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
             },
           ),
     );
+    setState(() {});
   }
 
   void _showSectionOptions(SectionModel section) {
@@ -590,9 +591,24 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
             ),
             Padding(
               padding: const EdgeInsets.only(top: 12.0, left: 6),
-              child: Text(
-                "SECTIONS",
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16.sp),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "SECTIONS",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed:
+                        isSectionOperationInProgress
+                            ? null
+                            : () => _showSectionDialog(),
+                    icon: Icon(Icons.add),
+                  ),
+                ],
               ),
             ),
             const Divider(),
@@ -632,17 +648,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                             },
                           ),
                         ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                      child: ActionChip(
-                        avatar: const Icon(Icons.add),
-                        label: const Text('New Section'),
-                        onPressed:
-                            isSectionOperationInProgress
-                                ? null
-                                : () => _showSectionDialog(),
                       ),
                     ),
                   ],

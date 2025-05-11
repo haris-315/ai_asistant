@@ -291,14 +291,14 @@ class AuthController extends GetxController {
                   ),
                 ),
 
-                // SizedBox(height: 10),
-                // MaterialButton(
-                //   onPressed: () {
-                //     Navigator.of(Get.context!).pop();
-                //   },
-                //   color: Colors.blue,
-                //   child: Text("Stop!"),
-                // ),
+                SizedBox(height: 10),
+                MaterialButton(
+                  onPressed: () {
+                    Navigator.of(Get.context!).pop();
+                  },
+                  color: Colors.blue,
+                  child: Text("Stop!"),
+                ),
               ],
             ),
           ),

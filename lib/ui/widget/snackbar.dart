@@ -5,7 +5,7 @@ void showCustomSnackbar({
   required String title,
   required String message,
   required Color backgroundColor,
-  SnackPosition snackPosition = SnackPosition.BOTTOM,
+  SnackPosition snackPosition = SnackPosition.TOP,
   IconData? icon,
 }) {
   Get.snackbar(

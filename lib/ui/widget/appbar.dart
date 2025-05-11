@@ -23,17 +23,18 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       title: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Image.asset('assets/Rectangle.png', height: 50),
-          SizedBox(width: 8),
           Text(
             title,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: Colors.black,
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(width: 80),
+          SizedBox(width: 8),
+          Image.asset('assets/Rectangle.png', height: 50),
+
           // Row(
           //   children: [
           //     if (showNotificationIcon)

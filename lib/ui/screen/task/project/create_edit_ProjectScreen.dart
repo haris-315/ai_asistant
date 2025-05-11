@@ -287,7 +287,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    backgroundColor: theme.primaryColor,
+                    backgroundColor: colorOptions[selectedColor] ?? Colors.blue,
                     foregroundColor: Colors.white,
                   ),
                   child: Text(
