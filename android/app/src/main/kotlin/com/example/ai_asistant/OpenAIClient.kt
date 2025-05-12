@@ -1,5 +1,8 @@
 package com.example.openai
 
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.util.Log
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
@@ -9,17 +12,17 @@ import org.json.JSONObject
 import java.io.IOException
 
 class OpenAIClient(
+    private val context: Context,
     private val apiKey: String,
     private val authToken: String,
     private val projects: MutableList<String>
 ) {
-
     private val client = OkHttpClient()
     private val messages = mutableListOf<JSONObject>()
     private val apiUrl = "https://api.openai.com/v1/chat/completions"
 
     val systemPrompt = """
-You are a helpful assistant for a task manager app. You also answer general knowledge questions and hold friendly conversations.
+You are a helpful assistant for a task manager app that can also open Android applications. You answer general knowledge questions and hold friendly conversations.
 
 Your response **must always** be a **strict JSON object**, following these rules:
 
@@ -39,47 +42,20 @@ Your response **must always** be a **strict JSON object**, following these rules
      "is_favorite": false (unless the user asks to favorite it),
      "view_style": "list"
    }
-4. If the user makes a general request (not task/project), ONLY return the "chatres".
+4. If the user asks to open an Android app, include an "app" object with:
+   {
+     "package": "app.package.name",
+     "name": "App Name" (optional, for display purposes)
+   }
+5. If the user makes a general request (not task/project/app), ONLY return the "chatres".
 
 Rules:
 - NEVER add extra fields.
 - NEVER change "view_style" — it must always be "list".
 - "is_favorite" must always be false unless the user specifically says to favorite the project.
 - If no project matches, assign task to "Inbox" with default id. and if asked to assign to special project, here are the available projects ${projects.toString()}
+- For app opening requests, you MUST provide the exact package name (e.g., "com.google.android.youtube" for YouTube).
 - DO NOT include markdown or explanations — only a single JSON object as a string.
-
-EXAMPLES:
-
-User: Create a new project called Shopping List  
-Response:
-{
-  "chatres": "Sure! I've created the Shopping List project for you.",
-  "project": {
-    "name": "Shopping List",
-    "color": "charcoal",
-    "is_favorite": false,
-    "view_style": "list"
-  }
-}
-
-User: Add a task to buy milk for my Grocery project  
-Response:
-{
-  "chatres": "Sure, I’ve added it to your Grocery project!",
-  "tsk": {
-    "content": "Buy milk",
-    "description": "Task to buy milk for Grocery project",
-    "is_completed": false,
-    "priority": 1,
-    "project_id": 42 
-  }
-}
-
-User: What's the capital of Japan?  
-Response:
-{
-  "chatres": "Tokyo is the capital of Japan!"
-}
 """.trimIndent()
 
     fun getMessageHistory(): List<JSONObject> = messages.toList()
@@ -104,6 +80,9 @@ Response:
         val requestBody = JSONObject().apply {
             put("model", model)
             put("messages", JSONArray(messages))
+            put("response_format", JSONObject().apply {
+                put("type", "json_object")
+            })
         }
 
         val request = Request.Builder()
@@ -131,13 +110,12 @@ Response:
                         .getJSONObject(0)
                         .getJSONObject("message")
                         .getString("content")
-
+                    
                     val replyJson = JSONObject(replyContent)
                     val chatres = replyJson.optString("chatres", "Okay.")
                     val taskJson = replyJson.optJSONObject("tsk")
                     val projectJson = replyJson.optJSONObject("project")
-
-                    Log.d("OpenAI", "Response: $replyJson")
+                    val appJson = replyJson.optJSONObject("app")
 
                     messages.add(JSONObject().apply {
                         put("role", "assistant")
@@ -154,15 +132,40 @@ Response:
                         Log.d("OpenAI", "Project creation ${if (success) "succeeded" else "failed"}")
                     }
 
+                    if (appJson != null) {
+                        val packageName = appJson.getString("package")
+                        openApp(packageName) { success ->
+                            if (!success) {
+                                onResponse("I couldn't open that app. It might not be installed.")
+                            }
+                        }
+                    }
+
                     onResponse(chatres)
                 } catch (e: Exception) {
                     Log.e("OpenAI", "Parsing error: ${e.message}")
-                    onResponse("Sorry, I didn’t quite get that. Please try again.")
+                    onResponse("Sorry, I didn't quite get that. Please try again.")
                 } finally {
                     response.close()
                 }
             }
         })
+    }
+
+    private fun openApp(packageName: String, callback: (Boolean) -> Unit) {
+        try {
+            val intent: Intent? = context.packageManager.getLaunchIntentForPackage(packageName)
+            if (intent != null) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+                callback(true)
+            } else {
+                callback(false)
+            }
+        } catch (e: Exception) {
+            Log.e("OpenAIClient", "Error opening app: ${e.message}")
+            callback(false)
+        }
     }
 
     private fun createTask(taskBody: JSONObject): Boolean {

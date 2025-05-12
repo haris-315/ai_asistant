@@ -10,7 +10,6 @@ import 'package:animated_notch_bottom_bar/animated_notch_bottom_bar/animated_not
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:page_transition/page_transition.dart';
 
 import '../../../Controller/auth_Controller.dart';
@@ -21,7 +20,7 @@ import 'navigationScreen/home_screen_content.dart';
 class HomeController extends GetxController {
   var selectedIndex = 0.obs;
   dynamic currentParam;
-  void goToSpecialPage<T>(int theIndex, T theParam) {
+  void goToSpecialPage<T>(int theIndex, T? theParam) {
     currentParam = theParam;
     selectedIndex.value = theIndex;
     notchBottomBarController.jumpTo(theIndex);
@@ -37,11 +36,164 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with SingleTickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> {
   final HomeController controller = Get.put(HomeController());
-  final AuthController authcontroller = AuthController();
+  final AuthController authcontroller = Get.find<AuthController>();
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAsync();
+  }
+
+  void _fetchAsync() async {
+    if (await SettingsService.getSetting(AppConstants.appStateKey) ==
+        AppConstants.appStateInitialized) {
+      return;
+    }
+    await authcontroller.syncMailboxbulk();
+    if (authcontroller.projects.isEmpty) {
+      await authcontroller.fetchProject(isInitialFetch: true);
+    }
+    await SettingsService.storeSetting(
+      AppConstants.appStateKey,
+      AppConstants.appStateInitialized,
+    );
+  }
+
+  Future<void> _handleAddTask() {
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => TaskCreateEditSheet(
+            onSubmit: (task) => authcontroller.createTask(task),
+          ),
+    );
+  }
+
+  Widget _buildScreen() {
+    switch (controller.selectedIndex.value) {
+      case 0:
+        return const HomeContent();
+      case 1:
+        return const AllEmailScreen();
+      case 2:
+        return TodotaskScreen(filter: controller.currentParam ?? "today");
+      case 3:
+        return const ProjectScreen();
+      default:
+        return const HomeContent();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(
+      () => Scaffold(
+        backgroundColor: Colors.white,
+        key: scaffoldKey,
+        appBar: CustomAppBar(
+          title:
+              {0: "Home", 1: "Mails", 2: "Tasks", 3: "Projects"}[controller
+                  .selectedIndex
+                  .value] ??
+              "AI Assistant",
+        ),
+        floatingActionButton: SpeedDialFab(
+          selectedIndex: controller.selectedIndex.value,
+          onAddTask: _handleAddTask,
+        ),
+        drawer: const SideMenu(),
+        body: SafeArea(child: _buildScreen()),
+        bottomNavigationBar: AnimatedNotchBottomBar(
+          kBottomRadius: 18,
+          kIconSize: 22,
+          notchBottomBarController: controller.notchBottomBarController,
+          color: Colors.white,
+          showLabel: true,
+          notchColor: const Color(0xFF1976D2),
+          bottomBarItems: const [
+            BottomBarItem(
+              inActiveItem: Icon(Icons.home_outlined, color: Colors.grey),
+              activeItem: Icon(Icons.home, color: Colors.white),
+              itemLabelWidget: Text(
+                'Home',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  color: Colors.grey,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            BottomBarItem(
+              inActiveItem: Icon(Icons.email_outlined, color: Colors.grey),
+              activeItem: Icon(Icons.email, color: Colors.white),
+              itemLabelWidget: Text(
+                'Emails',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  color: Colors.grey,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            BottomBarItem(
+              inActiveItem: Icon(Icons.task_outlined, color: Colors.grey),
+              activeItem: Icon(Icons.task, color: Colors.white),
+              itemLabelWidget: Text(
+                'Tasks',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  color: Colors.grey,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            BottomBarItem(
+              inActiveItem: Icon(Icons.domain, color: Colors.grey),
+              activeItem: Icon(Icons.domain_rounded, color: Colors.white),
+              itemLabelWidget: Text(
+                'Projects',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  color: Colors.grey,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+          onTap: (index) {
+            controller.goToSpecialPage<Null>(index, null);
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class SpeedDialFab extends StatefulWidget {
+  final int selectedIndex;
+  final VoidCallback onAddTask;
+
+  const SpeedDialFab({
+    super.key,
+    required this.selectedIndex,
+    required this.onAddTask,
+  });
+
+  @override
+  State<SpeedDialFab> createState() => _SpeedDialFabState();
+}
+
+class _SpeedDialFabState extends State<SpeedDialFab>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   bool isExpanded = false;
 
@@ -50,28 +202,29 @@ class _HomeScreenState extends State<HomeScreen>
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 300),
     );
+  }
 
-    fetch();
-    if (authcontroller.projects.isEmpty) {
-      authcontroller.fetchProject(isInitialFetch: true);
-    }
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   fabs() => [
     null,
     FloatingActionButton.extended(
-      heroTag: "bawoooo!",
-      label: Text(
+      heroTag: "compose_fab",
+      label: const Text(
         "Compose",
         style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
       ),
-      backgroundColor: Colors.blue[600],
+      backgroundColor: const Color(0xFF1976D2),
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      icon: Icon(Icons.send, color: Colors.white),
-      onPressed: () => Get.to(() => NewMessageScreen()),
+      icon: const Icon(Icons.send, color: Colors.white),
+      onPressed: () => Get.to(() => const NewMessageScreen()),
     ),
     Column(
       mainAxisAlignment: MainAxisAlignment.end,
@@ -89,12 +242,12 @@ class _HomeScreenState extends State<HomeScreen>
                 context,
                 PageTransition(
                   type: PageTransitionType.rightToLeft,
-                  child: TasksTrashScreen(),
+                  child: const TasksTrashScreen(),
                 ),
               );
             },
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           _buildSpeedDialButton(
             icon: Icons.add_task,
             label: "Quick Task",
@@ -102,16 +255,15 @@ class _HomeScreenState extends State<HomeScreen>
             onTap: () {
               setState(() => isExpanded = false);
               _animationController.reverse();
-              _handleAddTask();
+              widget.onAddTask();
             },
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
         ],
         FloatingActionButton(
-          backgroundColor: Colors.blue,
+          backgroundColor: const Color(0xFF1976D2),
           elevation: 6,
-          highlightElevation: 12,
-          heroTag: "sdfksljkcslkfdlks",
+          heroTag: "task_fab",
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -122,19 +274,19 @@ class _HomeScreenState extends State<HomeScreen>
                 : _animationController.reverse();
           },
           child: AnimatedSwitcher(
-            duration: Duration(milliseconds: 300),
+            duration: const Duration(milliseconds: 200),
             transitionBuilder: (child, animation) {
               return ScaleTransition(scale: animation, child: child);
             },
             child:
                 isExpanded
-                    ? Icon(
+                    ? const Icon(
                       Icons.close,
                       color: Colors.white,
                       key: ValueKey('close'),
                     )
-                    : Icon(
-                      Icons.expand_less,
+                    : const Icon(
+                      Icons.add,
                       color: Colors.white,
                       key: ValueKey('add'),
                     ),
@@ -143,15 +295,19 @@ class _HomeScreenState extends State<HomeScreen>
       ],
     ),
     FloatingActionButton(
-      backgroundColor: Colors.blue,
-      heroTag: "project_screen_fab_tadsfg",
+      backgroundColor: const Color(0xFF1976D2),
+      heroTag: "project_fab",
       elevation: 6,
-      shape: StarBorder.polygon(sides: 8),
-
-      onPressed: _handleAddTask,
-      child: Icon(Icons.add, color: Colors.white, size: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      onPressed: widget.onAddTask,
+      child: const Icon(Icons.add, color: Colors.white, size: 24),
     ),
   ];
+
+  @override
+  Widget build(BuildContext context) {
+    return fabs()[widget.selectedIndex] ?? const SizedBox.shrink();
+  }
 
   Widget _buildSpeedDialButton({
     required IconData icon,
@@ -159,33 +315,26 @@ class _HomeScreenState extends State<HomeScreen>
     required Color color,
     required VoidCallback onTap,
   }) {
-    return ScaleTransition(
-      key: ValueKey('speed_dial_$label'), // Unique key
-      scale: CurvedAnimation(
-        parent: _animationController,
-        curve: Interval(
-          isExpanded ? 0.0 : 0.5,
-          isExpanded ? 0.5 : 1.0,
-          curve: Curves.easeOutBack,
+    return FadeTransition(
+      opacity: _animationController,
+      child: ScaleTransition(
+        scale: CurvedAnimation(
+          parent: _animationController,
+          curve: Curves.easeOut,
         ),
-      ),
-      child: FadeTransition(
-        key: ValueKey('speed_d32ial_$label'), // Unique key
-
-        opacity: _animationController,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(28),
           child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(28),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 8,
-                  offset: Offset(0, 4),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
@@ -201,149 +350,18 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                   child: Icon(icon, color: color, size: 20),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
                   label,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Future<dynamic> _handleAddTask() {
-    return showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder:
-          (context) => TaskCreateEditSheet(
-            onSubmit: (task) => authcontroller.createTask(task),
-          ),
-    );
-  }
-
-  void fetch() async {
-    if (await SettingsService.getSetting(AppConstants.appStateKey) ==
-        AppConstants.appStateInitialized) {
-      return;
-    }
-    await authcontroller.syncMailboxbulk();
-    SettingsService.storeSetting(
-      AppConstants.appStateKey,
-      AppConstants.appStateInitialized,
-    );
-  }
-
-  Map<int, String> titles = {0: "Home", 1: "Mails", 2: "Tasks", 3: "Projects"};
-  @override
-  Widget build(BuildContext context) {
-    return Obx(
-      () => Scaffold(
-        appBar: CustomAppBar(
-          title: titles[controller.selectedIndex.value] ?? "AI Assistant",
-        ),
-        key: scaffoldKey,
-        floatingActionButton: fabs()[controller.selectedIndex.value],
-        drawer: const SideMenu(),
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.white, Colors.white],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: SafeArea(
-            child: IndexedStack(
-              index: controller.selectedIndex.value,
-              children: [
-                HomeContent(),
-                AllEmailScreen(),
-                TodotaskScreen(filter: controller.currentParam ?? "today"),
-                ProjectScreen(),
-              ],
-            ),
-          ),
-        ),
-        bottomNavigationBar: AnimatedNotchBottomBar(
-          kBottomRadius: 18,
-          kIconSize: 22,
-          notchBottomBarController: controller.notchBottomBarController,
-          color: Colors.white,
-          showLabel: true,
-          notchColor: const Color(0xFF1976D2),
-          bottomBarItems: [
-            BottomBarItem(
-              inActiveItem: const Icon(Icons.home_outlined, color: Colors.grey),
-              activeItem: const Icon(Icons.home, color: Colors.white),
-              itemLabelWidget: Text(
-                'Home',
-                style: GoogleFonts.poppins(
-                  color:
-                      controller.selectedIndex.value == 0
-                          ? const Color(0xFF1976D2)
-                          : Colors.grey,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            BottomBarItem(
-              inActiveItem: const Icon(
-                Icons.email_outlined,
-                color: Colors.grey,
-              ),
-              activeItem: const Icon(Icons.email, color: Colors.white),
-              itemLabelWidget: Text(
-                'Emails',
-                style: GoogleFonts.poppins(
-                  color:
-                      controller.selectedIndex.value == 1
-                          ? const Color(0xFF1976D2)
-                          : Colors.grey,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            BottomBarItem(
-              inActiveItem: const Icon(Icons.task_outlined, color: Colors.grey),
-              activeItem: const Icon(Icons.task, color: Colors.white),
-              itemLabelWidget: Text(
-                'Tasks',
-                style: GoogleFonts.poppins(
-                  color:
-                      controller.selectedIndex.value == 2
-                          ? const Color(0xFF1976D2)
-                          : Colors.grey,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            BottomBarItem(
-              inActiveItem: Icon(MdiIcons.domain, color: Colors.grey),
-              activeItem: const Icon(Icons.domain_rounded, color: Colors.white),
-              itemLabelWidget: Text(
-                'Projects',
-                style: GoogleFonts.poppins(
-                  color: Colors.grey,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-          onTap: (index) {
-            controller.goToSpecialPage<Null>(index, null);
-          },
         ),
       ),
     );

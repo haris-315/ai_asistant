@@ -24,6 +24,7 @@ class LabelDetailsscreen extends StatelessWidget {
       'orange': Colors.orangeAccent,
       'teal': Colors.tealAccent,
       'yellow': Colors.yellow,
+      
       'pink': Colors.pinkAccent,
       'amber': Colors.amber,
       'cyan': Colors.cyan,

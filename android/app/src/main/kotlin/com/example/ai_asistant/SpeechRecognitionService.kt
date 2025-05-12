@@ -37,6 +37,7 @@ class SpeechRecognitionService : Service() {
         initializeSpeechRecognizer()
 
         openAIClient = OpenAIClient(
+            context = this,
             apiKey = "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",
             authToken = SharedData.authToken,
             projects = SharedData.projects

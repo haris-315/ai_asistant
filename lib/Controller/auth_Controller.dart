@@ -624,7 +624,7 @@ class AuthController extends GetxController {
         return;
       }
 
-      showLoader();
+      // showLoader();
       var response = await apiService.apiRequest(
         // ${AppConstants.baseUrl}email/sync-mailbox
         "${AppConstants.baseUrl}email/sync-mailbox",

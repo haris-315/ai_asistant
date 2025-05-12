@@ -108,6 +108,7 @@ class _HomeContentState extends State<HomeContent> {
                 return GridView.count(
                   crossAxisCount: 2,
                   crossAxisSpacing: 16,
+
                   mainAxisSpacing: 16,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -277,6 +278,7 @@ class OverviewCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        constraints: BoxConstraints(minHeight: 130),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           gradient: const LinearGradient(

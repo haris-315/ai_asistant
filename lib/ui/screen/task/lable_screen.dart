@@ -43,8 +43,6 @@ class _LableScreenState extends State<LableScreen> {
     return Scaffold(
       appBar: CustomAppBar(
         title: "Labels",
-        onNotificationPressed: () => print("Notification Clicked!"),
-        onProfilePressed: () => print("Profile Clicked!"),
       ),
       backgroundColor: colorScheme.surface,
       floatingActionButton: FloatingActionButton(
