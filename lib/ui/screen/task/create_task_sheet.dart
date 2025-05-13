@@ -5,6 +5,7 @@ import 'package:ai_asistant/data/models/projects/section_model.dart';
 import 'package:ai_asistant/data/models/projects/task_model.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 
 class TaskCreateEditSheet extends StatefulWidget {
   final TaskModel? task;
@@ -29,6 +30,8 @@ class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
   int? _sectionId;
   bool _isCompleted = false;
   bool _showDetails = false;
+  DateTime? _dueDate;
+  DateTime? _reminderAt;
 
   @override
   void initState() {
@@ -40,6 +43,8 @@ class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
     _projectId = task?.project_id ?? _authController.projects.first.id;
     _sectionId = task?.section_id;
     _isCompleted = task?.is_completed ?? false;
+    _dueDate = task?.due_date;
+    _reminderAt = task?.reminder_at;
   }
 
   @override
@@ -47,6 +52,117 @@ class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
     _contentController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  Future<void> _selectDueDate(BuildContext context) async {
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _dueDate ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2100),
+    );
+
+    if (pickedDate != null) {
+      // Show time picker immediately
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(_dueDate ?? DateTime.now()),
+        builder: (context, child) {
+          return MediaQuery(
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+            child: child!,
+          );
+        },
+      );
+
+      if (pickedTime != null) {
+        setState(() {
+          _dueDate = DateTime(
+            pickedDate.year,
+            pickedDate.month,
+            pickedDate.day,
+            pickedTime.hour,
+            pickedTime.minute,
+          );
+          // Set default reminder 10 minutes before due date if not set or invalid
+          if (_reminderAt == null ||
+              (_dueDate != null && _reminderAt!.isAfter(_dueDate!))) {
+            _reminderAt = _dueDate!.subtract(const Duration(minutes: 10));
+          }
+        });
+      } else {
+        // Show message if time picker is cancelled
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select a time for the due date'),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _selectReminderDate(BuildContext context) async {
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _reminderAt ?? _dueDate ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: _dueDate ?? DateTime(2100),
+    );
+
+    if (pickedDate != null) {
+      // Show time picker immediately
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(_reminderAt ?? DateTime.now()),
+        builder: (context, child) {
+          return MediaQuery(
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+            child: child!,
+          );
+        },
+      );
+
+      if (pickedTime != null) {
+        final reminderDateTime = DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+          pickedTime.hour,
+          pickedTime.minute,
+        );
+
+        // Ensure reminder is not after due date
+        if (_dueDate == null || reminderDateTime.isBefore(_dueDate!)) {
+          setState(() {
+            _reminderAt = reminderDateTime;
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Reminder must be before due date')),
+          );
+        }
+      } else {
+        // Show message if time picker is cancelled
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select a time for the reminder'),
+          ),
+        );
+      }
+    }
+  }
+
+  void _clearDueDate() {
+    setState(() {
+      _dueDate = null;
+      _reminderAt = null; // Clear reminder if due date is cleared
+    });
+  }
+
+  void _clearReminder() {
+    setState(() {
+      _reminderAt = null;
+    });
   }
 
   @override
@@ -95,7 +211,6 @@ class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
                       ),
                     ),
                   ),
-
                   Row(
                     children: [
                       Expanded(
@@ -129,58 +244,55 @@ class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 16),
-
-                  Focus(
-                    onFocusChange: (hasFocus) {
-                      if (hasFocus) {
-                        setState(() => _showDetails = true);
-                      }
-                    },
-                    child: TextFormField(
-                      controller: _contentController,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'What needs to be done?',
-                        hintStyle: TextStyle(
-                          color: theme.hintColor.withValues(alpha: 0.7),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Focus(
+                      onFocusChange: (hasFocus) {
+                        if (hasFocus) {
+                          setState(() => _showDetails = true);
+                        }
+                      },
+                      child: TextFormField(
+                        controller: _contentController,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w500,
                         ),
-                        border: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 12,
+                        decoration: InputDecoration(
+                          hintText: 'What needs to be done?',
+                          hintStyle: TextStyle(
+                            color: theme.hintColor.withValues(alpha: 0.7),
+                          ),
+                          border: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 6,
+                          ),
                         ),
+                        validator:
+                            (value) =>
+                                value == null || value.isEmpty
+                                    ? "What's the Task?"
+                                    : null,
                       ),
-                      validator:
-                          (value) =>
-                              value == null || value.isEmpty
-                                  ? "What's the Task?"
-                                  : null,
                     ),
                   ),
-
                   const SizedBox(height: 16),
-
                   Wrap(
                     spacing: 10,
                     runSpacing: 10,
                     children: [
                       _buildPriorityChip(),
                       _buildProjectChip(),
-                      // _buildStatusChip(),
-                      _buildDetailsChip(),
                       _buildSectionChip(),
+                      _buildDueDateChip(),
+                      _buildReminderChip(),
+                      _buildDetailsChip(),
                     ],
                   ),
-
                   const SizedBox(height: 20),
-
-                  // Animated details section
                   AnimatedCrossFade(
                     duration: const Duration(milliseconds: 300),
                     crossFadeState:
@@ -190,7 +302,7 @@ class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
                     firstChild: Container(),
                     secondChild: Column(
                       children: [
-                        // Description field
+                        SizedBox(height: 4),
                         TextFormField(
                           controller: _descriptionController,
                           decoration: InputDecoration(
@@ -284,28 +396,102 @@ class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
     );
   }
 
-  // Widget _buildStatusChip() {
-  //   final color = _isCompleted ? Colors.tealAccent : Colors.blueAccent;
-  //   return ActionChip(
-  //     label: Text(
-  //       _isCompleted ? 'Completed' : 'Pending',
-  //       style: TextStyle(
-  //         color: Theme.of(context).colorScheme.onSurface,
-  //         fontWeight: FontWeight.w500,
-  //       ),
-  //     ),
-  //     backgroundColor: color.withValues(alpha: 0.2),
-  //     avatar: Icon(
-  //       _isCompleted ? Icons.check_circle : Icons.pending_actions,
-  //       color: color,
-  //     ),
-  //     onPressed: () => setState(() => _isCompleted = !_isCompleted),
-  //     shape: RoundedRectangleBorder(
-  //       borderRadius: BorderRadius.circular(20),
-  //       side: BorderSide(color: color.withValues(alpha: 0.5)),
-  //     ),
-  //   );
-  // }
+  Widget _buildSectionChip() {
+    final color = Colors.cyanAccent;
+    final section =
+        _sectionId != null
+            ? _authController.sections.firstWhereOrNull(
+              (s) => s.id == _sectionId,
+            )
+            : null;
+
+    return ActionChip(
+      label:
+          areSectionsLoading
+              ? SizedBox(
+                height: 14,
+                width: 32,
+                child: CircularProgressIndicator(color: color),
+              )
+              : Text(
+                section != null ? section.name : 'Section',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+      backgroundColor: color.withValues(alpha: 0.2),
+      avatar: Icon(Icons.view_kanban, color: color),
+      onPressed: () async {
+        await loadSections();
+        _showSectionPicker(sections);
+      },
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: color.withValues(alpha: 0.5)),
+      ),
+    );
+  }
+
+  Widget _buildDueDateChip() {
+    final color = Colors.blueAccent;
+    return GestureDetector(
+      onLongPress: _clearDueDate,
+      child: ActionChip(
+        label: Text(
+          _dueDate != null
+              ? 'Due: ${DateFormat('MMM d, yyyy h:mm a').format(_dueDate!)}'
+              : 'Set Due Date',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        backgroundColor: color.withValues(alpha: 0.2),
+        avatar: Icon(Icons.calendar_today, color: color),
+        onPressed: () => _selectDueDate(context),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: color.withValues(alpha: 0.5)),
+        ),
+        side:
+            _dueDate != null
+                ? null
+                : BorderSide(color: color.withValues(alpha: 0.5)),
+        // onLongPress: _dueDate != null ? _clearDueDate : null,
+      ),
+    );
+  }
+
+  Widget _buildReminderChip() {
+    final color = Colors.amberAccent;
+    return GestureDetector(
+      onLongPress: _clearReminder,
+      child: ActionChip(
+        label: Text(
+          _reminderAt != null
+              ? 'Reminder: ${DateFormat('MMM d, yyyy h:mm a').format(_reminderAt!)}'
+              : 'Set Reminder',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        backgroundColor: color.withValues(alpha: 0.2),
+        avatar: Icon(Icons.alarm, color: color),
+        onPressed: () => _selectReminderDate(context),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: color.withValues(alpha: 0.5)),
+        ),
+        side:
+            _reminderAt != null
+                ? null
+                : BorderSide(color: color.withValues(alpha: 0.5)),
+        // : _reminderAt != null ? _clearReminder : null,
+      ),
+    );
+  }
 
   Widget _buildDetailsChip() {
     final color = Colors.pinkAccent;
@@ -323,36 +509,6 @@ class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
         color: color,
       ),
       onPressed: () => setState(() => _showDetails = !_showDetails),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: color.withValues(alpha: 0.5)),
-      ),
-    );
-  }
-
-  Widget _buildSectionChip() {
-    final color = Colors.cyanAccent;
-    final section =
-        _sectionId != null
-            ? _authController.sections.firstWhereOrNull(
-              (s) => s.id == _sectionId,
-            )
-            : null;
-
-    return ActionChip(
-      label: Text(
-        section != null ? section.name : 'Section',
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.onSurface,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      backgroundColor: color.withValues(alpha: 0.2),
-      avatar: Icon(Icons.view_kanban, color: color),
-      onPressed: () async {
-        await loadSections();
-        _showSectionPicker(sections);
-      },
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(color: color.withValues(alpha: 0.5)),
@@ -460,8 +616,7 @@ class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
                         onTap: () {
                           setState(() {
                             _projectId = project.id;
-                            _sectionId =
-                                null; // Reset section when project changes
+                            _sectionId = null;
                           });
                           Navigator.pop(context);
                         },
@@ -572,6 +727,8 @@ class _TaskCreateEditSheetState extends State<TaskCreateEditSheet> {
         section_id: _sectionId,
         is_completed: _isCompleted,
         createdAt: widget.task?.createdAt ?? DateTime.now(),
+        due_date: _dueDate,
+        reminder_at: _reminderAt,
       );
 
       widget.onSubmit?.call(task);

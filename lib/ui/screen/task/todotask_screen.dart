@@ -1,3 +1,4 @@
+import 'package:ai_asistant/Controller/auth_Controller.dart';
 import 'package:ai_asistant/data/models/projects/label_model.dart';
 import 'package:ai_asistant/data/models/projects/task_model.dart';
 import 'package:ai_asistant/ui/screen/task/create_task_sheet.dart';
@@ -7,8 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
-
-import '../../../Controller/auth_Controller.dart';
 
 class TodotaskScreen extends StatefulWidget {
   final String filter;
@@ -25,12 +24,11 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
   late String _currentFilter;
   String _currentSort = 'newest';
   bool isTrashing = false;
-  bool isExpanded = false;
+
   @override
   void initState() {
     super.initState();
-    
-
+    _currentFilter = widget.filter;
     _loadTasks();
   }
 
@@ -48,17 +46,12 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    if (widget.filter != "") {
-      _currentFilter = widget.filter;
-    } else {
-      _currentFilter = "today";
-    }
-
     final textTheme = Theme.of(context).textTheme;
+
     return Column(
       children: [
         _buildSearchAndFilterSection(colorScheme),
-        SizedBox(height: 2.3),
+        SizedBox(height: 2.h),
         Expanded(
           child: Obx(() {
             if (_controller.isLoading.value) {
@@ -110,7 +103,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
       onLongPress: () => _showTaskOptions(context, task),
       child: Card(
         elevation: 4,
-        shadowColor: Colors.black.withValues(alpha: .5),
+        shadowColor: Colors.black.withOpacity(0.5),
         margin: EdgeInsets.only(bottom: 2.h),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: InkWell(
@@ -124,19 +117,15 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Checkbox for completion status
                     Checkbox(
                       value: isCompleted,
-                      onChanged: (value) {
-                        _toggleTaskCompletion(task);
-                      },
+                      onChanged: (value) => _toggleTaskCompletion(task),
                       activeColor: Colors.green,
                       checkColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
-                    // Priority Indicator
                     Container(
                       width: 4,
                       height: 40,
@@ -150,7 +139,6 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Task Title
                           Text(
                             task.content,
                             style: textTheme.titleLarge?.copyWith(
@@ -160,14 +148,11 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
                                       : null,
                               color:
                                   isCompleted
-                                      ? colorScheme.onSurface.withValues(
-                                        alpha: 0.5,
-                                      )
+                                      ? colorScheme.onSurface.withOpacity(0.5)
                                       : colorScheme.onSurface,
                             ),
                           ),
                           SizedBox(height: 1.h),
-                          // Task Description
                           if (task.description != null &&
                               task.description.toString().trim().isNotEmpty)
                             Text(
@@ -177,11 +162,9 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
                                 fontSize: 11,
                                 color:
                                     isCompleted
-                                        ? colorScheme.onSurface.withValues(
-                                          alpha: 0.5,
-                                        )
-                                        : colorScheme.onSurface.withValues(
-                                          alpha: 0.7,
+                                        ? colorScheme.onSurface.withOpacity(0.5)
+                                        : colorScheme.onSurface.withOpacity(
+                                          0.7,
                                         ),
                               ),
                             ),
@@ -191,22 +174,20 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
                   ],
                 ),
                 SizedBox(height: 2.h),
-                // Task Metadata
                 Wrap(
                   spacing: 2.w,
                   runSpacing: 1.h,
                   children: [
-                    // Priority Tag
                     Container(
                       padding: EdgeInsets.symmetric(
                         horizontal: 3.w,
                         vertical: 0.5.h,
                       ),
                       decoration: BoxDecoration(
-                        color: priorityColor.withValues(alpha: 0.1),
+                        color: priorityColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: priorityColor.withValues(alpha: 0.3),
+                          color: priorityColor.withOpacity(0.3),
                           width: 1,
                         ),
                       ),
@@ -230,17 +211,16 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
                         ],
                       ),
                     ),
-                    // Date Tag
                     Container(
                       padding: EdgeInsets.symmetric(
                         horizontal: 3.w,
                         vertical: 0.5.h,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withValues(alpha: 0.1),
+                        color: Colors.blue.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: Colors.blue.withValues(alpha: 0.3),
+                          color: Colors.blue.withOpacity(0.3),
                           width: 1,
                         ),
                       ),
@@ -264,40 +244,40 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
                         ],
                       ),
                     ),
-                    // ID Tag
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 3.w,
-                        vertical: 0.5.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.purple.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: Colors.purple.withValues(alpha: 0.3),
-                          width: 1,
+                    if (task.id != null)
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 3.w,
+                          vertical: 0.5.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.purple.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.fingerprint_rounded,
+                              size: 14.sp,
+                              color: Colors.purple,
+                            ),
+                            SizedBox(width: 1.w),
+                            Text(
+                              "ID: ${task.id}",
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color: Colors.purple,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.fingerprint_rounded,
-                            size: 14.sp,
-                            color: Colors.purple,
-                          ),
-                          SizedBox(width: 1.w),
-                          Text(
-                            "ID: ${task.id}",
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: Colors.purple,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
               ],
@@ -313,14 +293,13 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
       child: Column(
         children: [
-          // Search Bar
           TextField(
             controller: _searchController,
             decoration: InputDecoration(
               hintText: 'Search tasks...',
               prefixIcon: Icon(
                 Icons.search,
-                color: colorScheme.onSurface.withValues(alpha: 0.5),
+                color: colorScheme.onSurface.withOpacity(0.5),
               ),
               filled: true,
               fillColor: colorScheme.surface,
@@ -337,7 +316,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
                       ? IconButton(
                         icon: Icon(
                           Icons.clear,
-                          color: colorScheme.onSurface.withValues(alpha: 0.5),
+                          color: colorScheme.onSurface.withOpacity(0.5),
                         ),
                         onPressed: () {
                           _searchController.clear();
@@ -350,7 +329,6 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
           ),
           if (isTrashing) CustomLinearIndicator(isDangrousAction: true),
           SizedBox(height: 2.h),
-          // Filter and Sort Chips
           Row(
             children: [
               Expanded(
@@ -358,7 +336,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      _buildFilterChip("Today's", 'today', colorScheme),
+                      _buildFilterChip("Today", 'today', colorScheme),
                       SizedBox(width: 2.w),
                       _buildFilterChip('All', 'all', colorScheme),
                       SizedBox(width: 2.w),
@@ -385,13 +363,9 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
     return FilterChip(
       label: Text(label),
       selected: isSelected,
-      onSelected: (selected) {
-        setState(() {
-          _currentFilter = selected ? value : 'all';
-        });
-      },
+      onSelected: (selected) => setState(() => _currentFilter = value),
       backgroundColor: colorScheme.surface,
-      selectedColor: colorScheme.primary.withValues(alpha: 0.2),
+      selectedColor: colorScheme.primary.withOpacity(0.2),
       labelStyle: TextStyle(
         color: isSelected ? colorScheme.primary : colorScheme.onSurface,
         fontWeight: FontWeight.w600,
@@ -407,8 +381,6 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
     );
   }
-
-
 
   void _showSortOptions() {
     showModalBottomSheet(
@@ -447,9 +419,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
               ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
               : null,
       onTap: () {
-        setState(() {
-          _currentSort = value;
-        });
+        setState(() => _currentSort = value);
         Navigator.pop(context);
       },
     );
@@ -463,7 +433,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
           Icon(
             Icons.task_alt_rounded,
             size: 60,
-            color: colorScheme.onSurface.withValues(alpha: 0.3),
+            color: colorScheme.onSurface.withOpacity(0.3),
           ),
           SizedBox(height: 2.h),
           Text(
@@ -473,7 +443,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
             style: TextStyle(
               fontSize: 18.sp,
               fontWeight: FontWeight.w600,
-              color: colorScheme.onSurface.withValues(alpha: 0.6),
+              color: colorScheme.onSurface.withOpacity(0.6),
             ),
           ),
           SizedBox(height: 1.h),
@@ -481,12 +451,69 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
             "Tap the + button to add a new task",
             style: TextStyle(
               fontSize: 14.sp,
-              color: colorScheme.onSurface.withValues(alpha: 0.5),
+              color: colorScheme.onSurface.withOpacity(0.5),
             ),
           ),
         ],
       ),
     );
+  }
+
+  List<TaskModel> _getFilteredTasks() {
+    var tasks = List<TaskModel>.from(_controller.task);
+    tasks.removeWhere((t) => t.is_deleted ?? false);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    if (_searchController.text.isNotEmpty) {
+      tasks =
+          tasks.where((task) {
+            final content = task.content.toString().toLowerCase();
+            final description = task.description.toString().toLowerCase();
+            final searchTerm = _searchController.text.toLowerCase();
+            return content.contains(searchTerm) ||
+                description.contains(searchTerm);
+          }).toList();
+    }
+
+    switch (_currentFilter) {
+      case 'today':
+        tasks =
+            tasks.where((task) {
+              final taskDate = DateTime(
+                task.createdAt.year,
+                task.createdAt.month,
+                task.createdAt.day,
+              );
+              return taskDate.isAtSameMomentAs(today);
+            }).toList();
+        break;
+      case 'completed':
+        tasks = tasks.where((task) => task.is_completed == true).toList();
+        break;
+      case 'high':
+        tasks = tasks.where((task) => (task.priority ?? 0) == 3).toList();
+        break;
+      case 'all':
+      default:
+        break;
+    }
+
+    switch (_currentSort) {
+      case 'oldest':
+        tasks.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        break;
+      case 'priority_high':
+        tasks.sort((a, b) => (b.priority ?? 0).compareTo(a.priority ?? 0));
+        break;
+      case 'priority_low':
+        tasks.sort((a, b) => (a.priority ?? 0).compareTo(b.priority ?? 0));
+        break;
+      default: // 'newest'
+        tasks.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    }
+
+    return tasks;
   }
 
   void _showTaskOptions(BuildContext context, TaskModel task) {
@@ -503,7 +530,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
+                color: Colors.black.withOpacity(0.2),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -512,13 +539,12 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Header
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
-                      color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                      color: colorScheme.outlineVariant.withOpacity(0.3),
                     ),
                   ),
                 ),
@@ -538,7 +564,6 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
                   ],
                 ),
               ),
-              // Options
               _buildOptionItem(
                 context,
                 icon: Icons.edit,
@@ -597,7 +622,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
+          color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(icon, color: color),
@@ -651,7 +676,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
+                color: Colors.black.withOpacity(0.2),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -697,13 +722,9 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
   }
 
   void _trashTask(TaskModel task) async {
-    setState(() {
-      isTrashing = true;
-    });
-    final _ = await _controller.moveTaskToTrash(task);
-    setState(() {
-      isTrashing = false;
-    });
+    setState(() => isTrashing = true);
+    await _controller.moveTaskToTrash(task);
+    setState(() => isTrashing = false);
   }
 
   Color _getPriorityColor(int priority) {
@@ -730,64 +751,6 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
       default:
         return 'None';
     }
-  }
-
-  List<TaskModel> _getFilteredTasks() {
-    var tasks = List<TaskModel>.from(_controller.task);
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-
-    if (_searchController.text.isNotEmpty) {
-      tasks =
-          tasks.where((task) {
-            final content = task.content.toString().toLowerCase();
-            final description = task.description.toString().toLowerCase();
-            final searchTerm = _searchController.text.toLowerCase();
-            return content.contains(searchTerm) ||
-                description.contains(searchTerm);
-          }).toList();
-    }
-
-    // Apply status filter
-    switch (_currentFilter) {
-      case 'active':
-        tasks = tasks.where((task) => task.is_completed != true).toList();
-        break;
-      case 'completed':
-        tasks = tasks.where((task) => task.is_completed == true).toList();
-        break;
-      case 'high':
-        tasks = tasks.where((task) => (task.priority ?? 0) == 3).toList();
-        break;
-      case 'today':
-        tasks =
-            tasks.where((task) {
-              final taskDate = DateTime(
-                task.createdAt.year,
-                task.createdAt.month,
-                task.createdAt.day,
-              );
-              return taskDate.isAtSameMomentAs(today);
-            }).toList();
-        break;
-    }
-
-    // Apply sorting
-    switch (_currentSort) {
-      case 'oldest':
-        tasks.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-        break;
-      case 'priority_high':
-        tasks.sort((a, b) => (b.priority ?? 0).compareTo(a.priority ?? 0));
-        break;
-      case 'priority_low':
-        tasks.sort((a, b) => (a.priority ?? 0).compareTo(b.priority ?? 0));
-        break;
-      default: // 'newest'
-        tasks.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    }
-
-    return tasks;
   }
 
   void _handleTaskTap(TaskModel task) {

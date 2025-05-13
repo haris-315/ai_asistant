@@ -11,10 +11,16 @@ class TaskModel {
   final bool is_completed;
   final int? id;
   final bool? is_deleted;
+  final DateTime? due_date;
+  final DateTime? reminder_at;
+  final String? reccurence;
   final int? label_id;
   TaskModel({
     required this.content,
     this.description,
+    this.reminder_at,
+    this.reccurence,
+    this.due_date,
     required this.createdAt,
     this.project_id,
     this.section_id,
@@ -22,7 +28,7 @@ class TaskModel {
     required this.is_completed,
     required this.id,
     this.is_deleted,
-    this.label_id
+    this.label_id,
   });
 
   TaskModel copyWith({
@@ -35,7 +41,10 @@ class TaskModel {
     bool? is_completed,
     int? id,
     bool? is_deleted,
-    int? label_id
+    int? label_id,
+    DateTime? due_date,
+    DateTime? reminder_at,
+    String? reccurence
   }) {
     return TaskModel(
       content: content ?? this.content,
@@ -47,7 +56,10 @@ class TaskModel {
       is_completed: is_completed ?? this.is_completed,
       id: id ?? this.id,
       is_deleted: is_deleted ?? this.is_deleted,
-      label_id: label_id ?? this.label_id
+      label_id: label_id ?? this.label_id,
+      reccurence: reccurence ?? this.reccurence,
+      reminder_at: reminder_at ?? this.reminder_at,
+      due_date: due_date ?? this.due_date
     );
   }
 
@@ -62,7 +74,22 @@ class TaskModel {
       'is_completed': is_completed,
       'id': id,
       'is_deleted': is_deleted,
-      'label_id' : label_id
+      'label_id': label_id,
+      'due_date' : due_date?.toIso8601String(),
+      'reminder_at' : reminder_at?.toIso8601String(),
+      'reccurence' : reccurence
+    };
+  }
+
+  Map<String, dynamic> toSpecificMap() {
+    return <String, dynamic>{
+      'content': content,
+      'priority': priority,
+      'is_completed': is_completed,
+      'id': id,
+      'due_date' : due_date?.toIso8601String(),
+      'reminder_at' : reminder_at?.toIso8601String(),
+      'reccurence' : reccurence
     };
   }
 
@@ -79,6 +106,9 @@ class TaskModel {
       id: map['id'] != null ? map['id'] as int : null,
       is_deleted: map['is_deleted'] != null ? map['is_deleted'] as bool : null,
       label_id: map['label_id'] != null ? map['label_id'] as int : null,
+      reccurence: map['reccurence'] as String?,
+      reminder_at: map['reminder_at'] != null ? DateTime.parse(map['reminder_at']) : null,
+      due_date: map['due_date'] != null ? DateTime.parse(map['due_date']) : null
     );
   }
 

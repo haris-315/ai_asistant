@@ -1,4 +1,3 @@
-import 'package:ai_asistant/data/models/threadmodel.dart';
 import 'package:ai_asistant/ui/screen/home/emails/newemail_screen.dart';
 import 'package:ai_asistant/ui/screen/home/emails/summarization_screen.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +20,6 @@ class EmailDetailScreen extends StatelessWidget {
     final textTheme = theme.textTheme;
     final colorScheme = theme.colorScheme;
     List<EmailMessage> emails = threadAndData['thread_mails'];
-
     return Scaffold(
       backgroundColor: colorScheme.surface,
       appBar: AppBar(
@@ -98,13 +96,11 @@ class EmailDetailScreen extends StatelessWidget {
                     onPressed: () {
                       Get.to(
                         () => EmailSummaryScreen(
-                          summary:
-                              (threadAndData['thread'] as EmailThread)
-                                  .summary ??
-                              "",
-                          topic:
-                              (threadAndData['thread'] as EmailThread).topic ??
-                              "No Topic",
+                          toSummarize: ThreadSummarizable(
+                            hasSummary: threadAndData['thread'].summary,
+                            conversationId:
+                                threadAndData['thread'].conversationId ?? "",
+                          ),
                         ),
                       );
                     },
@@ -240,6 +236,16 @@ class EmailDetailScreen extends StatelessWidget {
                                       subject: email.subject,
                                     ),
                                   );
+                                } else if (value == 'summarize') {
+                                  print(email.summary);
+                                  Get.to(
+                                    () => EmailSummaryScreen(
+                                      toSummarize: EmailSummarizable(
+                                        hasSummary: email.summary,
+                                        emailId: email.id,
+                                      ),
+                                    ),
+                                  );
                                 }
                               },
                               itemBuilder:
@@ -251,6 +257,10 @@ class EmailDetailScreen extends StatelessWidget {
                                     PopupMenuItem(
                                       value: 'aireply',
                                       child: Text('AI Reply'),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'summarize',
+                                      child: Text('Summarize'),
                                     ),
                                     PopupMenuItem(
                                       value: 'forward',

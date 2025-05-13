@@ -58,7 +58,7 @@ class MyApp extends StatelessWidget {
           title: 'Flutter Demo',
           debugShowCheckedModeBanner: true,
           theme: appTheme(),
-         
+
           home: SplashScreen(),
           routes: {"/home": (context) => HomeScreen()},
         );

@@ -14,9 +14,9 @@ import 'package:ai_asistant/data/models/projects/section_model.dart';
 import 'package:ai_asistant/data/models/projects/task_model.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
-
 import '../data/models/emails/threadDetail.dart';
 import '../data/models/threadmodel.dart';
 import '../helper/Api_handler_Z/api_services_Z.dart';
@@ -33,6 +33,8 @@ class AuthController extends GetxController {
   RxList<TaskModel> task = <TaskModel>[].obs;
   RxList<TaskModel> trashedTasks = <TaskModel>[].obs;
   RxList<SectionModel> sections = <SectionModel>[].obs;
+
+
   Future<List<SectionModel>?> loadProjectSectionsid(int id) async {
     try {
       String? token = await SecureStorage.getToken();
@@ -724,7 +726,6 @@ class AuthController extends GetxController {
         token: token,
       );
       hideLoader();
-
       // Handle no response case
       if (response == null) {
         showCustomSnackbar(
@@ -742,8 +743,7 @@ class AuthController extends GetxController {
       // Process last email if needed
       EmailMessage lastEmail = emails.last;
       bool needsAIProcessing =
-          lastEmail.summary == null || lastEmail.quick_replies == null;
-
+          lastEmail.summary == null || lastEmail.summary!.isEmpty;
       if (needsAIProcessing) {
         EmailSummarizationModel? summarized = await emailAiProccess(
           lastEmail.id,
@@ -792,8 +792,9 @@ class AuthController extends GetxController {
         token: token,
       );
       hideLoader();
-
+      // print(response);
       if (response == null) {
+        // print(response.runtimeType);
         showCustomSnackbar(
           title: "Error",
           message: "Failed to fetch emails. No response received.",
@@ -1595,6 +1596,7 @@ class AuthController extends GetxController {
         );
         return;
       }
+
       showLoader(toShow: !initialLoad);
       var response = await apiService.apiRequest(
         "${AppConstants.baseUrl}todo/tasks/",
@@ -1611,11 +1613,13 @@ class AuthController extends GetxController {
         );
         return;
       }
+
       if (response is List && response.isNotEmpty) {
         try {
           var taskData = response;
+          var taskList = taskData.map((x) => TaskModel.fromMap(x)).toList();
 
-          task.assignAll(taskData.map((x) => TaskModel.fromMap(x)));
+          task.assignAll(taskList);
         } catch (e) {
           showCustomSnackbar(
             title: "Error",
@@ -1630,8 +1634,6 @@ class AuthController extends GetxController {
         message: "An error occurred: ${e.toString()}",
         backgroundColor: Colors.red,
       );
-    } finally {
-      //
     }
   }
 

@@ -223,6 +223,7 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                     onSelected: (val) {
                                       setState(() {
                                         currentFilter = "tasks";
+                                        print(emails);
                                         emails =
                                             emailsAll
                                                 .where(
@@ -235,6 +236,7 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                                 )
                                                 .toList();
                                       });
+                                      print(emails);
                                     },
                                   ),
                                   SizedBox(width: 8),

@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.PowerManager
+import android.provider.Settings
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import io.flutter.embedding.android.FlutterActivity
@@ -13,6 +15,8 @@ import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 import com.example.openai.SharedData
+import android.net.Uri
+
 import com.example.svc_mng.ServiceManager
 
 class MainActivity : FlutterActivity() {
@@ -27,6 +31,7 @@ class MainActivity : FlutterActivity() {
         messenger = flutterEngine.dartExecutor.binaryMessenger
         ServiceManager.serviceChannelName = CHANNEL
         ServiceManager.resultEventChannel = EVENT_CHANNEL
+
         // Method channel for control commands
         MethodChannel(messenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
@@ -42,6 +47,7 @@ class MainActivity : FlutterActivity() {
                     Log.d("MainActivity", "Received auth and projects")
 
                     if (checkAudioPermission()) {
+                        checkBatteryOptimization()  // Ensure battery optimization is disabled
                         startSpeechService()
                         result.success(true)
                     } else {
@@ -55,10 +61,22 @@ class MainActivity : FlutterActivity() {
                     stopSpeechService()
                     result.success(true)
                 }
+
                 "getInfo" -> {
-                    
+
+                    val rawTasks = call.argument<List<MutableMap<String, Any>>>("tasks")
+                    val taskList = rawTasks ?: emptyList()
+                  
+           // val taskList = call.argument<List<MutableMapMap<String, Any>>>("tasks") ?: arrayOf() 
+
+           if (SharedData.tasks != taskList) {
+                    SharedData.tasks = taskList
+           }
+
+                Log.d("TaskListner: " ,"Recived Tasks: ${SharedData.tasks.toString()}")
                     result.success(mutableMapOf("isBound" to ServiceManager.isBound, "isStoped" to ServiceManager.isStoped, "isStandBy" to ServiceManager.isStandBy,"recognizedText" to ServiceManager.recognizedText,"channel" to ServiceManager.serviceChannelName, "result_channel" to ServiceManager.resultEventChannel))
                 }
+
                 "isListening" -> {
                     // Since we don’t bind, just return a generic true/false
                     val isRunning = isSpeechServiceRunning()
@@ -73,6 +91,7 @@ class MainActivity : FlutterActivity() {
         eventChannel = EventChannel(messenger, EVENT_CHANNEL)
         eventChannel.setStreamHandler(object : EventChannel.StreamHandler {
             override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
+
                 SpeechResultListener.eventSink = events
                 Log.d("MainActivity", "EventChannel listener attached")
             }
@@ -91,6 +110,16 @@ class MainActivity : FlutterActivity() {
         } else {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 1)
             false
+        }
+    }
+
+    private fun checkBatteryOptimization() {
+        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+        val packageName = packageName
+        if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+            intent.data = Uri.parse("package:$packageName")
+            startActivity(intent)
         }
     }
 
@@ -128,7 +157,6 @@ class MainActivity : FlutterActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-//        stopSpeechService()
         Log.d("MainActivity", "Activity destroyed")
     }
 }

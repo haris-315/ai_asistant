@@ -29,7 +29,6 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
     final colorScheme = theme.colorScheme;
-    // Format the creation date
     final createdAt = task.createdAt;
     final formattedDate = DateFormat('MMMM d, y • h:mm a').format(createdAt);
 
@@ -42,7 +41,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
             icon: Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: colorScheme.primary.withValues(alpha: 0.1),
+                color: colorScheme.primary.withAlpha(25),
                 shape: BoxShape.circle,
               ),
               child: Icon(Icons.edit, color: Colors.blue),
@@ -76,7 +75,6 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Task title with cool animated underline
             _AnimatedUnderline(
               child: Text(
                 task.content,
@@ -98,7 +96,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                   color: _getPriorityColor(
                     task.priority ?? 0,
                     colorScheme,
-                  ).withValues(alpha: 0.2),
+                  ).withAlpha(50),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
@@ -126,7 +124,6 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
             ),
             const SizedBox(height: 28),
 
-            // Description section with fancy card
             if (task.description != null && task.description!.isNotEmpty)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,7 +147,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
+                          color: Colors.black.withAlpha(13),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -165,7 +162,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                 ],
               ),
 
-            // Task meta information with sleek layout
+            // Meta info section
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -180,6 +177,28 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                     label: 'Created at',
                     value: formattedDate,
                   ),
+                  if (task.due_date != null) ...[
+                    const Divider(height: 24, thickness: 0.5),
+                    _buildDetailRow(
+                      context: context,
+                      icon: Icons.event,
+                      label: 'Due Date',
+                      value: DateFormat(
+                        'MMMM d, y • h:mm a',
+                      ).format(task.due_date!),
+                    ),
+                  ],
+                  if (task.reminder_at != null) ...[
+                    const Divider(height: 24, thickness: 0.5),
+                    _buildDetailRow(
+                      context: context,
+                      icon: Icons.alarm,
+                      label: 'Reminder',
+                      value: DateFormat(
+                        'MMMM d, y • h:mm a',
+                      ).format(task.reminder_at!),
+                    ),
+                  ],
                   if (task.project_id != 0 &&
                       authController.projects.isNotEmpty) ...[
                     const Divider(height: 24, thickness: 0.5),
@@ -203,7 +222,6 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
               ),
             ),
 
-            // Status chip with animation
             const SizedBox(height: 32),
             Center(
               child: _BounceAnimation(
@@ -215,16 +233,14 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                   decoration: BoxDecoration(
                     color:
                         task.is_completed
-                            ? colorScheme.primary.withValues(alpha: 0.1)
-                            : colorScheme.errorContainer.withValues(alpha: 0.3),
+                            ? colorScheme.primary.withAlpha(25)
+                            : colorScheme.errorContainer.withAlpha(75),
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
                       color:
                           task.is_completed
-                              ? colorScheme.primary.withValues(alpha: 0.3)
-                              : colorScheme.errorContainer.withValues(
-                                alpha: 0.5,
-                              ),
+                              ? colorScheme.primary.withAlpha(75)
+                              : colorScheme.errorContainer.withAlpha(125),
                       width: 1,
                     ),
                   ),
@@ -257,8 +273,6 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                 ),
               ),
             ),
-            
-
           ],
         ),
       ),
@@ -280,7 +294,6 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
               });
             }
           },
-
           backgroundColor: task.is_completed ? Colors.white : Colors.blue,
           elevation: 4,
           child: Icon(
@@ -313,7 +326,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
             children: [
               Text(
                 value,
-                style: theme.textTheme.labelSmall?.copyWith(
+                style: theme.textTheme.labelMedium?.copyWith(
                   color: theme.colorScheme.outline,
                   letterSpacing: 1.1,
                 ),
@@ -322,7 +335,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
               Text(
                 label.toUpperCase(),
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],

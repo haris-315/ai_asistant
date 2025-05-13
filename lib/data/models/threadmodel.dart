@@ -42,7 +42,7 @@ class EmailThread {
   });
 
   factory EmailThread.fromJson(Map<String, dynamic> json) {
-    print(json['has_attachments']);
+    print(json['extracted_tasks']);
     return EmailThread(
       conversationId: json['conversation_id'],
       subject: json['subject'],
@@ -67,7 +67,7 @@ class EmailThread {
 
   @override
   String toString() {
-    return 'EmailThread(subject: $subject, lastSender: $lastSender, unreadCount: $unreadCount)';
+    return 'EmailThread(extractedTasks: $extracted_tasks)';
   }
 
   EmailThread copyWith({

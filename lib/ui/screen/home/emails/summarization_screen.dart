@@ -1,16 +1,94 @@
+import 'package:ai_asistant/Controller/auth_Controller.dart';
 import 'package:ai_asistant/ui/widget/animted_typing_text.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
-class EmailSummaryScreen extends StatelessWidget {
-  final String summary;
-  final String topic;
+abstract interface class Summarizeable {
+  final String id;
+  final String? summary;
+  Summarizeable({required this.summary, required this.id});
+}
 
-  const EmailSummaryScreen({
-    super.key,
-    required this.summary,
-     this.topic = "Summary",
-  });
+class EmailSummarizable implements Summarizeable {
+  final String emailId;
+  final String? hasSummary;
+
+  EmailSummarizable({required this.hasSummary, required this.emailId});
+  @override
+  String get id => emailId;
+
+  @override
+  String? get summary => hasSummary;
+}
+
+class ThreadSummarizable implements Summarizeable {
+  final String conversationId;
+  final String? hasSummary;
+  ThreadSummarizable({required this.hasSummary, required this.conversationId});
+  @override
+  String get id => conversationId;
+
+  @override
+  String? get summary => hasSummary;
+}
+
+class EmailSummaryScreen extends StatefulWidget {
+  final Summarizeable toSummarize;
+
+  const EmailSummaryScreen({super.key, required this.toSummarize});
+
+  @override
+  State<EmailSummaryScreen> createState() => _EmailSummaryScreenState();
+}
+
+class _EmailSummaryScreenState extends State<EmailSummaryScreen> {
+  AuthController authController = Get.find<AuthController>();
+  String summary = "";
+
+  void summarize() async {
+    final initialSummary = widget.toSummarize.summary;
+
+    if (initialSummary != null && initialSummary.trim().isNotEmpty) {
+      setState(() {
+        summary = initialSummary;
+      });
+      return;
+    }
+
+    // Call API if no initial summary
+    if (widget.toSummarize is EmailSummarizable) {
+      final res = await authController.emailAiProccess(widget.toSummarize.id);
+      if (res?.summary != null && res!.summary.trim().isNotEmpty) {
+        setState(() {
+          summary = res.summary;
+        });
+      } else {
+        setState(() {
+          summary =
+              "There was an error summarizing this content or no summary is available.";
+        });
+      }
+    } else if (widget.toSummarize is ThreadSummarizable) {
+      final res = await authController.threadAiProccess(widget.toSummarize.id);
+      if (res?.summary != null && res!.summary.trim().isNotEmpty) {
+        setState(() {
+          summary = res.summary;
+        });
+      } else {
+        setState(() {
+          summary =
+              "There was an error summarizing this content or no summary is available.";
+        });
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    summarize();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,47 +112,23 @@ class EmailSummaryScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Topic Section
-            _buildSectionHeader("Topic", Icons.label_important, context),
-            SizedBox(height: 1.h),
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-              decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.2,
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                topic,
-                style: textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
             SizedBox(height: 3.h),
-
-            // Summary Section
             _buildSectionHeader("Summary", Icons.summarize, context),
             SizedBox(height: 1.h),
             Container(
               width: double.infinity,
               padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.1,
-                ),
+                color: colorScheme.surfaceContainerHighest.withAlpha(20),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: AnimatedTypingText(
+                key: ValueKey(summary), // ✅ forces rebuild when summary changes
                 text: summary,
                 textStyle: textTheme.bodyLarge,
               ),
             ),
             SizedBox(height: 3.h),
-
-            // Quick Replies Section
           ],
         ),
       ),

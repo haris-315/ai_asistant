@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 class NativeBridge {
+  static AuthController authController = Get.find<AuthController>();
   static const MethodChannel _methodChannel = MethodChannel(
     'com.example.ai_assistant/stt',
   );
@@ -20,7 +21,6 @@ class NativeBridge {
   /// Starts the Android STT recognizer
   static Future<bool> startListening() async {
     try {
-      AuthController authController = Get.find<AuthController>();
       String authToken = await SecureStorage.getToken() ?? "No Token";
       List<String> projects =
           authController.projects.map((f) => f.toString()).toList();
@@ -30,7 +30,6 @@ class NativeBridge {
       });
       return result;
     } on PlatformException catch (_) {
-      
       return false;
     }
   }
@@ -41,10 +40,8 @@ class NativeBridge {
       final bool result = await _methodChannel.invokeMethod('stopListening');
       return result;
     } on PlatformException catch (_) {
-      
       return false;
     }
-    
   }
 
   /// Checks if the STT recognizer is currently listening
@@ -53,26 +50,24 @@ class NativeBridge {
       final bool result = await _methodChannel.invokeMethod('isListening');
       return result;
     } on PlatformException catch (_) {
-      
       return false;
     }
   }
 
   static Future<AssistantServiceModel> getInfo() async {
     try {
-      final Map result = await _methodChannel.invokeMethod(
-        'getInfo',
-      );
+      final Map result = await _methodChannel.invokeMethod('getInfo', {
+        'tasks': authController.task.map((t) => t.toSpecificMap()).toList(),
+      });
       return AssistantServiceModel.fromMap(result);
     } on PlatformException catch (_) {
-      
       return AssistantServiceModel(
         isBound: false,
         isStoped: false,
         isStandBy: false,
         channel: "error",
         resultChannel: "error",
-        recognizedText: "There was an error!"
+        recognizedText: "There was an error!",
       );
     }
   }
@@ -83,7 +78,6 @@ class NativeBridge {
         .receiveBroadcastStream()
         .map((event) => event as String)
         .handleError((error) {
-          
           throw error;
         });
     return _speechStream!;

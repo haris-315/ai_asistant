@@ -4,7 +4,9 @@ import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
+import android.net.Uri
 import android.os.*
+import android.provider.Settings
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -26,19 +28,30 @@ class SpeechRecognitionService : Service() {
     private lateinit var openAIClient: OpenAIClient
     private lateinit var ttsHelper: TextToSpeechHelper
 
+    private val watchdogHandler = Handler(Looper.getMainLooper())
+    private val watchdogRunnable = object : Runnable {
+        override fun run() {
+            if (isListening) {
+                restartListening()
+            }
+            watchdogHandler.postDelayed(this, 30000) // Every 30 seconds
+        }
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
         startForegroundService()
+        requestIgnoreBatteryOptimizations()
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         initializeSpeechRecognizer()
 
         openAIClient = OpenAIClient(
             context = this,
-            apiKey = "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",
+            apiKey = "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",
             authToken = SharedData.authToken,
             projects = SharedData.projects
         )
@@ -46,6 +59,12 @@ class SpeechRecognitionService : Service() {
         ttsHelper = TextToSpeechHelper(this) {
             resumeListening()
         }
+
+        watchdogHandler.post(watchdogRunnable) // Start watchdog
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        return START_STICKY // Ensures service restarts if killed
     }
 
     private fun createNotificationChannel() {
@@ -65,8 +84,22 @@ class SpeechRecognitionService : Service() {
             .setContentTitle("Jarvis Assistant")
             .setContentText("Listening in standby mode")
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+            .setOngoing(true) // 🛡 Keeps notification persistent
             .build()
         startForeground(1, notification)
+    }
+
+    private fun requestIgnoreBatteryOptimizations() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                    data = Uri.parse("package:$packageName")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                startActivity(intent)
+            }
+        }
     }
 
     private fun muteSystemSounds() {
@@ -103,6 +136,7 @@ class SpeechRecognitionService : Service() {
             }
 
             override fun onError(error: Int) {
+                Log.e("SpeechRecognizer", "Error: $error")
                 restoreSystemSounds()
                 resumeListening()
             }
@@ -122,26 +156,24 @@ class SpeechRecognitionService : Service() {
                 ServiceManager.recognizedText = text
 
                 when {
-                    text.contains("hey jarvis") || text.contains("jarvis") || text.contains("hey") || text.contains("hi") || text.contains("hello") || text.contains("gpt") -> {
+                    text.contains("hey jarvis") || text.contains("jarvis") -> {
                         isStandby = false
                         ServiceManager.isStandBy = false
                         ttsHelper.speak("I'm listening")
                         Log.d("Jarvis", "Activated from standby")
                     }
-                    text.contains("standby") || text.contains("sleep") || text.contains("bye") || text.contains("thank") -> {
+                    text.contains("standby") || text.contains("sleep") -> {
                         isStandby = true
                         ServiceManager.isStandBy = true
                         ttsHelper.speak("Going into standby mode")
                         Log.d("Jarvis", "Switched to standby")
                     }
-                    
                     !isStandby -> {
                         openAIClient.sendMessage(
                             text,
                             onResponse = { reply ->
                                 Log.d("OpenAI", "Assistant: $reply")
                                 ttsHelper.speak(reply)
-
                             },
                             onError = { error ->
                                 Log.e("OpenAI", "Error: $error")
@@ -184,9 +216,7 @@ class SpeechRecognitionService : Service() {
 
     private fun resumeListening() {
         if (isListening) {
-            Handler(Looper.getMainLooper()).post {
-                restartListening()
-            }
+            restartListening()
         }
     }
 
@@ -194,18 +224,13 @@ class SpeechRecognitionService : Service() {
         isListening = false
         Handler(Looper.getMainLooper()).post {
             speechRecognizer.stopListening()
-            restoreSystemSounds()
         }
     }
 
     override fun onDestroy() {
+        super.onDestroy()
+        watchdogHandler.removeCallbacks(watchdogRunnable)
         stopListening()
         speechRecognizer.destroy()
-        restoreSystemSounds()
-        super.onDestroy()
-    }
-
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        return START_STICKY
     }
 }

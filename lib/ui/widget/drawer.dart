@@ -142,8 +142,8 @@ class _SideMenuState extends State<SideMenu> {
                 menuItem(
                   title: "Assistant",
                   icon: Icons.video_camera_front_outlined,
-                  // iconf: meeting ? Icons.arrow_drop_up : Icons.arrow_drop_down,
 
+                  // iconf: meeting ? Icons.arrow_drop_up : Icons.arrow_drop_down,
                   isSelected: selectedMenu == "Assistant",
                   onTap: () {
                     setState(() {
@@ -195,10 +195,10 @@ class _SideMenuState extends State<SideMenu> {
                   iconf: aichat ? Icons.arrow_drop_up : Icons.arrow_drop_down,
                   isSelected: selectedMenu == "AI Chat",
                   onTap: () {
-                    // setState(() {
-                    //   selectedMenu = "AI Chat";
-                    //   aichat = !aichat;
-                    // });
+                    setState(() {
+                      selectedMenu = "AI Chat";
+                      aichat = !aichat;
+                    });
                   },
                 ),
 
