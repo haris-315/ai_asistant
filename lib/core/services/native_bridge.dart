@@ -57,7 +57,15 @@ class NativeBridge {
   static Future<AssistantServiceModel> getInfo() async {
     try {
       final Map result = await _methodChannel.invokeMethod('getInfo', {
-        'tasks': authController.task.map((t) => t.toSpecificMap()).toList(),
+        'tasks':
+            authController.task
+                .where(
+                  (t) =>
+                      t.reminder_at != null &&
+                      t.reminder_at!.isAfter(DateTime.now()),
+                )
+                .map((tm) => tm.toSpecificMap())
+                .toList(),
       });
       return AssistantServiceModel.fromMap(result);
     } on PlatformException catch (_) {

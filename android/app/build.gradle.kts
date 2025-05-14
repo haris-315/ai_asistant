@@ -9,11 +9,15 @@ android {
     namespace = "com.example.ai_asistant"
     compileSdk = flutter.compileSdkVersion
 //    ndkVersion = flutter.ndkVersion
+    aaptOptions {
+        noCompress += listOf("model", "conf", "bin", "txt", "uuid", "params", "mdl", "phones", "arpa")
+
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-        isCoreLibraryDesugaringEnabled = true
+//        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -29,6 +33,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        sourceSets["main"].assets.srcDir("src/main/assets")
+
     }
 
     buildTypes {
@@ -43,7 +49,8 @@ android {
 dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.json:json:20231013")
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    implementation("com.alphacephei:vosk-android:0.3.47")
+    implementation ("net.java.dev.jna:jna:5.12.1@aar")
 
 }
 

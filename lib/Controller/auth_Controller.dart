@@ -14,7 +14,6 @@ import 'package:ai_asistant/data/models/projects/section_model.dart';
 import 'package:ai_asistant/data/models/projects/task_model.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import '../data/models/emails/threadDetail.dart';

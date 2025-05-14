@@ -16,6 +16,7 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 import com.example.openai.SharedData
 import android.net.Uri
+import com.example.ai_asistant.SpeechRecognitionService
 
 import com.example.svc_mng.ServiceManager
 
