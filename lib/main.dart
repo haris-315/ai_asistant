@@ -12,6 +12,7 @@ import 'package:ai_asistant/ui/screen/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get/get.dart';
+
 import 'package:responsive_sizer/responsive_sizer.dart';
 
 import 'Controller/bar_controller.dart';

@@ -1,14 +1,14 @@
 package com.example.ai_asistant
 
-import android.app.*
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
-import org.vosk.android.SpeechService
-import com.example.ai_asistant.SpeechResultListener
-import com.example.ai_asistant.SpeechRecognizerClient
 
 class SpeechRecognitionService : Service(), SpeechRecognizerClient.Callback {
 
@@ -22,9 +22,7 @@ class SpeechRecognitionService : Service(), SpeechRecognizerClient.Callback {
         createNotificationChannel()
         startForeground(notificationId, createNotification("Initializing..."))
 
-        recognizerClient.initialize {
-            startRecognition()
-        }
+        recognizerClient.initialize { startRecognition() }
     }
 
     private fun startRecognition() {
@@ -47,31 +45,33 @@ class SpeechRecognitionService : Service(), SpeechRecognizerClient.Callback {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "Speech Recognition",
-                NotificationManager.IMPORTANCE_LOW
-            )
+            val channel =
+                    NotificationChannel(
+                            channelId,
+                            "Speech Recognition",
+                            NotificationManager.IMPORTANCE_LOW
+                    )
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
         }
     }
 
     private fun createNotification(text: String): Notification {
-        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(this, channelId)
-                .setContentTitle("Voice Assistant Running")
-                .setContentText(text)
-                .setSmallIcon(R.mipmap.ic_launcher) // ✅ Safe built-in icon
-                .setOngoing(true)
-        } else {
-            @Suppress("DEPRECATION")
-            Notification.Builder(this)
-                .setContentTitle("Voice Assistant Running")
-                .setContentText(text)
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setOngoing(true)
-        }
+        val builder =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    Notification.Builder(this, channelId)
+                            .setContentTitle("Voice Assistant Running")
+                            .setContentText(text)
+                            .setSmallIcon(R.mipmap.ic_launcher) // ✅ Safe built-in icon
+                            .setOngoing(true)
+                } else {
+                    @Suppress("DEPRECATION")
+                    Notification.Builder(this)
+                            .setContentTitle("Voice Assistant Running")
+                            .setContentText(text)
+                            .setSmallIcon(R.mipmap.ic_launcher)
+                            .setOngoing(true)
+                }
 
         return builder.build()
     }
