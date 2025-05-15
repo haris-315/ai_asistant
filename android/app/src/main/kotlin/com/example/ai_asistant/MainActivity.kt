@@ -72,9 +72,10 @@ class MainActivity : FlutterActivity() {
 
            if (SharedData.tasks != taskList) {
                     SharedData.tasks = taskList
+               Log.d("TaskListner: " ,"Recived Tasks: ${SharedData.tasks.toString()}")
+
            }
 
-                Log.d("TaskListner: " ,"Recived Tasks: ${SharedData.tasks.toString()}")
                     result.success(mutableMapOf("isBound" to ServiceManager.isBound, "isStoped" to ServiceManager.isStoped, "isStandBy" to ServiceManager.isStandBy,"recognizedText" to ServiceManager.recognizedText,"channel" to ServiceManager.serviceChannelName, "result_channel" to ServiceManager.resultEventChannel))
                 }
 
