@@ -9,8 +9,8 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
-
-class SpeechRecognitionService : Service(), SpeechRecognizerClient.Callback {
+import com.example.sp_client.SpeechRecognizerClient
+class SpeechRecognitionService : Service() {
 
     private lateinit var recognizerClient: SpeechRecognizerClient
     private val channelId = "speech_service_channel"
@@ -18,22 +18,13 @@ class SpeechRecognitionService : Service(), SpeechRecognizerClient.Callback {
 
     override fun onCreate() {
         super.onCreate()
-        recognizerClient = SpeechRecognizerClient(applicationContext, this)
+        recognizerClient = SpeechRecognizerClient(applicationContext)
         createNotificationChannel()
         startForeground(notificationId, createNotification("Initializing..."))
 
-        recognizerClient.initialize { startRecognition() }
+        recognizerClient.initialize()
     }
 
-    private fun startRecognition() {
-        recognizerClient.startRecognition()
-        updateNotification("Listening for speech...")
-    }
-
-    private fun stopRecognition() {
-        recognizerClient.stopRecognition()
-        updateNotification("Recognition stopped.")
-    }
 
     override fun onDestroy() {
         super.onDestroy()
@@ -82,18 +73,5 @@ class SpeechRecognitionService : Service(), SpeechRecognizerClient.Callback {
     }
 
     // Vosk Recognition Callbacks
-    override fun onSpeechResult(text: String) {
-        Log.i("SpeechService", "Final Result: $text")
-        SpeechResultListener.sendResult(text)
-    }
 
-    override fun onSpeechPartial(text: String) {
-        Log.i("SpeechService", "Partial: $text")
-        SpeechResultListener.sendResult(text)
-    }
-
-    override fun onSpeechError(error: String) {
-        Log.e("SpeechService", "Error: $error")
-        SpeechResultListener.sendError(error)
-    }
 }
