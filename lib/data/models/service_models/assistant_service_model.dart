@@ -8,10 +8,13 @@ class AssistantServiceModel {
   final String channel;
   final String resultChannel;
   final String recognizedText;
+  final bool initializing;
+
 
   AssistantServiceModel({
     required this.recognizedText,
     required this.isBound,
+    required this.initializing,
     required this.isStoped,
     required this.isStandBy,
     required this.channel,
@@ -26,6 +29,7 @@ class AssistantServiceModel {
       'channel': channel,
       'result_channel': resultChannel,
       'recognizedText': recognizedText,
+      'initializing' : initializing
     };
   }
 
@@ -37,6 +41,7 @@ class AssistantServiceModel {
       channel: map['channel'] as String,
       resultChannel: map['result_channel'] as String,
       recognizedText: map['recognizedText'] ?? "",
+      initializing: map['initializing'] ?? false
     );
   }
 
@@ -47,6 +52,7 @@ class AssistantServiceModel {
     channel: "empty",
     resultChannel: "empty",
     recognizedText: '',
+    initializing: true
   );
 
   String toJson() => json.encode(toMap());
@@ -63,6 +69,7 @@ class AssistantServiceModel {
     String? channel,
     String? resultChannel,
     String? recognizedText,
+    bool? initializing
   }) {
     return AssistantServiceModel(
       isBound: isBound ?? this.isBound,
@@ -71,6 +78,7 @@ class AssistantServiceModel {
       channel: channel ?? this.channel,
       resultChannel: resultChannel ?? this.resultChannel,
       recognizedText: recognizedText ?? this.recognizedText,
+      initializing: initializing ?? this.initializing
     );
   }
 }

@@ -33,7 +33,13 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Expose API keys as BuildConfig fields
+//        buildConfigField("String", "ASSEMBLYAI_API_KEY", "\"${properties["ASSEMBLYAI_API_KEY"] ?: ""}\"")
+//        buildConfigField("String", "OPENAI_API_KEY", "\"${properties["OPENAI_API_KEY"] ?: ""}\"")
     }
+//    buildFeatures {
+//        buildConfig = true // Enable BuildConfig generation
+//    }
 
     buildTypes {
         release {

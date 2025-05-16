@@ -120,7 +120,9 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
                     _ControlButton(
                       isActive: isActive,
                       hasPermission: _hasPermission == true,
-                      onPressed: _toggleListening,
+                      onPressed: () async {
+                        _toggleListening();
+                      },
                     ),
                   ],
                 ),
@@ -155,7 +157,7 @@ class _AssistantStatusCard extends StatelessWidget {
                   color:
                       isActive
                           ? colors.primary
-                          : colors.onSurface.withOpacity(0.6),
+                          : colors.onSurface.withValues(alpha: 0.6),
                   size: 24,
                 ),
                 const SizedBox(width: 8),
@@ -213,9 +215,9 @@ class _StatusIndicator extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color.withOpacity(0.3)),
+            border: Border.all(color: color.withValues(alpha: 0.3)),
           ),
           child: Text(
             value,
@@ -256,7 +258,7 @@ class _SpeechInputCard extends StatelessWidget {
                   color:
                       isActive
                           ? colors.primary
-                          : colors.onSurface.withOpacity(0.6),
+                          : colors.onSurface.withValues(alpha: 0.6),
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -272,7 +274,7 @@ class _SpeechInputCard extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: colors.surfaceContainerHighest.withOpacity(0.3),
+                color: colors.surfaceContainerHighest.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -281,7 +283,7 @@ class _SpeechInputCard extends StatelessWidget {
                   fontStyle: text.isEmpty ? FontStyle.italic : FontStyle.normal,
                   color:
                       text.isEmpty
-                          ? colors.onSurface.withOpacity(0.6)
+                          ? colors.onSurface.withValues(alpha: 0.6)
                           : colors.onSurface,
                 ),
               ),
@@ -291,7 +293,7 @@ class _SpeechInputCard extends StatelessWidget {
               Text(
                 'Last updated: ${DateTime.now().toString().substring(11, 19)}',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: colors.onSurface.withOpacity(0.6),
+                  color: colors.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ],
@@ -329,8 +331,8 @@ class _MicrophonePermissionCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color:
                     isGranted
-                        ? colors.primary.withOpacity(0.1)
-                        : colors.error.withOpacity(0.1),
+                        ? colors.primary.withValues(alpha: 0.1)
+                        : colors.error.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -355,7 +357,7 @@ class _MicrophonePermissionCard extends StatelessWidget {
                         ? 'Permission granted'
                         : 'Required for voice commands',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: colors.onSurface.withOpacity(0.6),
+                      color: colors.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],

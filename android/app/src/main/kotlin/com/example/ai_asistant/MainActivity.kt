@@ -16,13 +16,12 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 import com.example.openai.SharedData
 import android.net.Uri
-import com.example.ai_asistant.SpeechRecognitionService
-
 import com.example.svc_mng.ServiceManager
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.example.ai_assistant/stt"
     private val EVENT_CHANNEL = "com.example.ai_assistant/stt_results"
+    private val PERMISSION_REQUEST_CODE = 1
 
     private lateinit var messenger: BinaryMessenger
     private lateinit var eventChannel: EventChannel
@@ -45,10 +44,10 @@ class MainActivity : FlutterActivity() {
 
                     ServiceManager.isBound = true
                     ServiceManager.isStoped = false
-                    Log.d("MainActivity", "Received auth and projects")
+                    Log.d("MainActivity", "Received auth and projects: authToken=$authToken, projects=$projects")
 
                     if (checkAudioPermission()) {
-                        checkBatteryOptimization()  // Ensure battery optimization is disabled
+                        checkBatteryOptimization()
                         startSpeechService()
                         result.success(true)
                     } else {
@@ -57,6 +56,7 @@ class MainActivity : FlutterActivity() {
                 }
 
                 "stopListening" -> {
+                    Log.w("MainActivity", "stopListening called from Flutter")
                     ServiceManager.isStoped = true
                     ServiceManager.isBound = false
                     stopSpeechService()
@@ -64,23 +64,27 @@ class MainActivity : FlutterActivity() {
                 }
 
                 "getInfo" -> {
-
                     val rawTasks = call.argument<List<MutableMap<String, Any>>>("tasks")
                     val taskList = rawTasks ?: emptyList()
-                  
-           // val taskList = call.argument<List<MutableMapMap<String, Any>>>("tasks") ?: arrayOf() 
 
-           if (SharedData.tasks != taskList) {
-                    SharedData.tasks = taskList
-               Log.d("TaskListner: " ,"Recived Tasks: ${SharedData.tasks.toString()}")
+                    if (SharedData.tasks != taskList) {
+                        SharedData.tasks = taskList
+                        Log.d("TaskListener", "Received Tasks: ${SharedData.tasks}")
+                    }
 
-           }
-
-                    result.success(mutableMapOf("isBound" to ServiceManager.isBound, "isStoped" to ServiceManager.isStoped, "isStandBy" to ServiceManager.isStandBy,"recognizedText" to ServiceManager.recognizedText,"channel" to ServiceManager.serviceChannelName, "result_channel" to ServiceManager.resultEventChannel))
+                    result.success(
+                        mutableMapOf(
+                            "isBound" to ServiceManager.isBound,
+                            "isStoped" to ServiceManager.isStoped,
+                            "isStandBy" to ServiceManager.isStandBy,
+                            "recognizedText" to ServiceManager.recognizedText,
+                            "channel" to ServiceManager.serviceChannelName,
+                            "result_channel" to ServiceManager.resultEventChannel
+                        )
+                    )
                 }
 
                 "isListening" -> {
-                    // Since we don’t bind, just return a generic true/false
                     val isRunning = isSpeechServiceRunning()
                     result.success(isRunning)
                 }
@@ -93,7 +97,6 @@ class MainActivity : FlutterActivity() {
         eventChannel = EventChannel(messenger, EVENT_CHANNEL)
         eventChannel.setStreamHandler(object : EventChannel.StreamHandler {
             override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
-
                 SpeechResultListener.eventSink = events
                 Log.d("MainActivity", "EventChannel listener attached")
             }
@@ -106,22 +109,29 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun checkAudioPermission(): Boolean {
-        return if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
-            == PackageManager.PERMISSION_GRANTED) {
+        return if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
             true
         } else {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 1)
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), PERMISSION_REQUEST_CODE)
             false
         }
     }
 
     private fun checkBatteryOptimization() {
-        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-        val packageName = packageName
-        if (!pm.isIgnoringBatteryOptimizations(packageName)) {
-            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
-            intent.data = Uri.parse("package:$packageName")
-            startActivity(intent)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            val packageName = packageName
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                    data = Uri.parse("package:$packageName")
+                }
+                try {
+                    startActivity(intent)
+                    Log.d("MainActivity", "Requested battery optimization exemption")
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "Failed to request battery optimizations: ${e.message}")
+                }
+            }
         }
     }
 
@@ -142,8 +152,8 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun isSpeechServiceRunning(): Boolean {
-        // Optional: implement check using ActivityManager if needed.
-        return true
+        // Simplified check using ServiceManager flags
+        return ServiceManager.isBound && !ServiceManager.isStoped
     }
 
     override fun onRequestPermissionsResult(
@@ -152,7 +162,8 @@ class MainActivity : FlutterActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 1 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        if (requestCode == PERMISSION_REQUEST_CODE && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            checkBatteryOptimization()
             startSpeechService()
         }
     }
@@ -160,6 +171,7 @@ class MainActivity : FlutterActivity() {
     override fun onDestroy() {
         super.onDestroy()
         Log.d("MainActivity", "Activity destroyed")
+        // Do not stop service here to ensure persistence
     }
 }
 

@@ -19,7 +19,9 @@ class HotWordDetector(
                     PorcupineManager.Builder()
                             .setKeywordPath(keywordAssetName)
                             .setSensitivity(0.7f)
-                            .setAccessKey("")
+                            .setAccessKey(
+                                    "k0f/n6QPirEXI/GzBJp977eoIAD7GbMW8BRdmUqGqMqEgOwgwbkoMA=="
+                            )
                             .build(context) { onWakeWordDetected() }
 
             porcupineManager?.start()

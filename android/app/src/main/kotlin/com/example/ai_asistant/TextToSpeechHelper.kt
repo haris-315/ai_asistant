@@ -2,58 +2,87 @@ package com.example.tts_helper
 
 import android.content.Context
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import android.util.Log
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Locale
 
 class TextToSpeechHelper(
-    context: Context,
-    private val onDoneCallback: () -> Unit
-) : TextToSpeech.OnInitListener {
-
+    private val context: Context,
+    private val onDone: () -> Unit
+) {
     private var tts: TextToSpeech? = null
-    private var isReady = false
+    private var isInitialized = false
 
     init {
-        tts = TextToSpeech(context.applicationContext, this)
+        initializeTTS()
     }
 
-    override fun onInit(status: Int) {
-        if (status == TextToSpeech.SUCCESS) {
-            val result = tts?.setLanguage(Locale.US)
-            isReady = result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED
-            Log.d("TTS", if (isReady) "TTS initialized successfully" else "TTS language not supported")
-        } else {
-            Log.e("TTS", "TTS initialization failed")
+    private fun initializeTTS() {
+        tts = TextToSpeech(context) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                tts?.language = Locale.US
+                isInitialized = true
+                tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                    override fun onStart(utteranceId: String?) {}
+                    override fun onDone(utteranceId: String?) {
+                        Log.d("TTS", "Utterance completed: $utteranceId")
+                        onDone()
+                    }
+                    override fun onError(utteranceId: String?) {
+                        Log.e("TTS", "Utterance error: $utteranceId")
+                    }
+                })
+                Log.d("TTS", "TTS initialized successfully")
+            } else {
+                Log.e("TTS", "TTS initialization failed: $status")
+                isInitialized = false
+            }
         }
+    }
+
+    fun reinitialize() {
+        Log.d("TTS", "Reinitializing TTS")
+        shutdown()
+        initializeTTS()
+    }
+
+    fun isInitialized(): Boolean = isInitialized
+
+    suspend fun waitForInitialization(timeoutMs: Long): Boolean {
+        if (isInitialized) return true
+        return withTimeoutOrNull(timeoutMs) {
+            while (!isInitialized) {
+                delay(100)
+            }
+            true
+        } ?: false
     }
 
     fun speak(text: String) {
-        if (isReady && text.isNotBlank()) {
-            val utteranceId = System.currentTimeMillis().toString()
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
-            tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
-                override fun onStart(utteranceId: String?) {
-                    Log.d("TTS", "Speech started")
-                }
-
-                override fun onDone(utteranceId: String?) {
-                    Log.d("TTS", "Speech done")
-                    onDoneCallback()
-                }
-
-                override fun onError(utteranceId: String?) {
-                    Log.e("TTS", "Speech error")
-                    onDoneCallback()
-                }
-            })
-        } else {
-            Log.e("TTS", "TTS not ready or empty text")
-            onDoneCallback()
+        if (!isInitialized) {
+            Log.e("TTS", "TTS not initialized")
+            reinitialize()
+            return
         }
+        if (text.isBlank()) {
+            Log.e("TTS", "Empty text provided")
+            return
+        }
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, text.hashCode().toString())
+        Log.d("TTS", "Speaking: $text")
+    }
+
+    fun stop() {
+        tts?.stop()
+        Log.d("TTS", "TTS stopped")
     }
 
     fun shutdown() {
-        tts?.stop()
         tts?.shutdown()
+        tts = null
+        isInitialized = false
+        Log.d("TTS", "TTS shutdown")
     }
 }

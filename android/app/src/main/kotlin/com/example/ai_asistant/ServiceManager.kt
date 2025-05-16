@@ -7,5 +7,5 @@ object ServiceManager {
     var serviceChannelName : String = "com.example.ai_assistant/stt"
     var resultEventChannel : String = "com.example.ai_assistant/stt_results"
     var recognizedText : String? = ""
-    var isCopying : Boolean = true
+    var initializing : Boolean = true
 }
