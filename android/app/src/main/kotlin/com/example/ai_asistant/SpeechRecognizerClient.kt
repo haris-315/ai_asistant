@@ -11,7 +11,6 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
-import com.example.ai_asistant.HotWordDetector
 import com.example.openai.OpenAIClient
 import com.example.openai.SharedData
 import com.example.svc_mng.ServiceManager
@@ -40,21 +39,19 @@ class SpeechRecognizerClient private constructor(private val context: Context) {
         STANDBY, LISTENING, PROCESSING, SPEAKING
     }
 
-    private var state: AssistantState = AssistantState.STANDBY
+    private var state: AssistantState = AssistantState.STANDBY // Start in STANDBY to ensure clean initialization
     private var audioRecord: AudioRecord? = null
     private var webSocket: WebSocket? = null
     private var job: Job? = null
     private var silenceStartTime: Long = 0
     private var isSendingAudio = false
-    private var lastHotwordTime: Long = 0
-    private val hotwordDebounceMs = 1000L
     private val sampleRate = 16000
     private val bufferSize = AudioRecord.getMinBufferSize(
         sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT
     ) * 2
     private val silenceThreshold = 500
-    private val silenceTimeoutMs = 3000L
-    private val commandTimeoutMs = 15000L // Increased to 15s
+    private val silenceTimeoutMs = 5000L
+    private val commandTimeoutMs = 15000L
     private val reconnectDelayMs = 1000L
     private val maxReconnectAttempts = 3
     private var reconnectAttempts = 0
@@ -73,30 +70,6 @@ class SpeechRecognizerClient private constructor(private val context: Context) {
         }
     }
 
-    private val hotWordDetector = HotWordDetector(
-        context = context,
-        keywordAssetName = "hey_jarvis.ppn",
-        onWakeWordDetected = {
-            val now = System.currentTimeMillis()
-            if (state == AssistantState.STANDBY && now - lastHotwordTime > hotwordDebounceMs) {
-                lastHotwordTime = now
-                Log.i("Porcupine", "Hotword detected at $now")
-                CoroutineScope(Dispatchers.Main).launch {
-                    transitionTo(AssistantState.SPEAKING)
-                    if (!ttsHelper.waitForInitialization(5000L)) { // Increased to 5s
-                        Log.w("SpeechRecognizerClient", "TTS not ready after timeout")
-                        ttsHelper.reinitialize()
-                        transitionTo(AssistantState.LISTENING)
-                        return@launch
-                    }
-                    ttsHelper.speak("Yes, how can I assist you?")
-                }
-            } else {
-                Log.d("Porcupine", "Hotword ignored: state=$state, time since last=$now-$lastHotwordTime")
-            }
-        }
-    )
-
     private val client = OkHttpClient.Builder()
         .readTimeout(0, TimeUnit.MILLISECONDS)
         .build()
@@ -110,17 +83,33 @@ class SpeechRecognizerClient private constructor(private val context: Context) {
             return
         }
 
-        if (state == AssistantState.STANDBY) {
-            hotWordDetector.start()
-            Log.i("SpeechRecognizerClient", "Initialized in STANDBY mode")
-        } else {
-            Log.d("SpeechRecognizerClient", "Already initialized, state: $state")
+        CoroutineScope(Dispatchers.Main).launch {
+            // Ensure TTS is initialized
+            if (!ttsHelper.waitForInitialization(5000L)) {
+                Log.w("SpeechRecognizerClient", "TTS not ready after timeout, reinitializing")
+                ttsHelper.reinitialize()
+                // Wait again after reinitialization
+                if (!ttsHelper.waitForInitialization(5000L)) {
+                    Log.e("SpeechRecognizerClient", "TTS initialization failed")
+                    ttsHelper.speak("Sorry, text-to-speech initialization failed.")
+                    return@launch
+                }
+            }
+
+            // Force a clean start
+            if (state == AssistantState.LISTENING) {
+                Log.d("SpeechRecognizerClient", "Already in LISTENING, ensuring audio streaming")
+                stopSpeechRecognition() // Stop any existing audio streaming
+                startSpeechRecognition() // Restart to ensure WebSocket and audio are active
+            } else {
+                Log.i("SpeechRecognizerClient", "Initialized in STANDBY mode")
+                transitionTo(AssistantState.LISTENING)
+            }
         }
     }
 
     fun shutdown() {
         job?.cancel()
-        hotWordDetector.stop()
         stopSpeechRecognition()
         webSocket?.close(1000, "Client shutdown")
         webSocket = null
@@ -128,6 +117,7 @@ class SpeechRecognizerClient private constructor(private val context: Context) {
         state = AssistantState.STANDBY
         ServiceManager.isStoped = true
         ServiceManager.isStandBy = true
+        reconnectAttempts = 0 // Reset reconnect attempts
         Log.i("SpeechRecognizerClient", "Shutdown complete")
     }
 
@@ -146,13 +136,11 @@ class SpeechRecognizerClient private constructor(private val context: Context) {
                 ttsHelper.stop()
                 webSocket?.close(1000, "Entering standby")
                 webSocket = null
-                hotWordDetector.start()
                 ServiceManager.isStandBy = true
                 ServiceManager.isStoped = true
                 isSendingAudio = false
             }
             AssistantState.LISTENING -> {
-                hotWordDetector.stop()
                 ServiceManager.isStandBy = false
                 ServiceManager.isStoped = false
                 startSpeechRecognition()
@@ -160,12 +148,10 @@ class SpeechRecognizerClient private constructor(private val context: Context) {
             AssistantState.PROCESSING -> {
                 stopSpeechRecognition()
                 isSendingAudio = false
-                hotWordDetector.stop()
             }
             AssistantState.SPEAKING -> {
                 stopSpeechRecognition()
                 isSendingAudio = false
-                hotWordDetector.stop()
             }
         }
     }
@@ -207,6 +193,15 @@ class SpeechRecognizerClient private constructor(private val context: Context) {
     }
 
     private fun connectWebSocket() {
+        CoroutineScope(Dispatchers.Main).launch {
+            // Ensure TTS is ready before speaking
+            if (!ttsHelper.waitForInitialization(5000L)) {
+                Log.w("SpeechRecognizerClient", "TTS not ready for connect message, reinitializing")
+                ttsHelper.reinitialize()
+            }
+            ttsHelper.speak("Please wait while I connect.")
+        }
+
         val request = Request.Builder()
             .url("wss://api.assemblyai.com/v2/realtime/ws?sample_rate=$sampleRate")
             .header("Authorization", "4bc0912e299e44b6b3e8ecab340ea0b1")
@@ -249,6 +244,7 @@ class SpeechRecognizerClient private constructor(private val context: Context) {
                 } catch (e: Exception) {
                     Log.e("SpeechRecognizerClient", "Failed to parse WebSocket message: ${e.message}")
                     com.example.ai_asistant.SpeechResultListener.sendError("Failed to parse WebSocket message")
+                    transitionTo(AssistantState.LISTENING)
                 }
             }
 
@@ -316,7 +312,7 @@ class SpeechRecognizerClient private constructor(private val context: Context) {
                 withContext(Dispatchers.Main) {
                     ttsHelper.speak("Sorry, an error occurred.")
                     com.example.ai_asistant.SpeechResultListener.sendError("Audio streaming error")
-                    transitionTo(AssistantState.STANDBY)
+                    transitionTo(AssistantState.LISTENING)
                 }
             } finally {
                 withContext(Dispatchers.Main) {
@@ -348,6 +344,17 @@ class SpeechRecognizerClient private constructor(private val context: Context) {
                 CoroutineScope(Dispatchers.Main).launch {
                     Log.d("SpeechRecognizerClient", "OpenAI response: $response")
                     transitionTo(AssistantState.SPEAKING)
+                    // Ensure TTS is ready before speaking
+                    if (!ttsHelper.waitForInitialization(5000L)) {
+                        Log.w("SpeechRecognizerClient", "TTS not ready, reinitializing")
+                        ttsHelper.reinitialize()
+                        if (!ttsHelper.waitForInitialization(5000L)) {
+                            Log.e("SpeechRecognizerClient", "TTS initialization failed")
+                            ttsHelper.speak("Sorry, text-to-speech initialization failed.")
+                            transitionTo(AssistantState.LISTENING)
+                            return@launch
+                        }
+                    }
                     ttsHelper.speak(response)
                 }
             },
@@ -355,8 +362,13 @@ class SpeechRecognizerClient private constructor(private val context: Context) {
                 Log.e("SpeechRecognizerClient", "OpenAI error: $error")
                 com.example.ai_asistant.SpeechResultListener.sendError("OpenAI error: $error")
                 CoroutineScope(Dispatchers.Main).launch {
+                    // Ensure TTS is ready before speaking error
+                    if (!ttsHelper.waitForInitialization(5000L)) {
+                        Log.w("SpeechRecognizerClient", "TTS not ready, reinitializing")
+                        ttsHelper.reinitialize()
+                    }
                     ttsHelper.speak("Sorry, I couldn't process your request.")
-                    transitionTo(AssistantState.LISTENING) // Return to LISTENING
+                    transitionTo(AssistantState.LISTENING)
                 }
             }
         )

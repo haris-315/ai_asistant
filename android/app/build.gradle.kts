@@ -1,3 +1,6 @@
+import com.android.build.api.dsl.AaptOptions
+import com.android.build.api.dsl.AndroidResources
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -7,10 +10,11 @@ plugins {
 android {
     namespace = "com.example.ai_asistant"
     compileSdk = flutter.compileSdkVersion
-//    aaptOptions {
-//        // Remove Vosk-specific noCompress, as models are no longer needed
-//        noCompress += listOf("pv") // For Porcupine model, if needed
-//    }
+    fun AndroidResources.() {
+        noCompress += setOf("ppn", "pv")
+        // Don't compress model files
+    }
+    // Don't compress model files
     packaging {
         resources {
             pickFirsts.add("META-INF/INDEX.LIST")
