@@ -12,7 +12,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:page_transition/page_transition.dart';
 
-import '../../../Controller/auth_Controller.dart';
+import '../../../Controller/auth_controller.dart';
 import '../../widget/drawer.dart';
 import '../home/emails/all_email_screen.dart';
 import 'navigationScreen/home_screen_content.dart';

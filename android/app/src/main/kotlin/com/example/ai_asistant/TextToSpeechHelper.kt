@@ -12,7 +12,7 @@ import java.util.Locale
 
 class TextToSpeechHelper(
     private val context: Context,
-    private val onDone: () -> Unit
+    private val onDone: (List<Voice>) -> Unit
 ) {
     private var tts: TextToSpeech? = null
     private var isInitialized = false
@@ -25,14 +25,14 @@ class TextToSpeechHelper(
         tts = TextToSpeech(context) { status ->
             if (status == TextToSpeech.SUCCESS) {
                 tts?.language = Locale.US
-                tts?.voice = getEnglishVoices().firstOrNull { voice -> voice.name == SharedData.currentVoice} ?: getEnglishVoices().first()
+                tts?.voice = getEnglishVoices().firstOrNull { voice -> voice.name == SharedData.currentVoice?.name} ?: getEnglishVoices().first()
 
                 isInitialized = true
                 tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                     override fun onStart(utteranceId: String?) {}
                     override fun onDone(utteranceId: String?) {
                         Log.d("TTS", "Utterance completed: $utteranceId")
-                        onDone()
+                        onDone(getEnglishVoices())
                     }
                     override fun onError(utteranceId: String?) {
                         Log.e("TTS", "Utterance error: $utteranceId")

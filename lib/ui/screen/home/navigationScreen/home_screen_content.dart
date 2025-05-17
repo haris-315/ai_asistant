@@ -1,6 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'package:ai_asistant/Controller/auth_Controller.dart';
+import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:ai_asistant/core/shared/constants.dart';
 import 'package:ai_asistant/core/shared/functions/is_today.dart';

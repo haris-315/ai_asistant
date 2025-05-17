@@ -1,6 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'package:ai_asistant/Controller/auth_Controller.dart';
+import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/core/shared/functions/show_snackbar.dart';
 import 'package:ai_asistant/data/models/threadmodel.dart';
 import 'package:ai_asistant/state_mgmt/email/cubit/email_cubit.dart';

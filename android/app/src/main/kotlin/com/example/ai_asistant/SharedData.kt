@@ -1,8 +1,10 @@
 package com.example.openai
 
+import android.speech.tts.Voice
+
 object SharedData {
     var authToken: String = ""
     var projects: MutableList<String> = mutableListOf()
     var tasks: List<MutableMap<String, Any>> = emptyList()
-    var currentVoice: String? = null
+    var currentVoice: Voice? = null
 }

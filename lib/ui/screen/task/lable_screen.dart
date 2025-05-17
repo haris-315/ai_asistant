@@ -1,4 +1,4 @@
-import 'package:ai_asistant/Controller/auth_Controller.dart';
+import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/data/models/projects/label_model.dart';
 import 'package:ai_asistant/ui/screen/task/lable/edit_LabelSCreen.dart';
 import 'package:ai_asistant/ui/screen/task/lable/label_DetailsScreen.dart';

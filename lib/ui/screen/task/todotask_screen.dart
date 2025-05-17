@@ -1,4 +1,4 @@
-import 'package:ai_asistant/Controller/auth_Controller.dart';
+import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/data/models/projects/label_model.dart';
 import 'package:ai_asistant/data/models/projects/task_model.dart';
 import 'package:ai_asistant/ui/screen/task/create_task_sheet.dart';

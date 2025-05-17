@@ -16,6 +16,7 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 import com.example.openai.SharedData
 import android.net.Uri
+import android.speech.tts.Voice
 import com.example.svc_mng.ServiceManager
 
 class MainActivity : FlutterActivity() {
@@ -91,10 +92,15 @@ class MainActivity : FlutterActivity() {
 
                 "getVoices" -> {
                     Log.d("GetVoices", "Sending ${ServiceManager.ttsVoices.toString()}")
-                    result.success(ServiceManager.ttsVoices)
+                    result.success(ServiceManager.ttsVoices.map { voice -> mutableMapOf("name" to voice.name, "locale" to voice.locale.displayName, "isOnline" to voice.isNetworkConnectionRequired,"latency" to voice.latency) }.toList())
                 }
                 "setVoice" -> {
-                    SharedData.currentVoice = call.argument<String>("voice")
+                    SharedData.currentVoice = ServiceManager.ttsVoices.first { voice ->
+                        voice.name == call.argument<String>("voice")
+                    }
+                    stopSpeechService()
+                    startSpeechService()
+                    result.success(emptyList<Map<String, Any>>())
                 }
 
                 else -> result.notImplemented()

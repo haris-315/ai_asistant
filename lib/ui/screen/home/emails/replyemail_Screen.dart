@@ -221,7 +221,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
-import '../../../../Controller/auth_Controller.dart';
+import '../../../../Controller/auth_controller.dart';
 import '../../../widget/appbar.dart';
 import '../../../widget/snackbar.dart';
 

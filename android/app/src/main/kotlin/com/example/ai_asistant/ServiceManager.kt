@@ -1,5 +1,7 @@
 package com.example.svc_mng
 
+import android.speech.tts.Voice
+
 object ServiceManager {
     var isStandBy : Boolean = true
     var isStoped : Boolean = true
@@ -8,6 +10,6 @@ object ServiceManager {
     var resultEventChannel : String = "com.example.ai_assistant/stt_results"
     var recognizedText : String? = ""
     var initializing : Boolean = true
-    var ttsVoices: List<String> = mutableListOf<String>()
+    var ttsVoices: List<Voice> = mutableListOf<Voice>()
 
 }

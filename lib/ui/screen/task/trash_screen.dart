@@ -6,7 +6,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
-import '../../../Controller/auth_Controller.dart';
+import '../../../Controller/auth_controller.dart';
 import '../../widget/appbar.dart';
 
 class TasksTrashScreen extends StatefulWidget {

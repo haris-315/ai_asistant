@@ -4,6 +4,7 @@ import 'package:ai_asistant/core/services/native_bridge.dart';
 import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:ai_asistant/core/shared/constants.dart';
 import 'package:ai_asistant/data/models/service_models/assistant_service_model.dart';
+import 'package:ai_asistant/data/models/service_models/voice.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -19,7 +20,7 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
   bool? _hasPermission;
   AssistantServiceModel assistantServiceModel = AssistantServiceModel.empty();
   bool _mounted = true;
-  List<String> voices = [];
+  List<Voice> voices = [];
   String? selectedVoice;
   bool _loadingVoices = false;
 
@@ -48,6 +49,7 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
       });
     } catch (e) {
       if (!_mounted) return;
+      print(e);
       setState(() => _loadingVoices = false);
     }
   }
@@ -121,6 +123,7 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
     if (voices.isEmpty) {
       await _loadVoices();
     }
+    print(voices);
 
     if (!_mounted) return;
 
@@ -140,8 +143,8 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
                       itemBuilder: (context, index) {
                         final voice = voices[index];
                         return RadioListTile<String>(
-                          title: Text(voice),
-                          value: voice,
+                          title: Text(voice.name ?? ""),
+                          value: voice.name ?? "",
                           groupValue: selectedVoice,
                           onChanged: (value) async {
                             await _setVoice(value);

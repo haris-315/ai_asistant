@@ -9,6 +9,7 @@ import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.os.Handler
 import android.os.Looper
+import android.speech.tts.Voice
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.example.openai.OpenAIClient
@@ -64,7 +65,12 @@ class SpeechRecognizerClient private constructor(private val context: Context) {
     )
 
     private val ttsHelper = TextToSpeechHelper(context) {
+        voices ->
         Log.d("TTS", "TTS done, transitioning to LISTENING")
+        if (ServiceManager.ttsVoices.isEmpty()) {
+            ServiceManager.ttsVoices = voices
+            Log.d("Voices", "Available voices are: ${ServiceManager.ttsVoices.toString()} and from getter ${voices.toString()}")
+        }
         if (state == AssistantState.SPEAKING) {
             transitionTo(AssistantState.LISTENING)
         }
@@ -77,8 +83,7 @@ class SpeechRecognizerClient private constructor(private val context: Context) {
     private val handler = Handler(Looper.getMainLooper())
 
     fun initialize() {
-        ServiceManager.ttsVoices = ttsHelper.getEnglishVoices().map { voice -> voice.name }.toList()
-        Log.d("Voices", "Available voices are: ${ServiceManager.ttsVoices.toString()} and from getter ${ttsHelper.getEnglishVoices().toString()}")
+
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             Log.e("SpeechRecognizerClient", "RECORD_AUDIO permission not granted")
             ttsHelper.speak("Please grant microphone permission.")

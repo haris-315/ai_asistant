@@ -1,4 +1,4 @@
-import 'package:ai_asistant/Controller/auth_Controller.dart';
+import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/ui/screen/auth/registration_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';

@@ -1,8 +1,9 @@
 import 'dart:async';
 
-import 'package:ai_asistant/Controller/auth_Controller.dart';
+import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/core/services/session_store_service.dart';
 import 'package:ai_asistant/data/models/service_models/assistant_service_model.dart';
+import 'package:ai_asistant/data/models/service_models/voice.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
@@ -81,15 +82,16 @@ class NativeBridge {
     }
   }
 
-  static Future<List<String>> getOrSetAvailableVoices(String? model) async {
+  static Future<List<Voice>> getOrSetAvailableVoices(String? model) async {
     try {
       final List result = await _methodChannel.invokeMethod(
         model != null ? "setVoice" : 'getVoices',
         model != null ? {"voice": model} : null,
       );
-      return result.map((v) => v.toString()).toList();
+      // print(result);
+      return result.map((v) => Voice.fromMap(v)).toList();
     } on PlatformException catch (_) {
-      return ["Err1", "Err2", "Err3"];
+      rethrow;
     }
   }
 

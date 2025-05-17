@@ -10,7 +10,7 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
-import '../../../../Controller/auth_Controller.dart';
+import '../../../../Controller/auth_controller.dart';
 import 'create_edit_ProjectScreen.dart';
 
 class ProjectDetailScreen extends StatefulWidget {

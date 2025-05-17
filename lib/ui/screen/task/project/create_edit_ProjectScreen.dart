@@ -2,7 +2,7 @@ import 'package:ai_asistant/data/models/projects/project_model.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../../Controller/auth_Controller.dart';
+import '../../../../Controller/auth_controller.dart';
 import '../../../widget/input_field.dart';
 
 class EditProjectScreen extends StatefulWidget {

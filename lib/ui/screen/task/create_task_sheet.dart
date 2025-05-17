@@ -1,6 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'package:ai_asistant/Controller/auth_Controller.dart';
+import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/data/models/projects/section_model.dart';
 import 'package:ai_asistant/data/models/projects/task_model.dart';
 import 'package:flutter/material.dart';

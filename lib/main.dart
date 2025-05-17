@@ -1,4 +1,4 @@
-import 'package:ai_asistant/Controller/auth_Controller.dart';
+import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/core/services/session_store_service.dart';
 import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:ai_asistant/core/services/snackbar_service.dart';
@@ -51,7 +51,7 @@ class MyApp extends StatelessWidget {
       builder: (context, orientation, screenType) {
         return GetMaterialApp(
           scaffoldMessengerKey: SnackbarService.messengerKey,
-          title: 'Flutter Demo',
+          title: 'AI Assistant',
           debugShowCheckedModeBanner: true,
           theme: appTheme(),
 
