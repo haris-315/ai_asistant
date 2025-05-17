@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:ai_asistant/core/services/native_bridge.dart';
+import 'package:ai_asistant/core/services/settings_service.dart';
+import 'package:ai_asistant/core/shared/constants.dart';
 import 'package:ai_asistant/data/models/service_models/assistant_service_model.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -17,6 +19,9 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
   bool? _hasPermission;
   AssistantServiceModel assistantServiceModel = AssistantServiceModel.empty();
   bool _mounted = true;
+  List<String> voices = [];
+  String? selectedVoice;
+  bool _loadingVoices = false;
 
   @override
   void initState() {
@@ -27,6 +32,32 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
   Future<void> _initialize() async {
     await _checkPermission();
     await loadFirstTime();
+    await _loadVoices();
+    await _loadCurrentVoice();
+  }
+
+  Future<void> _loadVoices() async {
+    if (!_mounted) return;
+    setState(() => _loadingVoices = true);
+    try {
+      final loadedVoices = await NativeBridge.getOrSetAvailableVoices(null);
+      if (!_mounted) return;
+      setState(() {
+        voices = loadedVoices;
+        _loadingVoices = false;
+      });
+    } catch (e) {
+      if (!_mounted) return;
+      setState(() => _loadingVoices = false);
+    }
+  }
+
+  Future<void> _loadCurrentVoice() async {
+    final currentVoice = await SettingsService.getSetting(
+      AppConstants.cuVoiceKey,
+    );
+    if (!_mounted) return;
+    setState(() => selectedVoice = currentVoice);
   }
 
   Future<void> _checkPermission() async {
@@ -61,6 +92,15 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
     }
   }
 
+  Future<void> _setVoice(String? voice) async {
+    if (voice == null) return;
+
+    await NativeBridge.getOrSetAvailableVoices(voice);
+    await SettingsService.storeSetting(AppConstants.cuVoiceKey, voice);
+    if (!_mounted) return;
+    setState(() => selectedVoice = voice);
+  }
+
   Future<void> _toggleListening() async {
     if (!assistantServiceModel.isStoped) {
       final success = await NativeBridge.stopListening();
@@ -74,8 +114,53 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
   @override
   void dispose() {
     _mounted = false;
-    // NativeBridge.stopListening();
     super.dispose();
+  }
+
+  Future<void> _showVoiceSelectionDialog() async {
+    if (voices.isEmpty) {
+      await _loadVoices();
+    }
+
+    if (!_mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Select Voice'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child:
+                _loadingVoices
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: voices.length,
+                      itemBuilder: (context, index) {
+                        final voice = voices[index];
+                        return RadioListTile<String>(
+                          title: Text(voice),
+                          value: voice,
+                          groupValue: selectedVoice,
+                          onChanged: (value) async {
+                            await _setVoice(value);
+                            if (!_mounted) return;
+                            Navigator.pop(context);
+                          },
+                        );
+                      },
+                    ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -112,6 +197,12 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
                       onRequestPermission: _requestPermission,
                     ),
                     const SizedBox(height: 16),
+                    _VoiceSelectionCard(
+                      currentVoice: selectedVoice,
+                      onTap: _showVoiceSelectionDialog,
+                      isLoading: _loadingVoices,
+                    ),
+                    const SizedBox(height: 16),
                     _SpeechInputCard(
                       text: assistantServiceModel.recognizedText,
                       isActive: isActive,
@@ -127,6 +218,85 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
                   ],
                 ),
               ),
+    );
+  }
+}
+
+class _VoiceSelectionCard extends StatelessWidget {
+  final String? currentVoice;
+  final VoidCallback onTap;
+  final bool isLoading;
+
+  const _VoiceSelectionCard({
+    required this.currentVoice,
+    required this.onTap,
+    required this.isLoading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: colors.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.voice_chat, color: colors.primary, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Assistant Voice',
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (isLoading)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 4.0),
+                        child: LinearProgressIndicator(),
+                      )
+                    else
+                      Text(
+                        currentVoice ?? 'No voice selected',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color:
+                              currentVoice != null
+                                  ? colors.onSurface
+                                  : colors.onSurface.withValues(alpha: 0.6),
+                          fontStyle:
+                              currentVoice == null ? FontStyle.italic : null,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Icon(
+                Icons.arrow_forward_ios,
+                color: colors.onSurface.withValues(alpha: 0.6),
+                size: 16,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

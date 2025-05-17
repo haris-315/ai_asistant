@@ -89,6 +89,14 @@ class MainActivity : FlutterActivity() {
                     result.success(isRunning)
                 }
 
+                "getVoices" -> {
+                    Log.d("GetVoices", "Sending ${ServiceManager.ttsVoices.toString()}")
+                    result.success(ServiceManager.ttsVoices)
+                }
+                "setVoice" -> {
+                    SharedData.currentVoice = call.argument<String>("voice")
+                }
+
                 else -> result.notImplemented()
             }
         }

@@ -1,7 +1,7 @@
 import 'package:ai_asistant/core/shared/functions/show_snackbar.dart';
 import 'package:ai_asistant/state_mgmt/chats/cubit/chat_cubit.dart';
 import 'package:ai_asistant/state_mgmt/sessions/cubit/sessions_cubit.dart';
-import 'package:ai_asistant/ui/screen/assistant_control_page.dart';
+import 'package:ai_asistant/ui/screen/assistant/assistant_control_page.dart';
 import 'package:ai_asistant/ui/screen/home/chat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';

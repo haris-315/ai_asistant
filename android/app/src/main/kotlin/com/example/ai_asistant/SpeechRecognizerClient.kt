@@ -49,7 +49,7 @@ class SpeechRecognizerClient private constructor(private val context: Context) {
     private val bufferSize = AudioRecord.getMinBufferSize(
         sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT
     ) * 2
-    private val silenceThreshold = 500
+    private val silenceThreshold = 200
     private val silenceTimeoutMs = 5000L
     private val commandTimeoutMs = 15000L
     private val reconnectDelayMs = 1000L
@@ -77,6 +77,8 @@ class SpeechRecognizerClient private constructor(private val context: Context) {
     private val handler = Handler(Looper.getMainLooper())
 
     fun initialize() {
+        ServiceManager.ttsVoices = ttsHelper.getEnglishVoices().map { voice -> voice.name }.toList()
+        Log.d("Voices", "Available voices are: ${ServiceManager.ttsVoices.toString()} and from getter ${ttsHelper.getEnglishVoices().toString()}")
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             Log.e("SpeechRecognizerClient", "RECORD_AUDIO permission not granted")
             ttsHelper.speak("Please grant microphone permission.")
@@ -277,8 +279,8 @@ class SpeechRecognizerClient private constructor(private val context: Context) {
                 Log.i("SpeechRecognizerClient", "Audio streaming started")
                 isSendingAudio = true
                 silenceStartTime = 0
-                val commandStart = System.currentTimeMillis()
                 val buffer = ByteArray(bufferSize)
+                var hasSpeech = false // Track if we've detected any speech
 
                 while (isActive && state == AssistantState.LISTENING && audioRecord != null) {
                     val read = audioRecord?.read(buffer, 0, buffer.size) ?: 0
@@ -287,23 +289,17 @@ class SpeechRecognizerClient private constructor(private val context: Context) {
 
                         if (isSilence(buffer, read)) {
                             if (silenceStartTime == 0L) silenceStartTime = System.currentTimeMillis()
-                            if (System.currentTimeMillis() - silenceStartTime >= silenceTimeoutMs) {
-                                Log.d("SpeechRecognizerClient", "Silence timeout, returning to STANDBY")
-                                withContext(Dispatchers.Main) {
-                                    transitionTo(AssistantState.STANDBY)
-                                }
-                                break
+
+                            // Only consider processing if we've had speech before
+                            if (hasSpeech && System.currentTimeMillis() - silenceStartTime >= silenceTimeoutMs) {
+                                Log.d("SpeechRecognizerClient", "Natural pause in speech detected")
+                                // Let the WebSocket handle the final transcript
+                                silenceStartTime = 0L
+                                hasSpeech = false
                             }
                         } else {
+                            hasSpeech = true
                             silenceStartTime = 0L
-                        }
-
-                        if (System.currentTimeMillis() - commandStart >= commandTimeoutMs) {
-                            Log.d("SpeechRecognizerClient", "Command timeout, returning to STANDBY")
-                            withContext(Dispatchers.Main) {
-                                transitionTo(AssistantState.STANDBY)
-                            }
-                            break
                         }
                     }
                 }

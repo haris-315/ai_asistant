@@ -81,6 +81,18 @@ class NativeBridge {
     }
   }
 
+  static Future<List<String>> getOrSetAvailableVoices(String? model) async {
+    try {
+      final List result = await _methodChannel.invokeMethod(
+        model != null ? "setVoice" : 'getVoices',
+        model != null ? {"voice": model} : null,
+      );
+      return result.map((v) => v.toString()).toList();
+    } on PlatformException catch (_) {
+      return ["Err1", "Err2", "Err3"];
+    }
+  }
+
   /// Returns a stream of speech recognition results
   static Stream<String> getSpeechResults() {
     _speechStream ??= _eventChannel

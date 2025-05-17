@@ -3,7 +3,9 @@ package com.example.tts_helper
 import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import android.speech.tts.Voice
 import android.util.Log
+import com.example.openai.SharedData
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Locale
@@ -23,6 +25,8 @@ class TextToSpeechHelper(
         tts = TextToSpeech(context) { status ->
             if (status == TextToSpeech.SUCCESS) {
                 tts?.language = Locale.US
+                tts?.voice = getEnglishVoices().firstOrNull { voice -> voice.name == SharedData.currentVoice} ?: getEnglishVoices().first()
+
                 isInitialized = true
                 tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                     override fun onStart(utteranceId: String?) {}
@@ -77,6 +81,11 @@ class TextToSpeechHelper(
     fun stop() {
         tts?.stop()
         Log.d("TTS", "TTS stopped")
+    }
+    fun getEnglishVoices(): List<Voice> {
+        return tts?.voices
+            ?.filter { it.locale.language == Locale.ENGLISH.language }
+            ?.toList() ?: emptyList()
     }
 
     fun shutdown() {

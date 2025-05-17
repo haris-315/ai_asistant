@@ -1,9 +1,15 @@
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsService {
   static storeSetting(String key, String value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(key, value);
+  }
+
+  static customSetting(Function(SharedPreferences sprefs) fn) async {
+        final prefs = await SharedPreferences.getInstance();
+        return await fn(prefs);
   }
 
   static getSetting(String key) async {

@@ -6,7 +6,7 @@ import 'package:ai_asistant/core/shared/constants.dart';
 import 'package:ai_asistant/core/shared/functions/is_today.dart';
 import 'package:ai_asistant/data/models/threadmodel.dart';
 import 'package:ai_asistant/state_mgmt/email/cubit/email_cubit.dart';
-import 'package:ai_asistant/ui/screen/assistant_control_page.dart';
+import 'package:ai_asistant/ui/screen/assistant/assistant_control_page.dart';
 import 'package:ai_asistant/ui/screen/home/chat_screen.dart';
 import 'package:ai_asistant/ui/screen/home/dashboard.dart';
 import 'package:ai_asistant/ui/screen/task/create_task_sheet.dart';
@@ -295,7 +295,7 @@ class OverviewCard extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
