@@ -16,7 +16,6 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 import com.example.openai.SharedData
 import android.net.Uri
-import android.speech.tts.Voice
 import com.example.svc_mng.ServiceManager
 
 class MainActivity : FlutterActivity() {

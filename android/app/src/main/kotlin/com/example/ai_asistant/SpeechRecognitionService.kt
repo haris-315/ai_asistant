@@ -32,7 +32,10 @@ class SpeechRecognitionService : Service() {
         recognizerClient = SpeechRecognizerClient.getInstance(applicationContext)
         createNotificationChannel()
         startForeground(notificationId, createNotification("Up & Running"))
-        recognizerClient.initialize(onInitialized = {tts -> ttsHelper = tts
+        recognizerClient.initialize(onInitialized = {
+            tts ->
+            if (tts != null)
+            ttsHelper = tts
             startNotifier()})
         Log.d("SpeechRecognitionService", "Service created and initialized")
     }
@@ -91,7 +94,7 @@ class SpeechRecognitionService : Service() {
 
                         if (secondsDiff in -15..15) {
                             sendSilentNotification(content)
-                            recognizerClient.stateSpeaking()
+//                            recognizerClient.stateSpeaking()
                             ttsHelper.speak("You have an upcoming task in 10 minutes, $content")
                             notifiedTasks.add(reminderAt) // Mark as notified
                             Log.d("Notifier", "Sent reminder for task: $content")
