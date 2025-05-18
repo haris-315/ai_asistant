@@ -54,13 +54,16 @@ class SpeechRecognizerClient private constructor(context: Context) {
         sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT
     ) * 2
     private val silenceThreshold = 500
-    private val silenceTimeoutMs = 4000L
+    private val silenceTimeoutMs = 4500L // Slightly above end_utterance_silence_threshold
     private val processingTimeoutMs = 10000L
     private val connectionTimeoutMs = 10000L
     private val maxReconnectAttempts = 3
     private var reconnectAttempts = 0
+    private var lastSpeechTime = 0L
+    private val commandBuffer = StringBuilder()
+    private val audioBuffer = mutableListOf<ByteArray>()
     private val handler = Handler(Looper.getMainLooper())
-    private val audioLock = Any() // Synchronization lock for audioRecord
+    private val audioLock = Any()
 
     private val ttsHelper by lazy {
         context?.let {
@@ -122,6 +125,9 @@ class SpeechRecognizerClient private constructor(context: Context) {
         hasSpokenConnectMessage = false
         reconnectAttempts = 0
         isTtsSpeaking = false
+        lastSpeechTime = 0L
+        commandBuffer.clear()
+        audioBuffer.clear()
         ServiceManager.isStoped = true
         ServiceManager.isStandBy = true
         handler.removeCallbacksAndMessages(null)
@@ -139,6 +145,8 @@ class SpeechRecognizerClient private constructor(context: Context) {
                 webSocket?.close(1000, "Standby")
                 webSocket = null
                 handler.removeCallbacksAndMessages(null)
+                commandBuffer.clear()
+                audioBuffer.clear()
             }
             AssistantState.LISTENING -> {
                 ServiceManager.isStoped = false
@@ -146,7 +154,6 @@ class SpeechRecognizerClient private constructor(context: Context) {
                 startSpeechRecognition()
             }
             AssistantState.PROCESSING -> {
-                // Add timeout to prevent getting stuck
                 handler.postDelayed({
                     if (state == AssistantState.PROCESSING) {
                         Log.w("SpeechRecognizerClient", "Processing timeout, returning to LISTENING")
@@ -208,7 +215,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
         }
 
         val request = Request.Builder()
-            .url("wss://api.assemblyai.com/v2/realtime/ws?sample_rate=$sampleRate")
+            .url("wss://api.assemblyai.com/v2/realtime/ws?sample_rate=$sampleRate&utterances=true")
             .header("Authorization", "4bc0912e299e44b6b3e8ecab340ea0b1")
             .build()
 
@@ -227,6 +234,10 @@ class SpeechRecognizerClient private constructor(context: Context) {
                     handler.removeCallbacks(timeoutRunnable)
                     Log.i("SpeechRecognizerClient", "WebSocket connected")
                     this@SpeechRecognizerClient.webSocket = webSocket
+                    // Send utterance silence threshold configuration
+                    val configMessage = JSONObject().put("end_utterance_silence_threshold", 5000).toString()
+                    webSocket.send(configMessage)
+                    Log.d("SpeechRecognizerClient", "Sent end_utterance_silence_threshold: 4000ms")
                     reconnectAttempts = 0
                     if (state == AssistantState.LISTENING) startAudioStreaming()
                 }
@@ -250,17 +261,24 @@ class SpeechRecognizerClient private constructor(context: Context) {
                                         transitionTo(AssistantState.LISTENING)
                                         return
                                     }
-                                    ServiceManager.recognizedText = transcript
-                                    com.example.ai_asistant.SpeechResultListener.sendResult(transcript)
+                                    commandBuffer.append(" ").append(transcript)
+                                    Log.d("SpeechRecognizerClient", "Utterance finalized: ${commandBuffer.toString()}")
+                                    ServiceManager.recognizedText = commandBuffer.toString()
+                                    com.example.ai_asistant.SpeechResultListener.sendResult(commandBuffer.toString())
                                     transitionTo(AssistantState.PROCESSING)
-                                    processCommand(transcript)
+                                    processCommand(commandBuffer.toString().trim())
+                                    commandBuffer.clear()
+                                    audioBuffer.clear()
                                 }
                             }
                             "PartialTranscript" -> {
                                 val partial = json.optString("text").trim()
                                 if (partial.isNotEmpty()) {
                                     Log.d("SpeechRecognizerClient", "Partial: $partial")
+                                    commandBuffer.clear()
+                                    commandBuffer.append(partial)
                                     ServiceManager.recognizedText = partial
+                                    lastSpeechTime = System.currentTimeMillis()
                                 }
                             }
                         }
@@ -305,11 +323,23 @@ class SpeechRecognizerClient private constructor(context: Context) {
                 }
                 Log.i("SpeechRecognizerClient", "Audio streaming started")
                 val buffer = ByteArray(bufferSize)
+                lastSpeechTime = System.currentTimeMillis()
 
                 while (isActive && state == AssistantState.LISTENING && webSocket != null && !isTtsSpeaking) {
                     val read = audioRecord?.read(buffer, 0, buffer.size) ?: 0
-                    if (read > 0 && !isSilence(buffer, read)) {
-                        webSocket?.send(buffer.copyOf(read).toByteString())
+                    if (read > 0) {
+                        val bufferCopy = buffer.copyOf(read)
+                        audioBuffer.add(bufferCopy)
+                        if (!isSilence(buffer, read)) {
+                            lastSpeechTime = System.currentTimeMillis()
+                            audioBuffer.forEach { webSocket?.send(it.toByteString()) }
+                            audioBuffer.clear()
+                        } else if (System.currentTimeMillis() - lastSpeechTime >= silenceTimeoutMs) {
+                            Log.d("SpeechRecognizerClient", "Local silence timeout reached, sending buffered audio")
+                            audioBuffer.forEach { webSocket?.send(it.toByteString()) }
+                            audioBuffer.clear()
+                            break
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -349,6 +379,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
                 audioRecord = null
                 audioJob?.cancel()
                 audioJob = null
+                lastSpeechTime = 0L
                 Log.d("SpeechRecognizerClient", "Audio streaming fully stopped")
             }
         }

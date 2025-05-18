@@ -17,6 +17,7 @@ import com.example.openai.SharedData
 import com.example.tts_helper.TextToSpeechHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -35,7 +36,7 @@ class SpeechRecognitionService : Service() {
         recognizerClient.initialize(onInitialized = {
             tts ->
             if (tts != null)
-            ttsHelper = tts
+                ttsHelper = tts
             startNotifier()})
         Log.d("SpeechRecognitionService", "Service created and initialized")
     }
@@ -70,9 +71,14 @@ class SpeechRecognitionService : Service() {
         }
     }
 
+    private var notifierJob: Job? = null
+
     private fun startNotifier() {
-        CoroutineScope(Dispatchers.IO).launch {
-            val notifiedTasks = mutableSetOf<String>() // Track notified task IDs or reminder strings
+        // Avoid multiple notifier loops
+        if (notifierJob?.isActive == true) return
+
+        notifierJob = CoroutineScope(Dispatchers.IO).launch {
+            val notifiedTasks = mutableSetOf<String>()
 
             while (true) {
                 val now = Instant.now()
@@ -81,7 +87,6 @@ class SpeechRecognitionService : Service() {
                     val reminderAt = task["reminder_at"] as? String ?: return@forEach
                     val content = task["content"] as? String ?: "Reminder"
 
-                    // Use a unique ID (reminderAt or task["id"] if available)
                     if (notifiedTasks.contains(reminderAt)) return@forEach
 
                     try {
@@ -94,9 +99,8 @@ class SpeechRecognitionService : Service() {
 
                         if (secondsDiff in -15..15) {
                             sendSilentNotification(content)
-//                            recognizerClient.stateSpeaking()
                             ttsHelper.speak("You have an upcoming task in 10 minutes, $content")
-                            notifiedTasks.add(reminderAt) // Mark as notified
+                            notifiedTasks.add(reminderAt)
                             Log.d("Notifier", "Sent reminder for task: $content")
                         }
 
@@ -105,10 +109,11 @@ class SpeechRecognitionService : Service() {
                     }
                 }
 
-                delay(5000) // Check every 5 seconds
+                delay(5000)
             }
         }
     }
+
     private fun sendSilentNotification(message: String) {
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val silentNotification = Notification.Builder(this, channelId)
