@@ -151,8 +151,10 @@ class _ChatScreenState extends State<ChatScreen> {
             title: buildModelSelector(),
             actions: [
               IconButton(
-                icon: const Icon(Icons.settings_outlined, color: Colors.blue),
-                onPressed: () {},
+                icon: const Icon(Icons.home, color: Colors.blue),
+                onPressed: () {
+                  Navigator.pushReplacementNamed(context, "/home");
+                },
               ),
               const SizedBox(width: 8),
             ],
@@ -246,7 +248,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                       borderRadius: BorderRadius.circular(10),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.1),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.1,
+                                          ),
                                           blurRadius: 4,
                                           offset: const Offset(0, 2),
                                         ),
@@ -354,7 +358,7 @@ class _ChatScreenState extends State<ChatScreen> {
       decoration: BoxDecoration(
         color: Colors.grey[50],
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue.withOpacity(0.3), width: 1),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.3), width: 1),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
@@ -467,7 +471,7 @@ class _ChatScreenState extends State<ChatScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),

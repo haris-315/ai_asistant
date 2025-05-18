@@ -1,4 +1,3 @@
-import com.android.build.api.dsl.AaptOptions
 import com.android.build.api.dsl.AndroidResources
 
 plugins {
@@ -10,10 +9,10 @@ plugins {
 android {
     namespace = "com.example.ai_asistant"
     compileSdk = flutter.compileSdkVersion
-    fun AndroidResources.() {
-        noCompress += setOf("ppn", "pv")
-        // Don't compress model files
-    }
+//    fun AndroidResources.() {
+//        noCompress += setOf("ppn", "pv")
+//        // Don't compress model files
+//    }
     // Don't compress model files
     packaging {
         resources {
@@ -33,7 +32,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.ai_asistant"
-        minSdk = 24
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -56,32 +55,12 @@ android {
 }
 
 dependencies {
-//    implementation("com.google.cloud:google-cloud-speech:2.2.0")
-
-    // gRPC and Protobuf (for manually managing stubs and streams)
-//    implementation("io.grpc:grpc-okhttp:1.51.0")
-//    implementation("io.grpc:grpc-protobuf:1.51.0")
-//    implementation("io.grpc:grpc-stub:1.51.0")
-//
-//    // Protobuf Java
-//    implementation("com.google.protobuf:protobuf-java:3.21.12")
-//
-//    // Authentication
-//    implementation("com.google.auth:google-auth-library-oauth2-http:1.17.0")
-
-    // Logging & JSON
-//    implementation("com.assemblyai:assembly-ai-java:1.0.0")
-
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.json:json:20231013")
-
     // Kotlin coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1")
-
     // Porcupine for wake word detection
     implementation("ai.picovoice:porcupine-android:3.0.1")
-
-    // Porcupine for hot word detection
 }
 
 flutter {

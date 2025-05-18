@@ -12,14 +12,8 @@ ThemeData appTheme() {
       shadowColor: Colors.black.withValues(alpha: 0.1),
     ),
     inputDecorationTheme: InputDecorationTheme(
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.grey),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF6200EA), width: 2),
-      ),
+      border: null,
+      focusedBorder: null,
       filled: true,
       fillColor: Colors.white,
     ),

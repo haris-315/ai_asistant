@@ -69,7 +69,7 @@ class AssistantServiceModel {
     String? channel,
     String? resultChannel,
     String? recognizedText,
-    bool? initializing
+    bool? initializing,
   }) {
     return AssistantServiceModel(
       isBound: isBound ?? this.isBound,

@@ -103,7 +103,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
       onLongPress: () => _showTaskOptions(context, task),
       child: Card(
         elevation: 4,
-        shadowColor: Colors.black.withOpacity(0.5),
+        shadowColor: Colors.black.withValues(alpha: 0.5),
         margin: EdgeInsets.only(bottom: 2.h),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: InkWell(
@@ -148,7 +148,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
                                       : null,
                               color:
                                   isCompleted
-                                      ? colorScheme.onSurface.withOpacity(0.5)
+                                      ? colorScheme.onSurface.withValues(alpha: 0.5)
                                       : colorScheme.onSurface,
                             ),
                           ),
@@ -162,8 +162,8 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
                                 fontSize: 11,
                                 color:
                                     isCompleted
-                                        ? colorScheme.onSurface.withOpacity(0.5)
-                                        : colorScheme.onSurface.withOpacity(
+                                        ? colorScheme.onSurface.withValues(alpha: 0.5)
+                                        : colorScheme.onSurface.withValues(alpha: 
                                           0.7,
                                         ),
                               ),
@@ -184,10 +184,10 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
                         vertical: 0.5.h,
                       ),
                       decoration: BoxDecoration(
-                        color: priorityColor.withOpacity(0.1),
+                        color: priorityColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: priorityColor.withOpacity(0.3),
+                          color: priorityColor.withValues(alpha: 0.3),
                           width: 1,
                         ),
                       ),
@@ -217,10 +217,10 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
                         vertical: 0.5.h,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
+                        color: Colors.blue.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: Colors.blue.withOpacity(0.3),
+                          color: Colors.blue.withValues(alpha: 0.3),
                           width: 1,
                         ),
                       ),
@@ -251,10 +251,10 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
                           vertical: 0.5.h,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.purple.withOpacity(0.1),
+                          color: Colors.purple.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: Colors.purple.withOpacity(0.3),
+                            color: Colors.purple.withValues(alpha: 0.3),
                             width: 1,
                           ),
                         ),
@@ -299,7 +299,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
               hintText: 'Search tasks...',
               prefixIcon: Icon(
                 Icons.search,
-                color: colorScheme.onSurface.withOpacity(0.5),
+                color: colorScheme.onSurface.withValues(alpha: 0.5),
               ),
               filled: true,
               fillColor: colorScheme.surface,
@@ -316,7 +316,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
                       ? IconButton(
                         icon: Icon(
                           Icons.clear,
-                          color: colorScheme.onSurface.withOpacity(0.5),
+                          color: colorScheme.onSurface.withValues(alpha: 0.5),
                         ),
                         onPressed: () {
                           _searchController.clear();
@@ -365,7 +365,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
       selected: isSelected,
       onSelected: (selected) => setState(() => _currentFilter = value),
       backgroundColor: colorScheme.surface,
-      selectedColor: colorScheme.primary.withOpacity(0.2),
+      selectedColor: colorScheme.primary.withValues(alpha: 0.2),
       labelStyle: TextStyle(
         color: isSelected ? colorScheme.primary : colorScheme.onSurface,
         fontWeight: FontWeight.w600,
@@ -433,7 +433,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
           Icon(
             Icons.task_alt_rounded,
             size: 60,
-            color: colorScheme.onSurface.withOpacity(0.3),
+            color: colorScheme.onSurface.withValues(alpha: 0.3),
           ),
           SizedBox(height: 2.h),
           Text(
@@ -443,7 +443,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
             style: TextStyle(
               fontSize: 18.sp,
               fontWeight: FontWeight.w600,
-              color: colorScheme.onSurface.withOpacity(0.6),
+              color: colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           SizedBox(height: 1.h),
@@ -451,7 +451,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
             "Tap the + button to add a new task",
             style: TextStyle(
               fontSize: 14.sp,
-              color: colorScheme.onSurface.withOpacity(0.5),
+              color: colorScheme.onSurface.withValues(alpha: 0.5),
             ),
           ),
         ],
@@ -530,7 +530,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.2),
+                color: Colors.black.withValues(alpha: 0.2),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -544,7 +544,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
-                      color: colorScheme.outlineVariant.withOpacity(0.3),
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.3),
                     ),
                   ),
                 ),
@@ -622,7 +622,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(icon, color: color),
@@ -676,7 +676,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.2),
+                color: Colors.black.withValues(alpha: 0.2),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),

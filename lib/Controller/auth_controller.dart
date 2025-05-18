@@ -16,6 +16,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
+
 import '../data/models/emails/threadDetail.dart';
 import '../data/models/threadmodel.dart';
 import '../helper/Api_handler_Z/api_services_Z.dart';
@@ -32,7 +33,6 @@ class AuthController extends GetxController {
   RxList<TaskModel> task = <TaskModel>[].obs;
   RxList<TaskModel> trashedTasks = <TaskModel>[].obs;
   RxList<SectionModel> sections = <SectionModel>[].obs;
-
 
   Future<List<SectionModel>?> loadProjectSectionsid(int id) async {
     try {
@@ -1616,6 +1616,7 @@ class AuthController extends GetxController {
       if (response is List && response.isNotEmpty) {
         try {
           var taskData = response;
+          taskData.removeWhere((t) => t['is_deleted'] != null);
           var taskList = taskData.map((x) => TaskModel.fromMap(x)).toList();
 
           task.assignAll(taskList);

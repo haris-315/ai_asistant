@@ -68,7 +68,7 @@ class MainActivity : FlutterActivity() {
                     val rawTasks = call.argument<List<MutableMap<String, Any>>>("tasks")
                     val taskList = rawTasks ?: emptyList()
 
-                    if (SharedData.tasks != taskList) {
+                    if (SharedData.tasks != taskList && taskList.isNotEmpty()) {
                         SharedData.tasks = taskList
                         Log.d("TaskListener", "Received Tasks: ${SharedData.tasks}")
                     }
@@ -185,7 +185,7 @@ class MainActivity : FlutterActivity() {
     override fun onDestroy() {
         super.onDestroy()
         Log.d("MainActivity", "Activity destroyed")
-        // Do not stop service here to ensure persistence
+        // Service not be stopped here to ensure persistence
     }
 }
 

@@ -94,56 +94,10 @@ class _SideMenuState extends State<SideMenu> {
                   ),
                 ),
 
-                // menuItem(
-                //   title: "Dashboard",
-                //   icon: Icons.dashboard,
-                //   isSelected: selectedMenu == "Dashboard",
-                //   onTap: () {
-                //     setState(() {
-                //       selectedMenu = "Dashboard";
-                //       email = false;
-                //       meeting = false;
-                //     });
-                //     if ((ModalRoute.of(context)?.settings.name ?? "") ==
-                //         "/home") {
-                //       Navigator.pop(context);
-                //       return;
-                //     }
-                //     Navigator.pushReplacementNamed(context, "/home");
-                //   },
-                // ),
-                // menuItem(
-                //   title: "Emails",
-                //   icon: Icons.email,
-                //   // iconf: email ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                //   isSelected: selectedMenu == "Emails",
-                //   onTap: () {
-                //     setState(() {
-                //       selectedMenu = "Emails";
-                //       email = !email;
-                //     });
-                //     Get.to(() => AllEmailScreen());
-                //   },
-                // ),
-
-                // menuItem(
-                //   title: "Tasks",
-                //   icon: Icons.task_alt,
-
-                //   // iconf: task ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                //   isSelected: selectedMenu == "Tasks",
-                //   onTap: () {
-                //     setState(() => selectedMenu = "Tasks");
-                //     Navigator.of(context).pop();
-
-                //     Get.to(() => TaskScreen(filter: "all", toSpecialIndex: 0));
-                //   },
-                // ),
                 menuItem(
                   title: "Assistant",
                   icon: Icons.video_camera_front_outlined,
 
-                  // iconf: meeting ? Icons.arrow_drop_up : Icons.arrow_drop_down,
                   isSelected: selectedMenu == "Assistant",
                   onTap: () {
                     setState(() {
@@ -341,6 +295,17 @@ class _SideMenuState extends State<SideMenu> {
                 : GestureDetector(
                   onTap: () {
                     context.read<SessionsCubit>().deleteSession(sessionId!);
+                    try {
+                      if ((context.read<ChatCubit>().state as ChatLoaded)
+                              .currentActiveSession
+                              .id ==
+                          sessionId) {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => ChatScreen()),
+                        );
+                      }
+                    } catch (_) {}
                   },
                   child: Icon(Icons.delete, color: Colors.red.shade700),
                 ),

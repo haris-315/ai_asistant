@@ -93,6 +93,7 @@ class _HomeContentState extends State<HomeContent> {
               const SizedBox(height: 16),
               Obx(() {
                 final tasks = authController.task;
+                final projects = authController.projects;
                 final todayTasksCount =
                     tasks.where((t) => isToday(t.createdAt)).length;
                 final completedCount =
@@ -115,7 +116,8 @@ class _HomeContentState extends State<HomeContent> {
                   children: [
                     OverviewCard(
                       title: "Emails",
-                      subtitle: "${todayMails.length} Mails Today",
+                      subtitle:
+                          "${todayMails.length} ${todayMails.length == 1 ? "Mail" : "Mails"} Today",
                       icon: Icons.email,
                       onTap:
                           isSomeThingLoading
@@ -126,7 +128,7 @@ class _HomeContentState extends State<HomeContent> {
                     ),
                     OverviewCard(
                       title: "Tasks",
-                      subtitle: "$todayTasksCount Tasks Due Today",
+                      subtitle: "$todayTasksCount Tasks Today",
                       icon: Icons.task,
                       onTap:
                           isSomeThingLoading
@@ -142,6 +144,20 @@ class _HomeContentState extends State<HomeContent> {
                       title: "Progress",
                       subtitle: "$progress% Tasks Completed",
                       icon: Icons.bar_chart,
+                      onTap:
+                          isSomeThingLoading
+                              ? null
+                              : () {
+                                homeController.goToSpecialPage<String>(
+                                  2,
+                                  "completed",
+                                );
+                              },
+                    ),
+                    OverviewCard(
+                      title: "Projects",
+                      subtitle: "${projects.length} Total Projects",
+                      icon: Icons.domain,
                       onTap:
                           isSomeThingLoading
                               ? null

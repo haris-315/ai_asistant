@@ -22,27 +22,49 @@ class TextToSpeechHelper(
     }
 
     private fun initializeTTS() {
-        tts = TextToSpeech(context) { status ->
-            if (status == TextToSpeech.SUCCESS) {
-                tts?.language = Locale.US
-                tts?.voice = getEnglishVoices().firstOrNull { voice -> voice.name == SharedData.currentVoice?.name} ?: getEnglishVoices().first()
+        try {
+            tts = TextToSpeech(context) { status ->
+                if (status == TextToSpeech.SUCCESS) {
+                    isInitialized = true
+                    tts?.language = Locale.US
 
-                isInitialized = true
-                tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                    override fun onStart(utteranceId: String?) {}
-                    override fun onDone(utteranceId: String?) {
-                        Log.d("TTS", "Utterance completed: $utteranceId")
-                        onDone(getEnglishVoices())
+                    try {
+                        val voices = getEnglishVoices()
+                        val preferredVoice = voices.firstOrNull {
+                            it.name == SharedData.currentVoice?.name
+                        }
+                        if (voices.isNotEmpty()) {
+                            tts?.voice = preferredVoice ?: voices.first()
+                        } else {
+                            Log.w("TTS", "No English voices available")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("TTS", "Failed to set voice: ${e.message}")
                     }
-                    override fun onError(utteranceId: String?) {
-                        Log.e("TTS", "Utterance error: $utteranceId")
-                    }
-                })
-                Log.d("TTS", "TTS initialized successfully")
-            } else {
-                Log.e("TTS", "TTS initialization failed: $status")
-                isInitialized = false
+
+                    tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                        override fun onStart(utteranceId: String?) {}
+                        override fun onDone(utteranceId: String?) {
+                            try {
+                                onDone(getEnglishVoices())
+                            } catch (e: Exception) {
+                                Log.e("TTS", "onDone voice retrieval failed: ${e.message}")
+                            }
+                        }
+                        override fun onError(utteranceId: String?) {
+                            Log.e("TTS", "Utterance error: $utteranceId")
+                        }
+                    })
+
+                    Log.d("TTS", "TTS initialized successfully")
+                } else {
+                    Log.e("TTS", "TTS initialization failed: $status")
+                    isInitialized = false
+                }
             }
+        } catch (e: Exception) {
+            Log.e("TTS", "TTS initialization crashed: ${e.message}")
+            isInitialized = false
         }
     }
 
@@ -74,24 +96,43 @@ class TextToSpeechHelper(
             Log.e("TTS", "Empty text provided")
             return
         }
-        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, text.hashCode().toString())
-        Log.d("TTS", "Speaking: $text")
+        try {
+            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, text.hashCode().toString())
+            Log.d("TTS", "Speaking: $text")
+        } catch (e: Exception) {
+            Log.e("TTS", "Speak failed: ${e.message}")
+        }
     }
 
     fun stop() {
-        tts?.stop()
-        Log.d("TTS", "TTS stopped")
+        try {
+            tts?.stop()
+            Log.d("TTS", "TTS stopped")
+        } catch (e: Exception) {
+            Log.e("TTS", "Stop failed: ${e.message}")
+        }
     }
+
     fun getEnglishVoices(): List<Voice> {
-        return tts?.voices
-            ?.filter { it.locale.language == Locale.ENGLISH.language }
-            ?.toList() ?: emptyList()
+        return try {
+            tts?.voices
+                ?.filter { it.locale.language == Locale.ENGLISH.language }
+                ?.toList() ?: emptyList()
+        } catch (e: Exception) {
+            Log.e("TTS", "Error getting voices: ${e.message}")
+            emptyList()
+        }
     }
 
     fun shutdown() {
-        tts?.shutdown()
-        tts = null
-        isInitialized = false
-        Log.d("TTS", "TTS shutdown")
+        try {
+            tts?.shutdown()
+        } catch (e: Exception) {
+            Log.e("TTS", "Shutdown failed: ${e.message}")
+        } finally {
+            tts = null
+            isInitialized = false
+            Log.d("TTS", "TTS shutdown")
+        }
     }
 }
