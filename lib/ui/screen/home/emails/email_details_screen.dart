@@ -1,3 +1,4 @@
+import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/ui/screen/home/emails/newemail_screen.dart';
 import 'package:ai_asistant/ui/screen/home/emails/summarization_screen.dart';
 import 'package:flutter/material.dart';
@@ -9,17 +10,24 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../data/models/emails/thread_detail.dart';
 
-class EmailDetailScreen extends StatelessWidget {
+class EmailDetailScreen extends StatefulWidget {
   final Map<String, dynamic> threadAndData;
 
   const EmailDetailScreen({super.key, required this.threadAndData});
+
+  @override
+  State<EmailDetailScreen> createState() => _EmailDetailScreenState();
+}
+
+class _EmailDetailScreenState extends State<EmailDetailScreen> {
+  bool isLoadingQuickReplies = false;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
     final colorScheme = theme.colorScheme;
-    List<EmailMessage> emails = threadAndData['thread_mails'];
+    List<EmailMessage> emails = widget.threadAndData['thread_mails'];
     return Scaffold(
       backgroundColor: colorScheme.surface,
       appBar: AppBar(
@@ -28,7 +36,7 @@ class EmailDetailScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          threadAndData['thread'].subject ?? "No Subject",
+          widget.threadAndData['thread'].subject ?? "No Subject",
           style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
           overflow: TextOverflow.ellipsis,
         ),
@@ -51,10 +59,41 @@ class EmailDetailScreen extends StatelessWidget {
                 if (emails.isNotEmpty &&
                     emails.last.quick_replies != null &&
                     emails.last.quick_replies!.isNotEmpty)
-                  _buildQuickRepliesSection(
-                    context,
-                    emails.last.quick_replies!,
+                  _buildQuickRepliesSection(context, emails.last.quick_replies!)
+                else if (emails.last.summary == null &&
+                    !isLoadingQuickReplies) ...[
+                  SizedBox(height: 60),
+                  Center(
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        setState(() {
+                          isLoadingQuickReplies = true;
+                        });
+                        var extension = await Get.find<AuthController>()
+                            .emailAiProccess(
+                              emails.last.id,
+                              shouldShowLoader: false,
+                            );
+                        if (extension != null) {
+                          setState(() {
+                            emails[emails.length - 1] = emails.last.copyWith(
+                              summary: extension.summary,
+                              quick_replies: extension.quick_replies,
+                              ai_draft: extension.ai_draft,
+                              topic: extension.topic,
+                            );
+                          });
+                        }
+                        setState(() {
+                          isLoadingQuickReplies = false;
+                        });
+                      },
+                      label: Text("Generate Quick Replies"),
+                      icon: Icon(Icons.auto_awesome),
+                    ),
                   ),
+                ],
+                SizedBox(height: 15),
               ],
             ),
           ),
@@ -71,55 +110,68 @@ class EmailDetailScreen extends StatelessWidget {
             ),
             child: SafeArea(
               top: false,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+              child: Column(
                 children: [
-                  if (emails.length == 1)
-                    _buildActionButton(
-                      context,
-                      icon: Icons.reply,
-                      label: "Reply",
-                      onPressed: () {
-                        Get.to(
-                          () => NewMessageScreen(
-                            isReplying: true,
-                            toEmail: emails.last,
-                            subject: threadAndData['thread'].subject,
-                          ),
-                        );
-                      },
-                    ),
-                  _buildActionButton(
-                    context,
-                    icon: Icons.summarize,
-                    label: "Summarize",
-                    onPressed: () {
-                      Get.to(
-                        () => EmailSummaryScreen(
-                          toSummarize: ThreadSummarizable(
-                            hasSummary: threadAndData['thread'].summary,
-                            conversationId:
-                                threadAndData['thread'].conversationId ?? "",
-                          ),
+                  if (isLoadingQuickReplies) ...[
+                    LinearProgressIndicator(color: Colors.blue),
+                    SizedBox(height: 2),
+                  ],
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      if (emails.length == 1)
+                        _buildActionButton(
+                          context,
+                          icon: Icons.reply,
+                          label: "Reply",
+                          onPressed: () {
+                            Get.to(
+                              () => NewMessageScreen(
+                                isReplying: true,
+                                toEmail: emails.last,
+                                subject: widget.threadAndData['thread'].subject,
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
+                      _buildActionButton(
+                        context,
+                        icon: Icons.summarize,
+                        label: "Summarize",
+                        onPressed: () {
+                          Get.to(
+                            () => EmailSummaryScreen(
+                              toSummarize: ThreadSummarizable(
+                                hasSummary:
+                                    widget.threadAndData['thread'].summary,
+                                conversationId:
+                                    widget
+                                        .threadAndData['thread']
+                                        .conversationId ??
+                                    "",
+                              ),
+                            ),
+                          );
+                        },
+                      ),
 
-                  _buildActionButton(
-                    context,
-                    icon: Icons.forward,
-                    label: "Forward",
-                    onPressed: () {
-                      Get.to(
-                        () => NewMessageScreen(
-                          isForwarding: true,
-                          forwardBody: generateForwardedThread(emails),
-                          subject:
-                              threadAndData['thread'].subject ?? "No Subject",
-                        ),
-                      );
-                    },
+                      _buildActionButton(
+                        context,
+                        icon: Icons.forward,
+                        label: "Forward",
+                        onPressed: () {
+                          Get.to(
+                            () => NewMessageScreen(
+                              isForwarding: true,
+                              forwardBody: generateForwardedThread(emails),
+                              subject:
+                                  widget.threadAndData['thread'].subject ??
+                                  "No Subject",
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -345,7 +397,7 @@ class EmailDetailScreen extends StatelessWidget {
           margin: Margins.only(),
           padding: HtmlPaddings(),
           fontSize: FontSize(14.0),
-          fontWeight: FontWeight.w800,
+          fontWeight: FontWeight.w500,
           lineHeight: LineHeight(1.6),
           color: Colors.black,
         ),
@@ -393,9 +445,9 @@ class EmailDetailScreen extends StatelessWidget {
                       Get.to(
                         () => NewMessageScreen(
                           isReplying: true,
-                          toEmail: threadAndData['thread_mails'].last,
+                          toEmail: widget.threadAndData['thread_mails'].last,
                           body: reply.toString(),
-                          subject: threadAndData['thread'].subject,
+                          subject: widget.threadAndData['thread'].subject,
                         ),
                       );
                     },

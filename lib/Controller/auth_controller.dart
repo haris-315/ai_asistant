@@ -699,13 +699,15 @@ class AuthController extends GetxController {
   }
 
   var emailMessages = <EmailMessage>[].obs;
-  // Future<void> GetThreadbyID(String id) async {
-  Future<Map<String, dynamic>?> GetThreadbyID(
+  Future<Map<String,dynamic>?> GetThreadbyID(
     String emailId,
+    
     EmailThread email,
+    {
+      bool notToShowLoader = false
+    }
   ) async {
     try {
-      // Get auth token
       String? token = await SecureStorage.getToken();
       if (token == null || token.isEmpty) {
         hideLoader();
@@ -717,15 +719,13 @@ class AuthController extends GetxController {
         return null;
       }
 
-      // Fetch thread emails
-      showLoader();
+      if (!notToShowLoader) showLoader();
       var response = await apiService.apiRequest(
         "${AppConstants.baseUrl}email/threads/$emailId",
         "GET",
         token: token,
       );
       hideLoader();
-      // Handle no response case
       if (response == null) {
         showCustomSnackbar(
           title: "Error",
@@ -740,25 +740,7 @@ class AuthController extends GetxController {
           response.map<EmailMessage>((e) => EmailMessage.fromJson(e)).toList();
 
       // Process last email if needed
-      EmailMessage lastEmail = emails.last;
-      bool needsAIProcessing =
-          lastEmail.summary == null || lastEmail.summary!.isEmpty;
-      if (needsAIProcessing) {
-        EmailSummarizationModel? summarized = await emailAiProccess(
-          lastEmail.id,
-        );
-        if (summarized != null) {
-          lastEmail = lastEmail.copyWith(
-            summary: summarized.summary,
-            topic: summarized.topic,
-            quick_replies: summarized.quick_replies,
-            ai_draft: summarized.ai_draft,
-          );
-        }
-      }
-
-      // Replace the last email with processed one
-      emails[emails.length - 1] = lastEmail;
+      
 
       return {"thread": email, "thread_mails": emails};
     } catch (e) {
@@ -771,7 +753,7 @@ class AuthController extends GetxController {
     }
   }
 
-  Future<EmailSummarizationModel?> emailAiProccess(String emailId) async {
+  Future<EmailSummarizationModel?> emailAiProccess(String emailId, {bool shouldShowLoader = true}) async {
     try {
       String? token = await SecureStorage.getToken();
       if (token!.isEmpty) {
@@ -784,7 +766,7 @@ class AuthController extends GetxController {
         return null;
       }
 
-      showLoader(isForEmailSummary: true);
+      if (shouldShowLoader) showLoader(isForEmailSummary: true);
       var response = await apiService.apiRequest(
         "${AppConstants.baseUrl}email/ai-process/$emailId",
         "GET",

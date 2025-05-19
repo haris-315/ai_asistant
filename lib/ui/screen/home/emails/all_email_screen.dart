@@ -32,7 +32,7 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
   Map<String, bool> expandedStates = {};
   Map<String, bool> summaryLoadingStates = {};
   bool _isRefreshing = false;
-
+  bool _loadingDetails = false;
   @override
   void initState() {
     super.initState();
@@ -104,12 +104,14 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
     if (email.summary != null && email.summary!.isNotEmpty) return;
 
     setState(() {
+      _loadingDetails = true;
       summaryLoadingStates[email.conversationId] = true;
     });
 
     final res = await authcontroller.threadAiProccess(email.conversationId);
 
     setState(() {
+      _loadingDetails = false;
       summaryLoadingStates[email.conversationId] = false;
     });
 
@@ -142,18 +144,21 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
       },
       builder: (context, state) {
         return RefreshIndicator(
-          onRefresh: () async {
-            setState(() {
-              _isRefreshing = true;
-            });
-            searchController.clear();
-            await authcontroller.syncMailboxbulk();
-            await context.read<EmailCubit>().getEmails();
+          onRefresh:
+              _loadingDetails
+                  ? () async {}
+                  : () async {
+                    setState(() {
+                      _isRefreshing = true;
+                    });
+                    searchController.clear();
+                    await authcontroller.syncMailboxbulk();
+                    await context.read<EmailCubit>().getEmails();
 
-            setState(() {
-              _isRefreshing = false;
-            });
-          },
+                    setState(() {
+                      _isRefreshing = false;
+                    });
+                  },
           child:
               (state is EmailLoading && emails.isEmpty && !_isRefreshing)
                   ? Center(
@@ -169,6 +174,7 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                         child: Column(
                           children: [
                             TextField(
+                              enabled: !_loadingDetails,
                               controller: searchController,
                               onChanged: (value) {
                                 setState(() {
@@ -220,22 +226,25 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                   ChoiceChip(
                                     label: Text("With Tasks"),
                                     selected: currentFilter == "tasks",
-                                    onSelected: (val) {
-                                      setState(() {
-                                        currentFilter = "tasks";
-                                        emails =
-                                            emailsAll
-                                                .where(
-                                                  (e) =>
-                                                      e.extracted_tasks !=
-                                                          null &&
-                                                      e
-                                                          .extracted_tasks!
-                                                          .isNotEmpty,
-                                                )
-                                                .toList();
-                                      });
-                                    },
+                                    onSelected:
+                                        _loadingDetails
+                                            ? (v) {}
+                                            : (val) {
+                                              setState(() {
+                                                currentFilter = "tasks";
+                                                emails =
+                                                    emailsAll
+                                                        .where(
+                                                          (e) =>
+                                                              e.extracted_tasks !=
+                                                                  null &&
+                                                              e
+                                                                  .extracted_tasks!
+                                                                  .isNotEmpty,
+                                                        )
+                                                        .toList();
+                                              });
+                                            },
                                   ),
                                   SizedBox(width: 8),
                                   ChoiceChip(
@@ -290,6 +299,9 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                 ],
                               ),
                             ),
+                            SizedBox(height: 3),
+                            if (_loadingDetails)
+                              LinearProgressIndicator(color: Colors.blue),
                             SizedBox(height: 12),
 
                             Expanded(
@@ -303,9 +315,7 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                               email.last_sender_name!.isNotEmpty
                                           ? email.last_sender_name
                                           : _getSenderName(email.lastSender);
-                                  // final priorityColor = getPriorityColor(
-                                  //   email.priority_score ?? 10,
-                                  // );
+                    
 
                                   final isExpanded =
                                       expandedStates[email.conversationId] ??
@@ -368,47 +378,65 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                                   horizontal: 16,
                                                   vertical: 12,
                                                 ),
-                                            onTap: () async {
-                                              setState(() {
-                                                int index = emails.indexOf(
-                                                  email,
-                                                );
-                                                if (index != 1) {
-                                                  emails[index] = email
-                                                      .copyWith(is_read: true);
-                                                }
-                                              });
-                                              String? emailId =
-                                                  email.conversationId;
-                                              if (emailId.isEmpty) {
-                                                showCustomSnackbar(
-                                                  title: "Error",
-                                                  message: "Invalid email ID.",
-                                                  backgroundColor: Colors.red,
-                                                );
-                                                return;
-                                              }
-                                              var threadData =
-                                                  await authcontroller.GetThreadbyID(
-                                                    emailId,
-                                                    email,
-                                                  );
-                                              if (threadData != null &&
-                                                  threadData.isNotEmpty) {
-                                                Get.to(
-                                                  () => EmailDetailScreen(
-                                                    threadAndData: threadData,
-                                                  ),
-                                                );
-                                              } else {
-                                                showCustomSnackbar(
-                                                  title: "Error",
-                                                  message:
-                                                      "Failed to load email details.",
-                                                  backgroundColor: Colors.red,
-                                                );
-                                              }
-                                            },
+                                            onTap:
+                                                _loadingDetails
+                                                    ? null
+                                                    : () async {
+                                                      setState(() {
+                                                        int index = emails
+                                                            .indexOf(email);
+                                                        if (index != 1) {
+                                                          emails[index] = email
+                                                              .copyWith(
+                                                                is_read: true,
+                                                              );
+
+                                                          _loadingDetails =
+                                                              true;
+                                                        }
+                                                      });
+                                                      String? emailId =
+                                                          email.conversationId;
+                                                      if (emailId.isEmpty) {
+                                                        showCustomSnackbar(
+                                                          title: "Error",
+                                                          message:
+                                                              "Invalid email ID.",
+                                                          backgroundColor:
+                                                              Colors.red,
+                                                        );
+                                                        return;
+                                                      }
+                                                      var threadData =
+                                                          await authcontroller.GetThreadbyID(
+                                                            emailId,
+                                                            email,
+                                                            notToShowLoader:
+                                                                true,
+                                                          );
+                                                      setState(() {
+                                                        _loadingDetails = false;
+                                                      });
+                                                      if (threadData != null &&
+                                                          threadData
+                                                              .isNotEmpty) {
+                                                        Get.to(
+                                                          () =>
+                                                              EmailDetailScreen(
+                                                                threadAndData:
+                                                                    threadData,
+                                                              ),
+                                                        );
+                                                      } else {
+                                                        showCustomSnackbar(
+                                                          title: "Error",
+                                                          message:
+                                                              "Failed to load email details.",
+                                                          backgroundColor:
+                                                              Colors.red,
+                                                        );
+                                                      }
+                                                    },
                                             leading: CircleAvatar(
                                               backgroundColor: Colors
                                                   .primaries[(email
@@ -508,18 +536,22 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                               ),
                                             ),
                                             trailing: GestureDetector(
-                                              onTap: () {
-                                                _toggleExpandEmail(
-                                                  email.conversationId,
-                                                );
-                                                if (!isExpanded &&
-                                                    (email.summary == null ||
-                                                        email
-                                                            .summary!
-                                                            .isEmpty)) {
-                                                  _loadSummary(email);
-                                                }
-                                              },
+                                              onTap:
+                                                  _loadingDetails
+                                                      ? null
+                                                      : () {
+                                                        _toggleExpandEmail(
+                                                          email.conversationId,
+                                                        );
+                                                        if (!isExpanded &&
+                                                            (email.summary ==
+                                                                    null ||
+                                                                email
+                                                                    .summary!
+                                                                    .isEmpty)) {
+                                                          _loadSummary(email);
+                                                        }
+                                                      },
                                               child: ConstrainedBox(
                                                 constraints: BoxConstraints(
                                                   maxWidth:
