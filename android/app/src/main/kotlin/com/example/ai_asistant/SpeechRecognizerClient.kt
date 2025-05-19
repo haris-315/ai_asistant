@@ -93,6 +93,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
         .build()
 
     fun initialize(onInitialized: (TextToSpeechHelper?) -> Unit) {
+        ServiceManager.initializing = true
         context ?: return
         if (ContextCompat.checkSelfPermission(context!!, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             Log.e("SpeechRecognizerClient", "Microphone permission denied")
@@ -112,6 +113,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
             }
             onInitialized(ttsHelper)
             transitionTo(AssistantState.LISTENING)
+            ServiceManager.initializing = false
         }
     }
 
@@ -208,10 +210,10 @@ class SpeechRecognizerClient private constructor(context: Context) {
         }
 
         if (!hasSpokenConnectMessage) {
-            CoroutineScope(Dispatchers.Main).launch {
+
                 ttsHelper?.speak("Please wait while I connect.")
                 hasSpokenConnectMessage = true
-            }
+
         }
 
         val request = Request.Builder()
@@ -263,7 +265,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
                                     }
                                     commandBuffer.append(" ").append(transcript)
                                     Log.d("SpeechRecognizerClient", "Utterance finalized: ${commandBuffer.toString()}")
-                                    ServiceManager.recognizedText = commandBuffer.toString()
+                                    ServiceManager.recognizedText = transcript
                                     com.example.ai_asistant.SpeechResultListener.sendResult(commandBuffer.toString())
                                     transitionTo(AssistantState.PROCESSING)
                                     processCommand(commandBuffer.toString().trim())

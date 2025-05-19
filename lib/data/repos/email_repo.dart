@@ -26,8 +26,7 @@ class EmailRepo {
         throw response.statusMessage ?? "There was an error fetching emails";
       }
     } catch (e) {
-      print(e);
-      throw e.toString();
+      throw "An error occured please try again.";
     }
   }
 
@@ -54,7 +53,7 @@ class EmailRepo {
             "There was an error while searching for emails";
       }
     } catch (e) {
-      throw e.toString();
+      throw "An error occured please try again.";
     }
   }
 }

@@ -5,7 +5,7 @@ import 'package:ai_asistant/core/shared/functions/show_snackbar.dart';
 import 'package:ai_asistant/data/models/threadmodel.dart';
 import 'package:ai_asistant/state_mgmt/email/cubit/email_cubit.dart';
 import 'package:ai_asistant/ui/screen/home/emails/email_details_screen.dart';
-import 'package:ai_asistant/ui/widget/dateFormat.dart';
+import 'package:ai_asistant/ui/widget/dateformat.dart';
 import 'package:ai_asistant/ui/widget/snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -223,7 +223,6 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                     onSelected: (val) {
                                       setState(() {
                                         currentFilter = "tasks";
-                                        print(emails);
                                         emails =
                                             emailsAll
                                                 .where(
@@ -236,7 +235,6 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                                 )
                                                 .toList();
                                       });
-                                      print(emails);
                                     },
                                   ),
                                   SizedBox(width: 8),

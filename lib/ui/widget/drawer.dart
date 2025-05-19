@@ -1,3 +1,5 @@
+// ignore_for_file: library_private_types_in_public_api
+
 import 'package:ai_asistant/core/shared/functions/show_snackbar.dart';
 import 'package:ai_asistant/state_mgmt/chats/cubit/chat_cubit.dart';
 import 'package:ai_asistant/state_mgmt/sessions/cubit/sessions_cubit.dart';

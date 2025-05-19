@@ -6,7 +6,7 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 
 import '../../../../Controller/auth_controller.dart';
 import '../../../widget/icon_btn_customized.dart';
-import 'edit_LabelSCreen.dart';
+import 'edit_label_screen.dart';
 
 class LabelDetailsscreen extends StatelessWidget {
   final LabelModel label;
@@ -58,7 +58,7 @@ class LabelDetailsscreen extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          shadowColor: color.withOpacity(0.2),
+          shadowColor: color.withValues(alpha: 0.2),
           child: Padding(
             padding: EdgeInsets.all(5.w),
             child: Column(
@@ -68,7 +68,7 @@ class LabelDetailsscreen extends StatelessWidget {
                 Row(
                   children: [
                     CircleAvatar(
-                      backgroundColor: color.withOpacity(0.1),
+                      backgroundColor: color.withValues(alpha: 0.1),
                       radius: 28,
                       child: Icon(Icons.label, color: color, size: 28),
                     ),

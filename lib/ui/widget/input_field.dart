@@ -1,3 +1,5 @@
+// ignore_for_file: library_private_types_in_public_api
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -20,7 +22,8 @@ class CustomFormTextField extends StatefulWidget {
   final bool showPasswordStrength;
   final String? error;
 
-  const CustomFormTextField({super.key, 
+  const CustomFormTextField({
+    super.key,
     required this.label,
     required this.controller,
     this.icon,
@@ -54,9 +57,12 @@ class _CustomFormTextFieldState extends State<CustomFormTextField> {
     final hasUppercase = RegExp(r'[A-Z]').hasMatch(password);
     final hasLowercase = RegExp(r'[a-z]').hasMatch(password);
     final hasDigit = RegExp(r'\d').hasMatch(password);
-    final hasSpecialCharacter = RegExp(r'[!@#\$%^&*(),.?":{}|<>]').hasMatch(password);
+    final hasSpecialCharacter = RegExp(
+      r'[!@#\$%^&*(),.?":{}|<>]',
+    ).hasMatch(password);
 
-    int strengthCount = (hasUppercase ? 1 : 0) +
+    int strengthCount =
+        (hasUppercase ? 1 : 0) +
         (hasLowercase ? 1 : 0) +
         (hasDigit ? 1 : 0) +
         (hasSpecialCharacter ? 1 : 0);
@@ -90,7 +96,9 @@ class _CustomFormTextFieldState extends State<CustomFormTextField> {
   }
 
   void _validateEmail(String email) {
-    final emailPattern = RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
+    final emailPattern = RegExp(
+      r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$",
+    );
 
     setState(() {
       if (email.isEmpty) {
@@ -113,7 +121,7 @@ class _CustomFormTextFieldState extends State<CustomFormTextField> {
     setState(() {
       widget.controller.text = DateFormat('yyyy-MM-dd').format(picked!);
     });
-    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -147,24 +155,33 @@ class _CustomFormTextFieldState extends State<CustomFormTextField> {
               },
               decoration: InputDecoration(
                 labelText: widget.label,
-                prefixIcon: widget.isDateField
-                    ? Icon(Icons.calendar_today)
-                    : (widget.icon != null
-                    ? Icon(widget.icon)
-                    : (widget.imageiconAsset != null
-                    ? Image.asset(
-                  widget.imageiconAsset!,
-                  height: 24,
-                  width: 24,
-                  fit: BoxFit.contain,
-                )
-                    : null)),
-                suffixIcon: widget.isPassword
-                    ? IconButton(
-                  icon: Icon(isObscured ? Icons.visibility : Icons.visibility_off),
-                  onPressed: () => setState(() => isObscured = !isObscured),
-                )
-                    : (widget.suffixIcon != null ? Icon(widget.suffixIcon) : null),
+                prefixIcon:
+                    widget.isDateField
+                        ? Icon(Icons.calendar_today)
+                        : (widget.icon != null
+                            ? Icon(widget.icon)
+                            : (widget.imageiconAsset != null
+                                ? Image.asset(
+                                  widget.imageiconAsset!,
+                                  height: 24,
+                                  width: 24,
+                                  fit: BoxFit.contain,
+                                )
+                                : null)),
+                suffixIcon:
+                    widget.isPassword
+                        ? IconButton(
+                          icon: Icon(
+                            isObscured
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                          onPressed:
+                              () => setState(() => isObscured = !isObscured),
+                        )
+                        : (widget.suffixIcon != null
+                            ? Icon(widget.suffixIcon)
+                            : null),
                 counterText: "",
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(widget.borderRadius),
@@ -175,7 +192,10 @@ class _CustomFormTextFieldState extends State<CustomFormTextField> {
                   borderSide: BorderSide(color: Colors.blue, width: 2),
                 ),
                 errorText: emailError,
-                contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 12),
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: 15,
+                  horizontal: 12,
+                ),
               ),
             ),
           ),
@@ -196,9 +216,18 @@ class _CustomFormTextFieldState extends State<CustomFormTextField> {
                 SizedBox(height: 4),
                 Row(
                   children: [
-                    _buildStrengthIndicator(1, passwordStrength == "Weak" || passwordStrength == "Medium" || passwordStrength == "Strong"),
+                    _buildStrengthIndicator(
+                      1,
+                      passwordStrength == "Weak" ||
+                          passwordStrength == "Medium" ||
+                          passwordStrength == "Strong",
+                    ),
                     SizedBox(width: 4),
-                    _buildStrengthIndicator(2, passwordStrength == "Medium" || passwordStrength == "Strong"),
+                    _buildStrengthIndicator(
+                      2,
+                      passwordStrength == "Medium" ||
+                          passwordStrength == "Strong",
+                    ),
                     SizedBox(width: 4),
                     _buildStrengthIndicator(3, passwordStrength == "Strong"),
                   ],
@@ -215,7 +244,7 @@ class _CustomFormTextFieldState extends State<CustomFormTextField> {
       child: Container(
         height: 4,
         decoration: BoxDecoration(
-          color: isActive ? strengthColor : Colors.black.withOpacity(0.3),
+          color: isActive ? strengthColor : Colors.black.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(5),
         ),
       ),

@@ -25,10 +25,8 @@ class ParticipantsScreen extends StatelessWidget {
       CustomAppBar(
         title: "AI Assistant",
         onNotificationPressed: () {
-          print("Notification Clicked!");
         },
         onProfilePressed: () {
-          print("Profile Clicked!");
         },
       ),
       drawer: SideMenu(),

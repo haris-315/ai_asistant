@@ -1,7 +1,7 @@
 import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/data/models/projects/label_model.dart';
-import 'package:ai_asistant/ui/screen/task/lable/edit_LabelSCreen.dart';
-import 'package:ai_asistant/ui/screen/task/lable/label_DetailsScreen.dart';
+import 'package:ai_asistant/ui/screen/task/lable/edit_label_screen.dart';
+import 'package:ai_asistant/ui/screen/task/lable/label_details_screen.dart';
 import 'package:ai_asistant/ui/widget/appbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';

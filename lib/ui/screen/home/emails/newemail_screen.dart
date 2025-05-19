@@ -5,7 +5,7 @@ import 'dart:typed_data';
 
 import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/data/models/emails/attachment.dart';
-import 'package:ai_asistant/data/models/emails/threadDetail.dart';
+import 'package:ai_asistant/data/models/emails/thread_detail.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';

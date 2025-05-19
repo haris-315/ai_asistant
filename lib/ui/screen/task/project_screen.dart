@@ -7,8 +7,8 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 
 import '../../../Controller/auth_controller.dart';
 import 'lable_screen.dart';
-import 'project/create_edit_ProjectScreen.dart';
-import 'project/projectDetail_Screen.dart';
+import 'project/create_edit_project_screen.dart';
+import 'project/project_detail_screen.dart';
 
 class ProjectScreen extends StatefulWidget {
   const ProjectScreen({super.key});

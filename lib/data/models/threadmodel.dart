@@ -42,7 +42,6 @@ class EmailThread {
   });
 
   factory EmailThread.fromJson(Map<String, dynamic> json) {
-    print(json['extracted_tasks']);
     return EmailThread(
       conversationId: json['conversation_id'],
       subject: json['subject'],

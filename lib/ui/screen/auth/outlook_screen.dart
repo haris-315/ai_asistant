@@ -70,6 +70,7 @@
 //   }
 // }
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:get/get.dart';
@@ -122,16 +123,13 @@ class _OutlookScreenState extends State<OutlookScreen> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (url) {
-            print("Page Started: $url");
             setState(() => isLoading = true);
           },
           onPageFinished: (url) {
-            print("Page Loaded: $url");
             setState(() => isLoading = false);
             checkForToken(url);
           },
           onNavigationRequest: (request) {
-            print("🔹 Navigation Request: ${request.url}");
             return NavigationDecision.navigate;
           },
         ),
@@ -146,26 +144,38 @@ class _OutlookScreenState extends State<OutlookScreen> {
         String? code = uri.queryParameters["code"];
 
         if (code != null) {
-          print("Code Found: $code");
+          if (kDebugMode) {
+            print("Code Found: $code");
+          }
         }
 
         String rawResponse = await _controller.runJavaScriptReturningResult("document.body.innerText") as String;
 
-        print("Raw Response: $rawResponse");
+        if (kDebugMode) {
+          print("Raw Response: $rawResponse");
+        }
 
         String extractedToken = extractToken(rawResponse);
 
         if (extractedToken.isNotEmpty) {
           await _secureStorage.write(key: "access_token", value: extractedToken);
-          print("Stored Token: $extractedToken");
+          if (kDebugMode) {
+            print("Stored Token: $extractedToken");
+          }
           Get.offAll(() => HomeScreen());
-          print("➡ Redirecting to HomeScreen...");
+          if (kDebugMode) {
+            print("➡ Redirecting to HomeScreen...");
+          }
         } else {
-          print("Error: Token extraction failed");
+          if (kDebugMode) {
+            print("Error: Token extraction failed");
+          }
         }
 
       } catch (e) {
-        print("Error extracting token: $e");
+        if (kDebugMode) {
+          print("Error extracting token: $e");
+        }
       }
     }
   }
@@ -178,7 +188,9 @@ class _OutlookScreenState extends State<OutlookScreen> {
 
       return jsonMap["access_token"] ?? "";
     } catch (e) {
-      print("JSON Parsing Error: $e");
+      if (kDebugMode) {
+        print("JSON Parsing Error: $e");
+      }
       return "";
     }
   }

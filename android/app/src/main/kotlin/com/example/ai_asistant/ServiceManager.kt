@@ -9,7 +9,7 @@ object ServiceManager {
     var serviceChannelName : String = "com.example.ai_assistant/stt"
     var resultEventChannel : String = "com.example.ai_assistant/stt_results"
     var recognizedText : String? = ""
-    var initializing : Boolean = true
+    var initializing : Boolean = false
     var ttsVoices: List<Voice> = mutableListOf<Voice>()
 
 }

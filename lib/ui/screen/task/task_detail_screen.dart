@@ -379,7 +379,6 @@ String getProjectName(AuthController authController, TaskModel task) {
     );
     return project.name;
   } catch (e) {
-    print(e);
     return 'Not loaded...';
   }
 }

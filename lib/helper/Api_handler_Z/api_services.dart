@@ -106,13 +106,10 @@ class ApiService {
       if (de.type == DioExceptionType.connectionError) {
         throw "We are facing network issue. Please check you internet connection.";
       } else {
-        print(
-          "DioException Response: {${de.response!.statusCode}} ${de.response!.statusMessage}",
-        );
+        
         return de.response!.data;
       }
     } catch (e) {
-      print(e);
       return {"message": "Request failed", "error": e.toString()};
     }
   }
@@ -128,7 +125,7 @@ class ApiService {
           ),
           child: Padding(
             padding: const EdgeInsets.all(20),
-            child: Container(
+            child: SizedBox(
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

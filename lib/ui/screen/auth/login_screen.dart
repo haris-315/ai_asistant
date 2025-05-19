@@ -15,6 +15,7 @@ class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _LoginScreenState createState() => _LoginScreenState();
 }
 
@@ -42,7 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 width: 80.w,
                 height: 24.h,
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Image.asset('assets/loginimage.png'),

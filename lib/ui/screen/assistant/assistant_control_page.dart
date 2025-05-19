@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:async';
 
 import 'package:ai_asistant/core/services/native_bridge.dart';
@@ -49,7 +51,6 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
       });
     } catch (e) {
       if (!_mounted) return;
-      print(e);
       setState(() => _loadingVoices = false);
     }
   }
@@ -123,46 +124,323 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
     if (voices.isEmpty) {
       await _loadVoices();
     }
-    print(voices);
 
     if (!_mounted) return;
 
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Select Voice'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child:
-                _loadingVoices
-                    ? const Center(child: CircularProgressIndicator())
-                    : ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: voices.length,
-                      itemBuilder: (context, index) {
-                        final voice = voices[index];
-                        return RadioListTile<String>(
-                          title: Text(voice.name ?? ""),
-                          value: voice.name ?? "",
-                          groupValue: selectedVoice,
-                          onChanged: (value) async {
-                            await _setVoice(value);
-                            if (!_mounted) return;
-                            Navigator.pop(context);
-                          },
-                        );
-                      },
-                    ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+      builder:
+          (context) => Dialog(
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 24,
             ),
-          ],
-        );
-      },
+            backgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 32,
+                    spreadRadius: -12,
+                  ),
+                ],
+              ),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.7,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header with dynamic accent
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(24),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.record_voice_over_rounded,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 28,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'VOICE SELECTOR',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                            color:
+                                Theme.of(
+                                  context,
+                                ).colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Content area with scroll physics
+                  Flexible(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child:
+                          _loadingVoices
+                              ? const Center(
+                                child: SizedBox(
+                                  width: 48,
+                                  height: 48,
+                                  child: CircularProgressIndicator.adaptive(
+                                    strokeWidth: 3,
+                                  ),
+                                ),
+                              )
+                              : voices.isEmpty
+                              ? _buildEmptyState(context)
+                              : CustomScrollView(
+                                slivers: [
+                                  SliverList(
+                                    delegate: SliverChildBuilderDelegate(
+                                      (context, index) => _buildVoiceItem(
+                                        context,
+                                        voices[index],
+                                      ),
+                                      childCount: voices.length,
+                                    ),
+                                  ),
+                                  const SliverPadding(
+                                    padding: EdgeInsets.only(bottom: 12),
+                                  ),
+                                ],
+                              ),
+                    ),
+                  ),
+
+                  // Bottom action bar
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                      borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(24),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        FilledButton.tonal(
+                          onPressed: () => Navigator.pop(context),
+                          style: FilledButton.styleFrom(
+                            backgroundColor:
+                                Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerHighest,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                          ),
+                          child: Text(
+                            'DONE',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.voice_chat_rounded,
+            size: 48,
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            "No voices available",
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: Theme.of(context).colorScheme.outline,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Check your connection",
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.7),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVoiceItem(BuildContext context, Voice voice) {
+    final isSelected = selectedVoice == voice.name;
+    final isOnline = voice.isOnline ?? false;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      child: Material(
+        color:
+            isSelected
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+                : Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () async {
+            await _setVoice(voice.name);
+            if (!_mounted) return;
+            Navigator.pop(context);
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                // Selection indicator
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color:
+                          isSelected
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(
+                                context,
+                              ).colorScheme.outline.withValues(alpha: 0.3),
+                      width: 2,
+                    ),
+                  ),
+                  child:
+                      isSelected
+                          ? Center(
+                            child: Container(
+                              width: 14,
+                              height: 14,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          )
+                          : null,
+                ),
+
+                const SizedBox(width: 16),
+
+                // Voice details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        voice.locale ?? "Voice",
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        voice.name ?? "",
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Status indicators
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            isOnline
+                                ? Colors.green.withValues(alpha: 0.1)
+                                : Colors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isOnline ? Icons.circle : Icons.circle_outlined,
+                            size: 8,
+                            color: isOnline ? Colors.green : Colors.red,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            isOnline ? "LIVE" : "OFFLINE",
+                            style: Theme.of(
+                              context,
+                            ).textTheme.labelSmall?.copyWith(
+                              color: isOnline ? Colors.green : Colors.red,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "${voice.latency.toString()}ms",
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -407,70 +685,85 @@ class _StatusIndicator extends StatelessWidget {
 
 class _SpeechInputCard extends StatelessWidget {
   final String text;
+  final ScrollController controller = ScrollController();
   final bool isActive;
 
-  const _SpeechInputCard({required this.text, required this.isActive});
+  _SpeechInputCard({required this.text, required this.isActive});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return Scrollbar(
+      scrollbarOrientation: ScrollbarOrientation.right,
+      radius: Radius.circular(8),
+      interactive: true,
+      controller: controller,
+      child: SingleChildScrollView(
+        controller: controller,
+        child: Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.keyboard_voice,
-                  color:
-                      isActive
-                          ? colors.primary
-                          : colors.onSurface.withValues(alpha: 0.6),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.keyboard_voice,
+                      color:
+                          isActive
+                              ? colors.primary
+                              : colors.onSurface.withValues(alpha: 0.6),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Speech Recognition',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'Speech Recognition',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colors.surfaceContainerHighest.withValues(
+                      alpha: 0.3,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    text.isEmpty ? 'Waiting for voice input...' : text,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontStyle:
+                          text.isEmpty ? FontStyle.italic : FontStyle.normal,
+                      color:
+                          text.isEmpty
+                              ? colors.onSurface.withValues(alpha: 0.6)
+                              : colors.onSurface,
+                    ),
                   ),
                 ),
+                if (text.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Last updated: ${DateTime.now().toString().substring(11, 19)}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
               ],
             ),
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: colors.surfaceContainerHighest.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                text.isEmpty ? 'Waiting for voice input...' : text,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  fontStyle: text.isEmpty ? FontStyle.italic : FontStyle.normal,
-                  color:
-                      text.isEmpty
-                          ? colors.onSurface.withValues(alpha: 0.6)
-                          : colors.onSurface,
-                ),
-              ),
-            ),
-            if (text.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                'Last updated: ${DateTime.now().toString().substring(11, 19)}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colors.onSurface.withValues(alpha: 0.6),
-                ),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );

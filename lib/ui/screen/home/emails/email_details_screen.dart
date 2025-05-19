@@ -7,7 +7,7 @@ import 'package:html/parser.dart' show parse;
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../../data/models/emails/threadDetail.dart';
+import '../../../../data/models/emails/thread_detail.dart';
 
 class EmailDetailScreen extends StatelessWidget {
   final Map<String, dynamic> threadAndData;
@@ -237,7 +237,6 @@ class EmailDetailScreen extends StatelessWidget {
                                     ),
                                   );
                                 } else if (value == 'summarize') {
-                                  print(email.summary);
                                   Get.to(
                                     () => EmailSummaryScreen(
                                       toSummarize: EmailSummarizable(

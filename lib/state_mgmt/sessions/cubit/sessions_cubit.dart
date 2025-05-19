@@ -22,7 +22,6 @@ class SessionsCubit extends Cubit<SessionsState> {
           sessions.map((x) => SessionModelHolder.fromMap(x)).toList();
       return emit(SessionsLoaded(sessions: currentSessions));
     } catch (e) {
-      print(e);
       return emit(SessionsError(message: e.toString()));
     }
   }
@@ -46,7 +45,6 @@ class SessionsCubit extends Cubit<SessionsState> {
         ),
       );
     } catch (e) {
-      print(e);
       return emit(SessionsError(message: e.toString()));
     }
   }

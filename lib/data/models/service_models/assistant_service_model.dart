@@ -52,7 +52,7 @@ class AssistantServiceModel {
     channel: "empty",
     resultChannel: "empty",
     recognizedText: '',
-    initializing: true
+    initializing: false
   );
 
   String toJson() => json.encode(toMap());

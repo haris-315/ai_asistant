@@ -1,33 +1,30 @@
-import 'package:ai_asistant/data/models/projects/project_model.dart';
+import 'package:ai_asistant/data/models/projects/label_model.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../Controller/auth_controller.dart';
 import '../../../widget/input_field.dart';
 
-class EditProjectScreen extends StatefulWidget {
-  final Project? project;
+class EditLabelscreen extends StatefulWidget {
+  final LabelModel? label;
   final String? title;
 
-  const EditProjectScreen({super.key, this.project, this.title});
+  const EditLabelscreen({super.key, this.label, this.title});
 
   @override
-  State<EditProjectScreen> createState() => _EditProjectScreenState();
+  State<EditLabelscreen> createState() => _EditLabelscreenState();
 }
 
-class _EditProjectScreenState extends State<EditProjectScreen> {
+class _EditLabelscreenState extends State<EditLabelscreen> {
   final _formKey = GlobalKey<FormState>();
   final AuthController controller = Get.find<AuthController>();
 
   late TextEditingController nameController;
-  late TextEditingController orderController;
 
   late String selectedViewStyle;
   late String selectedColor;
-  late bool isShared;
   late bool isFavorite;
-  late bool isInboxProject;
-  late bool isTeamInbox;
   int? id;
 
   final List<String> viewStyleOptions = ['List', 'Board', 'Calendar'];
@@ -48,76 +45,55 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
   @override
   void initState() {
     super.initState();
-    final project = widget.project;
+    final label = widget.label;
 
-    nameController = TextEditingController(text: project?.name ?? '');
-    orderController = TextEditingController(
-      text: project?.order.toString() ?? '1',
-    );
-    id = project?.id;
-    selectedViewStyle = project?.viewStyle ?? 'list';
-    selectedColor = project?.color ?? 'charcoal';
-    isShared = project?.isShared ?? false;
-    isFavorite = project?.isFavorite ?? false;
-    isInboxProject = project?.isInboxProject ?? false;
-    isTeamInbox = project?.isTeamInbox ?? false;
+    nameController = TextEditingController(text: label?.name ?? '');
+
+    id = label?.id;
+    selectedColor = label?.color ?? 'charcoal';
+    isFavorite = label?.is_favorite ?? false;
   }
 
   @override
   void dispose() {
     nameController.dispose();
-    orderController.dispose();
     super.dispose();
   }
 
-  void saveProject() async {
+  void saveLabel() async {
     if (_formKey.currentState?.validate() ?? false) {
-      final order = int.tryParse(orderController.text.trim()) ?? 1;
-
-      final updatedProject = Project(
+      final updatedLabel = LabelModel(
         name: nameController.text.trim(),
         color: selectedColor,
-        order: order,
-        isShared: isShared,
-        isFavorite: isFavorite,
-        isInboxProject: isInboxProject,
-        isTeamInbox: isTeamInbox,
-        viewStyle: selectedViewStyle.toLowerCase(),
         id: id ?? 0,
-        url: null,
+        is_favorite: isFavorite,
       );
 
-      try {
-        if (widget.title == null) {
-          if (id != null) {
-            final isSuccess = await controller.editProject(updatedProject);
-            if (isSuccess == true) {
-              final res = await controller.fetchProject(isInitialFetch: true);
-              if (res == true) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  Navigator.pop(context);
-                });
-              }
-            }
-          } else {
-            print('Project ID is invalid or not provided');
-          }
-        } else {
-          final isSuccess = await controller.addNewProject(updatedProject);
-          if (isSuccess == true) {
-            final res = await controller.fetchProject(isInitialFetch: true);
-            if (res == true) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                Navigator.pop(context);
-              });
-            }
+      if (id != null) {
+        final isSuccess = await controller.editlabel(updatedLabel);
+        if (isSuccess == true) {
+          final res = await controller.fetchProject(isInitialFetch: true);
+          if (res == true) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.pop(context);
+            });
           }
         }
-      } catch (e) {
-        print('Error updating project: $e');
+      } else {
+        final isSuccess = await controller.addNewLabel(updatedLabel);
+        if (isSuccess == true) {
+          final res = await controller.fetchProject(isInitialFetch: true);
+          if (res == true) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.pop(context);
+            });
+          }
+        }
       }
     } else {
-      print('Form validation failed');
+      if (kDebugMode) {
+        print('Form validation failed');
+      }
     }
   }
 
@@ -130,7 +106,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       appBar: AppBar(
         centerTitle: true,
         title: Text(
-          widget.title ?? 'Edit Project',
+          widget.title ?? 'Edit Label',
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
         ),
         backgroundColor: isDark ? Colors.grey.shade900 : Colors.white,
@@ -143,7 +119,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.save_rounded),
-            onPressed: saveProject,
+            onPressed: saveLabel,
           ),
         ],
       ),
@@ -154,21 +130,19 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Project Name
               Text(
-                'Project Details',
+                'Label Details',
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 16),
               CustomFormTextField(
-                label: 'Project Name',
+                label: 'Label Name',
                 controller: nameController,
               ),
               const SizedBox(height: 24),
 
-              // View Style & Color
               Row(
                 children: [
                   Expanded(
@@ -239,21 +213,14 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Settings Section
               Text(
-                'Project Settings',
+                'Label Settings',
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 16),
-              // _buildSettingSwitch(
-              //   context,
-              //   icon: MdiIcons.shareVariant,
-              //   title: 'Shared Project',
-              //   value: isShared,
-              //   onChanged: (val) => setState(() => isShared = val),
-              // ),
+
               _buildSettingSwitch(
                 context,
                 icon: Icons.star_border_rounded,
@@ -261,33 +228,19 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                 value: isFavorite,
                 onChanged: (val) => setState(() => isFavorite = val),
               ),
-              // _buildSettingSwitch(
-              //   context,
-              //   icon: Icons.inbox_rounded,
-              //   title: 'Inbox Project',
-              //   value: isInboxProject,
-              //   onChanged: (val) => setState(() => isInboxProject = val),
-              // ),
-              // _buildSettingSwitch(
-              //   context,
-              //   icon: MdiIcons.accountGroup,
-              //   title: 'Team Inbox',
-              //   value: isTeamInbox,
-              //   onChanged: (val) => setState(() => isTeamInbox = val),
-              // ),
+
               const SizedBox(height: 32),
 
-              // Save Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: saveProject,
+                  onPressed: saveLabel,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    backgroundColor: colorOptions[selectedColor] ?? Colors.blue,
+                    backgroundColor: theme.primaryColor,
                     foregroundColor: Colors.white,
                   ),
                   child: Text(

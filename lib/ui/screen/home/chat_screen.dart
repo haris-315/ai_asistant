@@ -231,7 +231,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                 child: Padding(
                                   padding:
                                       isAI
-                                          ? const EdgeInsets.only(right: 40.0)
+                                          ? const EdgeInsets.all(8.0)
                                           : const EdgeInsets.only(left: 40.0),
                                   child: AnimatedContainer(
                                     duration: const Duration(milliseconds: 300),
@@ -277,60 +277,253 @@ class _ChatScreenState extends State<ChatScreen> {
                                               data: message.content,
                                               selectable: true,
                                               styleSheet: MarkdownStyleSheet(
-                                                p: textTheme.bodyMedium
+                                                p: Theme.of(
+                                                  context,
+                                                ).textTheme.bodyLarge?.copyWith(
+                                                  color:
+                                                      Theme.of(
+                                                                context,
+                                                              ).brightness ==
+                                                              Brightness.dark
+                                                          ? Colors.white
+                                                              .withValues(
+                                                                alpha: 0.9,
+                                                              )
+                                                          : Colors.grey[850],
+                                                  fontSize: 15.5,
+                                                  height: 1.5,
+                                                  fontWeight: FontWeight.w400,
+                                                ),
+
+                                                h1: Theme.of(context)
+                                                    .textTheme
+                                                    .headlineSmall
                                                     ?.copyWith(
-                                                      color: Colors.black,
                                                       fontWeight:
                                                           FontWeight.w700,
-                                                      fontSize: 16,
+                                                      color:
+                                                          Theme.of(
+                                                            context,
+                                                          ).colorScheme.primary,
+                                                      fontSize: 22,
                                                     ),
-                                                code: textTheme.bodyMedium
+                                                h2: Theme.of(
+                                                  context,
+                                                ).textTheme.titleLarge?.copyWith(
+                                                  fontWeight: FontWeight.w600,
+                                                  color:
+                                                      Theme.of(
+                                                                context,
+                                                              ).brightness ==
+                                                              Brightness.dark
+                                                          ? Colors.white
+                                                              .withValues(
+                                                                alpha: 0.85,
+                                                              )
+                                                          : Colors.grey[800],
+                                                  fontSize: 20,
+                                                ),
+                                                h3: Theme.of(context)
+                                                    .textTheme
+                                                    .titleMedium
                                                     ?.copyWith(
-                                                      backgroundColor:
-                                                          Colors.grey[200],
-                                                      fontFamily: 'monospace',
-                                                      fontSize: 14,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color:
+                                                          Theme.of(
+                                                                    context,
+                                                                  ).brightness ==
+                                                                  Brightness
+                                                                      .dark
+                                                              ? Colors.white
+                                                                  .withValues(
+                                                                    alpha: 0.8,
+                                                                  )
+                                                              : Colors
+                                                                  .grey[700],
+                                                      fontSize: 18,
                                                     ),
 
-                                                h1: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 18,
+                                                code: TextStyle(
+                                                  fontFamily: 'RobotoMono',
+                                                  fontSize: 14,
+                                                  backgroundColor:
+                                                      Theme.of(
+                                                                context,
+                                                              ).brightness ==
+                                                              Brightness.dark
+                                                          ? Colors.grey[900]!
+                                                              .withValues(
+                                                                alpha: 0.5,
+                                                              )
+                                                          : Colors.grey[100],
+                                                  color:
+                                                      Theme.of(
+                                                                context,
+                                                              ).brightness ==
+                                                              Brightness.dark
+                                                          ? const Color(
+                                                            0xFF89DDFF,
+                                                          )
+                                                          : Colors.blue[800],
                                                 ),
-                                                h2: TextStyle(
-                                                  fontWeight: FontWeight.w800,
-                                                ),
-                                                h3: TextStyle(
-                                                  fontWeight: FontWeight.w800,
-                                                ),
-                                                h4: TextStyle(
-                                                  fontWeight: FontWeight.w800,
-                                                ),
-                                                h5: TextStyle(
-                                                  fontWeight: FontWeight.w800,
-                                                ),
-                                                listBullet: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 16,
+
+                                                codeblockDecoration: BoxDecoration(
+                                                  color:
+                                                      Theme.of(
+                                                                context,
+                                                              ).brightness ==
+                                                              Brightness.dark
+                                                          ? Colors.grey[900]!
+                                                              .withValues(
+                                                                alpha: 0.7,
+                                                              )
+                                                          : Colors.grey[100],
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                  border: Border.all(
+                                                    color:
+                                                        Theme.of(
+                                                                  context,
+                                                                ).brightness ==
+                                                                Brightness.dark
+                                                            ? Colors.grey[700]!
+                                                            : Colors.grey[300]!,
+                                                    width: 0.5,
+                                                  ),
                                                 ),
                                                 codeblockPadding:
-                                                    const EdgeInsets.all(8),
-                                                codeblockDecoration:
+                                                    const EdgeInsets.all(12),
+
+                                                listBullet: Theme.of(
+                                                  context,
+                                                ).textTheme.bodyLarge?.copyWith(
+                                                  color:
+                                                      Theme.of(
+                                                        context,
+                                                      ).colorScheme.primary,
+                                                  fontSize: 16,
+                                                ),
+
+                                                blockquote: Theme.of(
+                                                  context,
+                                                ).textTheme.bodyLarge?.copyWith(
+                                                  color:
+                                                      Theme.of(
+                                                                context,
+                                                              ).brightness ==
+                                                              Brightness.dark
+                                                          ? Colors.white
+                                                              .withValues(
+                                                                alpha: 0.7,
+                                                              )
+                                                          : Colors.grey[600],
+                                                  fontStyle: FontStyle.italic,
+                                                ),
+                                                blockquoteDecoration:
                                                     BoxDecoration(
-                                                      color: Colors.grey[200],
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            4,
-                                                          ),
+                                                      border: Border(
+                                                        left: BorderSide(
+                                                          color: Theme.of(
+                                                                context,
+                                                              )
+                                                              .colorScheme
+                                                              .primary
+                                                              .withValues(
+                                                                alpha: 0.4,
+                                                              ),
+                                                          width: 4,
+                                                        ),
+                                                      ),
+                                                      color:
+                                                          Theme.of(
+                                                                    context,
+                                                                  ).brightness ==
+                                                                  Brightness
+                                                                      .dark
+                                                              ? Colors
+                                                                  .grey[900]!
+                                                                  .withValues(
+                                                                    alpha: 0.2,
+                                                                  )
+                                                              : Colors.grey[50],
                                                     ),
+                                                blockquotePadding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 8,
+                                                    ),
+
+                                                tableHead: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color:
+                                                      Theme.of(
+                                                        context,
+                                                      ).colorScheme.onSurface,
+                                                ),
+                                                tableBody: TextStyle(
+                                                  color:
+                                                      Theme.of(
+                                                                context,
+                                                              ).brightness ==
+                                                              Brightness.dark
+                                                          ? Colors.white
+                                                              .withValues(
+                                                                alpha: 0.8,
+                                                              )
+                                                          : Colors.grey[800],
+                                                ),
+                                                tableBorder: TableBorder.all(
+                                                  color:
+                                                      Theme.of(
+                                                                context,
+                                                              ).brightness ==
+                                                              Brightness.dark
+                                                          ? Colors.grey[700]!
+                                                          : Colors.grey[300]!,
+                                                  width: 0.5,
+                                                ),
+
+                                                horizontalRuleDecoration:
+                                                    BoxDecoration(
+                                                      border: Border(
+                                                        bottom: BorderSide(
+                                                          color:
+                                                              Theme.of(
+                                                                        context,
+                                                                      ).brightness ==
+                                                                      Brightness
+                                                                          .dark
+                                                                  ? Colors
+                                                                      .grey[700]!
+                                                                  : Colors
+                                                                      .grey[300]!,
+                                                          width: 1,
+                                                        ),
+                                                      ),
+                                                    ),
+
+                                                a: TextStyle(
+                                                  color:
+                                                      Theme.of(
+                                                        context,
+                                                      ).colorScheme.primary,
+                                                  decoration:
+                                                      TextDecoration.underline,
+                                                  decorationColor: Theme.of(
+                                                        context,
+                                                      ).colorScheme.primary
+                                                      .withValues(alpha: 0.4),
+                                                ),
                                               ),
                                             )
                                             : Text(
                                               message.content,
                                               style: textTheme.bodyMedium
                                                   ?.copyWith(
-                                                    color: Colors.black,
-                                                    fontWeight: FontWeight.w700,
-                                                    fontSize: 16,
+                                                    color: Colors.grey[900],
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize: 14,
                                                   ),
                                             ),
                                       ],

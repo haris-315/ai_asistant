@@ -79,7 +79,8 @@ class MainActivity : FlutterActivity() {
                             "isStandBy" to ServiceManager.isStandBy,
                             "recognizedText" to ServiceManager.recognizedText,
                             "channel" to ServiceManager.serviceChannelName,
-                            "result_channel" to ServiceManager.resultEventChannel
+                            "result_channel" to ServiceManager.resultEventChannel,
+                            "initializing" to ServiceManager.initializing
                         )
                     )
                 }

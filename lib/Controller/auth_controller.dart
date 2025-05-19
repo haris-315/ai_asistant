@@ -12,14 +12,14 @@ import 'package:ai_asistant/data/models/projects/label_model.dart';
 import 'package:ai_asistant/data/models/projects/project_model.dart';
 import 'package:ai_asistant/data/models/projects/section_model.dart';
 import 'package:ai_asistant/data/models/projects/task_model.dart';
+import 'package:ai_asistant/helper/Api_handler_Z/api_services.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 
-import '../data/models/emails/threadDetail.dart';
+import '../data/models/emails/thread_detail.dart';
 import '../data/models/threadmodel.dart';
-import '../helper/Api_handler_Z/api_services_Z.dart';
 import '../ui/widget/snackbar.dart';
 
 class AuthController extends GetxController {
@@ -78,7 +78,7 @@ class AuthController extends GetxController {
     } catch (e) {
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
       return null;
@@ -127,7 +127,7 @@ class AuthController extends GetxController {
     } catch (e) {
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
       return null;
@@ -180,7 +180,7 @@ class AuthController extends GetxController {
     } catch (e) {
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
       return null;
@@ -230,7 +230,7 @@ class AuthController extends GetxController {
     } catch (e) {
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
       return null;
@@ -484,7 +484,7 @@ class AuthController extends GetxController {
       hideLoader();
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
     }
@@ -568,7 +568,7 @@ class AuthController extends GetxController {
     } catch (e) {
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
     }
@@ -606,7 +606,7 @@ class AuthController extends GetxController {
     } catch (e) {
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
     }
@@ -645,7 +645,7 @@ class AuthController extends GetxController {
     } catch (e) {
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
     }
@@ -692,7 +692,7 @@ class AuthController extends GetxController {
     } catch (e) {
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
     }
@@ -764,7 +764,7 @@ class AuthController extends GetxController {
     } catch (e) {
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
       return null;
@@ -810,7 +810,7 @@ class AuthController extends GetxController {
     } catch (e) {
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
     }
@@ -851,7 +851,7 @@ class AuthController extends GetxController {
     } catch (e) {
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
     }
@@ -1030,7 +1030,7 @@ class AuthController extends GetxController {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showCustomSnackbar(
           title: "Error",
-          message: "An error occurred: ${e.toString()}",
+          message: "An error occured please try again.",
           backgroundColor: Colors.red,
         );
       });
@@ -1095,7 +1095,7 @@ class AuthController extends GetxController {
     } catch (e) {
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
       return false;
@@ -1160,7 +1160,7 @@ class AuthController extends GetxController {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showCustomSnackbar(
           title: "Error",
-          message: "An error occurred: ${e.toString()}",
+          message: "An error occured please try again.",
           backgroundColor: Colors.red,
         );
       });
@@ -1215,7 +1215,7 @@ class AuthController extends GetxController {
       hideLoader();
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
       return false;
@@ -1269,7 +1269,7 @@ class AuthController extends GetxController {
 
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
       return false;
@@ -1329,7 +1329,7 @@ class AuthController extends GetxController {
     } catch (e) {
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
     }
@@ -1392,7 +1392,7 @@ class AuthController extends GetxController {
     } catch (e) {
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
     }
@@ -1462,7 +1462,7 @@ class AuthController extends GetxController {
     } catch (e) {
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
     }
@@ -1524,7 +1524,7 @@ class AuthController extends GetxController {
 
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
     }
@@ -1575,7 +1575,7 @@ class AuthController extends GetxController {
 
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
     }
@@ -1631,7 +1631,7 @@ class AuthController extends GetxController {
     } catch (e) {
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
     }
@@ -1680,7 +1680,7 @@ class AuthController extends GetxController {
     } catch (e) {
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
     }
@@ -1728,7 +1728,7 @@ class AuthController extends GetxController {
     } catch (e) {
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
       return false;
@@ -1823,7 +1823,7 @@ class AuthController extends GetxController {
     } catch (e) {
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
       return false;
@@ -1869,7 +1869,7 @@ class AuthController extends GetxController {
     } catch (e) {
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
       return false;
@@ -1914,7 +1914,7 @@ class AuthController extends GetxController {
     } catch (e) {
       showCustomSnackbar(
         title: "Error",
-        message: "An error occurred: ${e.toString()}",
+        message: "An error occured please try again.",
         backgroundColor: Colors.red,
       );
       return false;
