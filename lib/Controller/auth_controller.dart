@@ -237,7 +237,11 @@ class AuthController extends GetxController {
     }
   }
 
-  void showLoader({bool isForEmailSummary = false, bool toShow = true}) {
+  void showLoader({
+    bool isForEmailSummary = false,
+    bool toShow = true,
+    bool isForInbox = false,
+  }) {
     if (!(Get.isDialogOpen ?? false) && toShow) {
       Get.dialog(
         Dialog(
@@ -281,6 +285,8 @@ class AuthController extends GetxController {
                 Text(
                   isForEmailSummary
                       ? "AI is crafting the perfect message..."
+                      : isForInbox
+                      ? "Please wait while your inbox is getting ready."
                       : "Please wait while your request is being processed",
                   textAlign: TextAlign.center,
                   style: Theme.of(Get.context!).textTheme.bodyMedium?.copyWith(
@@ -587,7 +593,6 @@ class AuthController extends GetxController {
         return;
       }
 
-      showLoader();
       var response = await apiService.apiRequest(
         "${AppConstants.baseUrl}email/sync-mailbox-bulk",
         "GET",
@@ -699,14 +704,12 @@ class AuthController extends GetxController {
   }
 
   var emailMessages = <EmailMessage>[].obs;
-  Future<Map<String,dynamic>?> GetThreadbyID(
+  Future<Map<String, dynamic>?> GetThreadbyID(
     String emailId,
-    
-    EmailThread email,
-    {
-      bool notToShowLoader = false
-    }
-  ) async {
+
+    EmailThread email, {
+    bool notToShowLoader = false,
+  }) async {
     try {
       String? token = await SecureStorage.getToken();
       if (token == null || token.isEmpty) {
@@ -740,7 +743,6 @@ class AuthController extends GetxController {
           response.map<EmailMessage>((e) => EmailMessage.fromJson(e)).toList();
 
       // Process last email if needed
-      
 
       return {"thread": email, "thread_mails": emails};
     } catch (e) {
@@ -753,7 +755,10 @@ class AuthController extends GetxController {
     }
   }
 
-  Future<EmailSummarizationModel?> emailAiProccess(String emailId, {bool shouldShowLoader = true}) async {
+  Future<EmailSummarizationModel?> emailAiProccess(
+    String emailId, {
+    bool shouldShowLoader = true,
+  }) async {
     try {
       String? token = await SecureStorage.getToken();
       if (token!.isEmpty) {
@@ -967,7 +972,7 @@ class AuthController extends GetxController {
     }
   }
 
-  Future<bool> addNewProject(Project project) async {
+  Future<bool> addNewProject(Project project, {bool isInbox = false}) async {
     try {
       String? token = await SecureStorage.getToken();
 
@@ -993,7 +998,10 @@ class AuthController extends GetxController {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           showCustomSnackbar(
             title: "Success",
-            message: "Project added successfully.",
+            message:
+                isInbox
+                    ? "Your inbox is ready."
+                    : "Project added successfully.",
             backgroundColor: Colors.green,
           );
         });

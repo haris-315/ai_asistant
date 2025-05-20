@@ -69,6 +69,7 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
                         setState(() {
                           isLoadingQuickReplies = true;
                         });
+
                         var extension = await Get.find<AuthController>()
                             .emailAiProccess(
                               emails.last.id,

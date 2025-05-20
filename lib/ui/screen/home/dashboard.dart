@@ -1,5 +1,6 @@
 import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:ai_asistant/core/shared/constants.dart';
+import 'package:ai_asistant/data/models/projects/project_model.dart';
 import 'package:ai_asistant/ui/screen/home/emails/newemail_screen.dart';
 import 'package:ai_asistant/ui/screen/task/create_task_sheet.dart';
 import 'package:ai_asistant/ui/screen/task/project_screen.dart';
@@ -55,6 +56,25 @@ class _HomeScreenState extends State<HomeScreen> {
     await authcontroller.syncMailboxbulk();
     if (authcontroller.projects.isEmpty) {
       await authcontroller.fetchProject(isInitialFetch: true);
+    }
+    if (authcontroller.projects.isNotEmpty &&
+        authcontroller.projects.any(
+          (p) => p.isInboxProject && p.name == "Inbox",
+        )) {
+    } else {
+      authcontroller.addNewProject(
+        Project(
+          name: "Inbox",
+          color: "blue",
+          order: 0,
+          isShared: false,
+          isFavorite: false,
+          isInboxProject: true,
+          isTeamInbox: false,
+          viewStyle: "grid",
+          id: 0,
+        ),
+      );
     }
     await SettingsService.storeSetting(
       AppConstants.appStateKey,

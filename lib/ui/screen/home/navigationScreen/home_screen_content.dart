@@ -162,10 +162,7 @@ class _HomeContentState extends State<HomeContent> {
                           isSomeThingLoading
                               ? null
                               : () {
-                                homeController.goToSpecialPage<String>(
-                                  2,
-                                  "completed",
-                                );
+                                homeController.goToSpecialPage<Null>(3, null);
                               },
                     ),
                   ],

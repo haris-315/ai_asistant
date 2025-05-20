@@ -24,6 +24,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
   late String _currentFilter;
   String _currentSort = 'newest';
   bool isTrashing = false;
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -33,7 +34,10 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
   }
 
   Future<void> _loadTasks() async {
-    await _controller.fetchTask();
+    await _controller.fetchTask(initialLoad: true);
+    setState(() {
+      isLoading = false;
+    });
   }
 
   @override
@@ -51,6 +55,8 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
     return Column(
       children: [
         _buildSearchAndFilterSection(colorScheme),
+        SizedBox(height: 2),
+        if (isLoading) LinearProgressIndicator(color: Colors.blue),
         SizedBox(height: 2.h),
         Expanded(
           child: Obx(() {
@@ -148,7 +154,9 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
                                       : null,
                               color:
                                   isCompleted
-                                      ? colorScheme.onSurface.withValues(alpha: 0.5)
+                                      ? colorScheme.onSurface.withValues(
+                                        alpha: 0.5,
+                                      )
                                       : colorScheme.onSurface,
                             ),
                           ),
@@ -162,9 +170,11 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
                                 fontSize: 11,
                                 color:
                                     isCompleted
-                                        ? colorScheme.onSurface.withValues(alpha: 0.5)
-                                        : colorScheme.onSurface.withValues(alpha: 
-                                          0.7,
+                                        ? colorScheme.onSurface.withValues(
+                                          alpha: 0.5,
+                                        )
+                                        : colorScheme.onSurface.withValues(
+                                          alpha: 0.7,
                                         ),
                               ),
                             ),

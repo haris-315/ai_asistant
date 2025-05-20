@@ -54,7 +54,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
         sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT
     ) * 2
     private val silenceThreshold = 500
-    private val silenceTimeoutMs = 4500L // Slightly above end_utterance_silence_threshold
+    private val silenceTimeoutMs = 2200L // Slightly above end_utterance_silence_threshold
     private val processingTimeoutMs = 10000L
     private val connectionTimeoutMs = 10000L
     private val maxReconnectAttempts = 3
@@ -210,7 +210,6 @@ class SpeechRecognizerClient private constructor(context: Context) {
         }
 
         if (!hasSpokenConnectMessage) {
-
                 ttsHelper?.speak("Please wait while I connect.")
                 hasSpokenConnectMessage = true
 
@@ -235,9 +234,10 @@ class SpeechRecognizerClient private constructor(context: Context) {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
                     handler.removeCallbacks(timeoutRunnable)
                     Log.i("SpeechRecognizerClient", "WebSocket connected")
+
                     this@SpeechRecognizerClient.webSocket = webSocket
                     // Send utterance silence threshold configuration
-                    val configMessage = JSONObject().put("end_utterance_silence_threshold", 5000).toString()
+                    val configMessage = JSONObject().put("end_utterance_silence_threshold", 2000).toString()
                     webSocket.send(configMessage)
                     Log.d("SpeechRecognizerClient", "Sent end_utterance_silence_threshold: 4000ms")
                     reconnectAttempts = 0
@@ -279,7 +279,6 @@ class SpeechRecognizerClient private constructor(context: Context) {
                                     Log.d("SpeechRecognizerClient", "Partial: $partial")
                                     commandBuffer.clear()
                                     commandBuffer.append(partial)
-                                    ServiceManager.recognizedText = partial
                                     lastSpeechTime = System.currentTimeMillis()
                                 }
                             }
