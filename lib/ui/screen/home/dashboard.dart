@@ -127,7 +127,36 @@ class _HomeScreenState extends State<HomeScreen> {
           onAddTask: _handleAddTask,
         ),
         drawer: const SideMenu(),
-        body: SafeArea(child: _buildScreen()),
+        body: SafeArea(
+          child: AnimatedSwitcher(
+            duration: Duration(milliseconds: 400),
+            switchInCurve: Curves.easeInOut,
+            switchOutCurve: Curves.easeInOut,
+            transitionBuilder: (child, animation) {
+              final rotateAnim = Tween(begin: 1.0, end: 0.0).animate(animation);
+              final slideAnim = Tween<Offset>(
+                begin: const Offset(1, 0),
+                end: Offset.zero,
+              ).animate(animation);
+
+              return AnimatedBuilder(
+                animation: animation,
+                child: child,
+                builder: (context, child) {
+                  return Transform(
+                    alignment: Alignment.center,
+                    transform:
+                        Matrix4.identity()
+                          ..setEntry(3, 2, 0.001) // perspective
+                          ..rotateY(rotateAnim.value * 0.5), // rotate
+                    child: SlideTransition(position: slideAnim, child: child),
+                  );
+                },
+              );
+            },
+            child: _buildScreen(),
+          ),
+        ),
         bottomNavigationBar: AnimatedNotchBottomBar(
           kBottomRadius: 18,
           kIconSize: 22,

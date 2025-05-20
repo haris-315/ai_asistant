@@ -37,7 +37,7 @@ class CustomFormTextField extends StatefulWidget {
     this.borderRadius = 12.0,
     this.borderColor = Colors.blue,
     this.keyboardType = TextInputType.text,
-    this.maxLength = 50,
+    this.maxLength = 560,
     this.maxLines = 1,
     this.showPasswordStrength = false,
     this.error,

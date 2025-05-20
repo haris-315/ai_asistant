@@ -7,6 +7,7 @@ import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:ai_asistant/core/shared/constants.dart';
 import 'package:ai_asistant/data/models/service_models/assistant_service_model.dart';
 import 'package:ai_asistant/data/models/service_models/voice.dart';
+import 'package:ai_asistant/ui/widget/input_field.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -23,13 +24,22 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
   AssistantServiceModel assistantServiceModel = AssistantServiceModel.empty();
   bool _mounted = true;
   List<Voice> voices = [];
+  TextEditingController con = TextEditingController();
   String? selectedVoice;
   bool _loadingVoices = false;
+  bool toSetAKey = false;
+
+  // String? akey;
 
   @override
   void initState() {
     super.initState();
     _initialize();
+    con.addListener(() {
+      if (mounted) {
+        setState(() {});
+      }
+    });
   }
 
   Future<void> _initialize() async {
@@ -37,6 +47,7 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
     await loadFirstTime();
     await _loadVoices();
     await _loadCurrentVoice();
+    await _loadKey();
   }
 
   Future<void> _loadVoices() async {
@@ -114,9 +125,33 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
     }
   }
 
+  Future<void> _loadKey() async {
+    String? key = await SettingsService.getSetting("akey");
+    if (key != null) {
+      await NativeBridge.setKey(key);
+    } else {
+      setState(() {
+        toSetAKey = true;
+      });
+    }
+  }
+
+  Future<bool> _setKey(String key) async {
+    try {
+      await NativeBridge.setKey(key);
+      setState(() {
+        toSetAKey = false;
+      });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   @override
   void dispose() {
     _mounted = false;
+    con.dispose();
     super.dispose();
   }
 
@@ -232,9 +267,10 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
                       vertical: 12,
                     ),
                     decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest
+                          .withValues(alpha: 0.4),
                       borderRadius: const BorderRadius.vertical(
                         bottom: Radius.circular(24),
                       ),
@@ -299,7 +335,9 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
           Text(
             "Check your connection",
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.7),
+              color: Theme.of(
+                context,
+              ).colorScheme.outline.withValues(alpha: 0.7),
             ),
           ),
         ],
@@ -462,7 +500,37 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
         ],
       ),
       body:
-          _isLoading
+          toSetAKey
+              ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CustomFormTextField(
+                        error: "Porcupine Key",
+                        label: "Porcupine Key",
+                        icon: Icons.lock,
+                        controller: con,
+                      ),
+                      SizedBox(height: 25),
+                      MaterialButton(
+                        onPressed:
+                            con.text.isEmpty
+                                ? null
+                                : () async {
+                                  if (con.text.isNotEmpty) {
+                                    await _setKey(con.text.trim());
+                                  }
+                                },
+
+                        child: Text("Set Key"),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              : _isLoading
               ? const Center(child: CircularProgressIndicator())
               : Padding(
                 padding: const EdgeInsets.all(16.0),

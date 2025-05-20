@@ -63,6 +63,13 @@ class MainActivity : FlutterActivity() {
                     result.success(true)
                 }
 
+                "setKey" -> {
+                    val key = call.argument<String>("akey") ?: ""
+                    SharedData.porcupineAK = key
+
+                    result.success("Done!")
+                }
+
                 "getInfo" -> {
                     val rawTasks = call.argument<List<MutableMap<String, Any>>>("tasks")
                     val taskList = rawTasks ?: emptyList()

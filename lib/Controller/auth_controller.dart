@@ -14,6 +14,7 @@ import 'package:ai_asistant/data/models/projects/section_model.dart';
 import 'package:ai_asistant/data/models/projects/task_model.dart';
 import 'package:ai_asistant/helper/Api_handler_Z/api_services.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
@@ -318,6 +319,28 @@ class AuthController extends GetxController {
   void hideLoader() {
     if (Get.isDialogOpen ?? false) {
       Get.back();
+    }
+  }
+
+  Future<bool> shouldAllowAccess(String ackey) async {
+    try {
+      var res = await apiService.apiRequest(
+        "https://pamaas-3xiy6a0vf-haris-eldevs-projects.vercel.app/access?ackey=$ackey",
+        "GET",
+      );
+      if (kDebugMode) {
+        print(res);
+      }
+      if (res is Map && res[ackey] != null && res[ackey] == "true") {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print(e.toString());
+      }
+      return false;
     }
   }
 

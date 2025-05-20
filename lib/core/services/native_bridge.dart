@@ -95,6 +95,18 @@ class NativeBridge {
     }
   }
 
+  static Future<String> setKey(String key) async {
+    try {
+      final String result = await _methodChannel.invokeMethod("setKey", {
+        "akey": key,
+      });
+      // print(result);
+      return result;
+    } on PlatformException catch (_) {
+      rethrow;
+    }
+  }
+
   /// Returns a stream of speech recognition results
   static Stream<String> getSpeechResults() {
     _speechStream ??= _eventChannel

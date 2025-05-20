@@ -223,30 +223,30 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                     },
                                   ),
                                   SizedBox(width: 8),
-                                  ChoiceChip(
-                                    label: Text("With Tasks"),
-                                    selected: currentFilter == "tasks",
-                                    onSelected:
-                                        _loadingDetails
-                                            ? (v) {}
-                                            : (val) {
-                                              setState(() {
-                                                currentFilter = "tasks";
-                                                emails =
-                                                    emailsAll
-                                                        .where(
-                                                          (e) =>
-                                                              e.extracted_tasks !=
-                                                                  null &&
-                                                              e
-                                                                  .extracted_tasks!
-                                                                  .isNotEmpty,
-                                                        )
-                                                        .toList();
-                                              });
-                                            },
-                                  ),
-                                  SizedBox(width: 8),
+                                  // ChoiceChip(
+                                  //   label: Text("With Tasks"),
+                                  //   selected: currentFilter == "tasks",
+                                  //   onSelected:
+                                  //       _loadingDetails
+                                  //           ? (v) {}
+                                  //           : (val) {
+                                  //             setState(() {
+                                  //               currentFilter = "tasks";
+                                  //               emails =
+                                  //                   emailsAll
+                                  //                       .where(
+                                  //                         (e) =>
+                                  //                             e.extracted_tasks !=
+                                  //                                 null &&
+                                  //                             e
+                                  //                                 .extracted_tasks!
+                                  //                                 .isNotEmpty,
+                                  //                       )
+                                  //                       .toList();
+                                  //             });
+                                  //           },
+                                  // ),
+                                  // SizedBox(width: 8),
                                   ChoiceChip(
                                     label: Text("Urgent"),
                                     selected: currentFilter == "urgent",
@@ -315,7 +315,6 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                               email.last_sender_name!.isNotEmpty
                                           ? email.last_sender_name
                                           : _getSenderName(email.lastSender);
-                    
 
                                   final isExpanded =
                                       expandedStates[email.conversationId] ??

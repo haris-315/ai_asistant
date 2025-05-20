@@ -66,7 +66,8 @@ Rules:
         userMessage: String,
         model: String = "gpt-4-turbo",
         onResponse: (String) -> Unit,
-        onError: (String) -> Unit
+        onError: (String) -> Unit,
+//        onStandBy: (String) -> Unit
     ) {
         messages.add(JSONObject().apply {
             put("role", "user")
@@ -116,7 +117,7 @@ Rules:
                     val taskJson = replyJson.optJSONObject("tsk")
                     val projectJson = replyJson.optJSONObject("project")
                     val appJson = replyJson.optJSONObject("app")
-
+//                    val toStandBy = replyJson.optJSONObject("shouldStandBy")
                     messages.add(JSONObject().apply {
                         put("role", "assistant")
                         put("content", chatres)
@@ -140,6 +141,10 @@ Rules:
                             }
                         }
                     }
+//                    if (toStandBy != null) {
+////                        onStandBy()
+//
+//                    }
 
                     onResponse(chatres)
                 } catch (e: Exception) {

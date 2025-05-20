@@ -1,12 +1,14 @@
+import 'dart:convert';
+
 import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/ui/screen/home/emails/newemail_screen.dart';
 import 'package:ai_asistant/ui/screen/home/emails/summarization_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_html/flutter_html.dart';
 import 'package:get/get.dart';
 import 'package:html/parser.dart' show parse;
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../../data/models/emails/thread_detail.dart';
 
@@ -21,6 +23,57 @@ class EmailDetailScreen extends StatefulWidget {
 
 class _EmailDetailScreenState extends State<EmailDetailScreen> {
   bool isLoadingQuickReplies = false;
+  late WebViewController _webViewController;
+  double _webViewHeight = 300; // Initial height
+  bool _isWebViewLoading = true; // Track loading state
+
+  @override
+  void initState() {
+    super.initState();
+    _webViewController =
+        WebViewController()
+          ..setJavaScriptMode(JavaScriptMode.unrestricted)
+          ..setBackgroundColor(Theme.of(Get.context!).colorScheme.surface)
+          ..setNavigationDelegate(
+            NavigationDelegate(
+              onNavigationRequest: (NavigationRequest request) {
+                if (request.url.startsWith('http')) {
+                  launchUrl(Uri.parse(request.url));
+                  return NavigationDecision.prevent;
+                }
+                return NavigationDecision.navigate;
+              },
+              onPageFinished: (url) {
+                // Inject JavaScript to calculate content height
+                _webViewController.runJavaScript('''
+              window.postMessage({
+                type: 'contentHeight',
+                height: document.body.scrollHeight
+              }, '*');
+            ''');
+              },
+            ),
+          )
+          ..addJavaScriptChannel(
+            'HeightChannel',
+            onMessageReceived: (JavaScriptMessage message) {
+              try {
+                final data = jsonDecode(message.message);
+                if (data['type'] == 'contentHeight') {
+                  final newHeight = double.parse(data['height'].toString());
+                  if (mounted) {
+                    setState(() {
+                      _webViewHeight = newHeight + 20; // Add padding
+                      _isWebViewLoading = false;
+                    });
+                  }
+                }
+              } catch (e) {
+                print('Error parsing height: $e');
+              }
+            },
+          );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +81,7 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
     final textTheme = theme.textTheme;
     final colorScheme = theme.colorScheme;
     List<EmailMessage> emails = widget.threadAndData['thread_mails'];
+
     return Scaffold(
       backgroundColor: colorScheme.surface,
       appBar: AppBar(
@@ -64,7 +118,7 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
                     !isLoadingQuickReplies) ...[
                   SizedBox(height: 60),
                   Center(
-                    child: ElevatedButton.icon(
+                    child: ElevatedButton(
                       onPressed: () async {
                         setState(() {
                           isLoadingQuickReplies = true;
@@ -89,8 +143,32 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
                           isLoadingQuickReplies = false;
                         });
                       },
-                      label: Text("Generate Quick Replies"),
-                      icon: Icon(Icons.auto_awesome),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                        shadowColor: Colors.black.withOpacity(0.2),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.auto_awesome, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            "Generate Quick Replies",
+                            style: textTheme.labelLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -155,7 +233,6 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
                           );
                         },
                       ),
-
                       _buildActionButton(
                         context,
                         icon: Icons.forward,
@@ -388,31 +465,7 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
   }
 
   Widget _buildEmailBody(String htmlContent, BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Html(
-      data: htmlContent,
-      style: {
-        "body": Style(
-          margin: Margins.only(),
-          padding: HtmlPaddings(),
-          fontSize: FontSize(14.0),
-          fontWeight: FontWeight.w500,
-          lineHeight: LineHeight(1.6),
-          color: Colors.black,
-        ),
-        "a": Style(
-          color: colorScheme.primary,
-          textDecoration: TextDecoration.underline,
-        ),
-      },
-      onLinkTap: (url, map, el) async {
-        if (url != null && await canLaunchUrl(Uri.parse(url))) {
-          await launchUrl(Uri.parse(url));
-        }
-      },
-    );
+    return EmailWebViewWidget(htmlContent: htmlContent);
   }
 
   Widget _buildQuickRepliesSection(
@@ -561,4 +614,90 @@ ${_stripHtmlTags(email.bodyHtml)}
 String _stripHtmlTags(String htmlString) {
   final document = parse(htmlString);
   return document.body?.text.trim() ?? htmlString;
+}
+
+class EmailWebViewWidget extends StatefulWidget {
+  final String htmlContent;
+
+  const EmailWebViewWidget({super.key, required this.htmlContent});
+
+  @override
+  State<EmailWebViewWidget> createState() => _EmailWebViewWidgetState();
+}
+
+class _EmailWebViewWidgetState extends State<EmailWebViewWidget> {
+  late final WebViewController _controller;
+  double _webViewHeight = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller =
+        WebViewController()
+          ..setJavaScriptMode(JavaScriptMode.unrestricted)
+          ..addJavaScriptChannel(
+            'HeightChannel',
+            onMessageReceived: (JavaScriptMessage message) {
+              try {
+                final height = double.tryParse(message.message);
+                if (height != null && mounted) {
+                  setState(() => _webViewHeight = height + 20);
+                }
+              } catch (_) {}
+            },
+          )
+          ..setNavigationDelegate(
+            NavigationDelegate(
+              onPageFinished: (_) {
+                _controller.runJavaScript('''
+              setTimeout(() => {
+                HeightChannel.postMessage(document.body.scrollHeight.toString());
+              }, 300);
+            ''');
+              },
+            ),
+          );
+
+    _loadHtml(widget.htmlContent);
+  }
+
+  void _loadHtml(String htmlContent) {
+    final html = '''
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+              font-size: 14px;
+              line-height: 1.6;
+              margin: 0;
+              padding: 0;
+              color: #333;
+            }
+            a {
+              color: #1E88E5;
+              text-decoration: underline;
+            }
+            img {
+              max-width: 100%;
+              height: auto;
+            }
+          </style>
+        </head>
+        <body>${widget.htmlContent}</body>
+      </html>
+    ''';
+
+    _controller.loadHtmlString(html);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: _webViewHeight,
+      child: WebViewWidget(controller: _controller),
+    );
+  }
 }

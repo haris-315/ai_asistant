@@ -21,7 +21,6 @@ import okio.ByteString.Companion.toByteString
 import org.json.JSONObject
 import java.lang.ref.WeakReference
 import java.util.concurrent.TimeUnit
-import kotlin.math.abs
 
 class SpeechRecognizerClient private constructor(context: Context) {
 
@@ -48,23 +47,27 @@ class SpeechRecognizerClient private constructor(context: Context) {
     private var webSocket: WebSocket? = null
     private var audioJob: Job? = null
     private var isTtsSpeaking = false
-    private var hasSpokenConnectMessage = false
     private val sampleRate = 16000
     private val bufferSize = AudioRecord.getMinBufferSize(
         sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT
     ) * 2
-    private val silenceThreshold = 500
-    private val silenceTimeoutMs = 2200L // Slightly above end_utterance_silence_threshold
     private val processingTimeoutMs = 10000L
     private val connectionTimeoutMs = 10000L
+    private val inactivityTimeoutMs = 30000L // 30 seconds
     private val maxReconnectAttempts = 3
     private var reconnectAttempts = 0
-    private var lastSpeechTime = 0L
     private val commandBuffer = StringBuilder()
-    private val audioBuffer = mutableListOf<ByteArray>()
     private val handler = Handler(Looper.getMainLooper())
     private val audioLock = Any()
-
+    private val wakeResponses: List<String> = listOf(
+        "Hello, how can I assist you?",
+        "What can I help you with today?",
+        "Yes, I'm listening. Go ahead.",
+        "Hey there! Need something?",
+        "At your service. What do you need?",
+        "Absolutely! How can I be of help?",
+        "Ready when you are. What's on your mind?"
+    )
     private val ttsHelper by lazy {
         context?.let {
             TextToSpeechHelper(it) { voices ->
@@ -72,6 +75,23 @@ class SpeechRecognizerClient private constructor(context: Context) {
                 isTtsSpeaking = false
                 if (ServiceManager.ttsVoices.isEmpty()) ServiceManager.ttsVoices = voices
                 if (state == AssistantState.SPEAKING) transitionTo(AssistantState.LISTENING)
+            }
+        }
+    }
+
+    private val hwDetector by lazy {
+        context?.let {
+            try {
+                HotWordDetector(context = it, keywordAssetName = "hey_jarvis.ppn") {
+                    if (state == AssistantState.STANDBY) {
+                        Log.d("HWD", "Hotword detected!")
+                        transitionTo(AssistantState.SPEAKING)
+                        ttsHelper?.speak(wakeResponses.random())
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("SpeechRecognizerClient", "Failed to initialize HotWordDetector: ${e.message}")
+                null
             }
         }
     }
@@ -94,25 +114,48 @@ class SpeechRecognizerClient private constructor(context: Context) {
 
     fun initialize(onInitialized: (TextToSpeechHelper?) -> Unit) {
         ServiceManager.initializing = true
-        context ?: return
+        context ?: run {
+            Log.e("SpeechRecognizerClient", "Context is null")
+            onInitialized(null)
+            return
+        }
         if (ContextCompat.checkSelfPermission(context!!, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             Log.e("SpeechRecognizerClient", "Microphone permission denied")
             ttsHelper?.speak("Please grant microphone permission.")
+            onInitialized(null)
             return
         }
 
         CoroutineScope(Dispatchers.Main).launch {
+            // Initialize TTS
             if (!ttsHelper?.waitForInitialization(5000L)!!) {
                 Log.w("SpeechRecognizerClient", "TTS initialization failed, retrying")
                 ttsHelper?.reinitialize()
                 if (!ttsHelper?.waitForInitialization(5000L)!!) {
                     Log.e("SpeechRecognizerClient", "TTS initialization failed")
                     ttsHelper?.speak("Text-to-speech setup failed.")
+                    onInitialized(null)
                     return@launch
                 }
             }
+
+            // Start hotword detection
+            try {
+                hwDetector?.start() ?: run {
+                    Log.e("SpeechRecognizerClient", "HotWordDetector is null")
+                    ttsHelper?.speak("Hotword detection setup failed.")
+                    onInitialized(null)
+                    return@launch
+                }
+            } catch (e: Exception) {
+                Log.e("SpeechRecognizerClient", "Hotword detection failed to start: ${e.message}")
+                ttsHelper?.speak("Hotword detection setup failed.")
+                onInitialized(null)
+                return@launch
+            }
+
             onInitialized(ttsHelper)
-            transitionTo(AssistantState.LISTENING)
+            transitionTo(AssistantState.STANDBY)
             ServiceManager.initializing = false
         }
     }
@@ -123,13 +166,11 @@ class SpeechRecognizerClient private constructor(context: Context) {
         webSocket?.close(1000, "Shutdown")
         webSocket = null
         ttsHelper?.shutdown()
+        hwDetector?.stop()
         state = AssistantState.STANDBY
-        hasSpokenConnectMessage = false
         reconnectAttempts = 0
         isTtsSpeaking = false
-        lastSpeechTime = 0L
         commandBuffer.clear()
-        audioBuffer.clear()
         ServiceManager.isStoped = true
         ServiceManager.isStandBy = true
         handler.removeCallbacksAndMessages(null)
@@ -148,28 +189,41 @@ class SpeechRecognizerClient private constructor(context: Context) {
                 webSocket = null
                 handler.removeCallbacksAndMessages(null)
                 commandBuffer.clear()
-                audioBuffer.clear()
+                hwDetector?.start()
+                ServiceManager.isStandBy = true
             }
             AssistantState.LISTENING -> {
+                hwDetector?.stop()
                 ServiceManager.isStoped = false
                 ServiceManager.isStandBy = false
                 startSpeechRecognition()
+                resetInactivityTimeout()
             }
             AssistantState.PROCESSING -> {
                 handler.postDelayed({
                     if (state == AssistantState.PROCESSING) {
                         Log.w("SpeechRecognizerClient", "Processing timeout, returning to LISTENING")
+                        ttsHelper?.speak("Processing took too long. Returning to listening.")
                         transitionTo(AssistantState.LISTENING)
                     }
                 }, processingTimeoutMs)
             }
             AssistantState.SPEAKING -> {
                 isTtsSpeaking = true
-                synchronized(audioLock) {
-                    audioRecord?.stop()
-                }
+                stopAudioStreaming() // Stop recording to avoid capturing TTS
             }
         }
+    }
+
+    private fun resetInactivityTimeout() {
+        handler.removeCallbacksAndMessages(null)
+        handler.postDelayed({
+            if (state == AssistantState.LISTENING) {
+                Log.d("SpeechRecognizerClient", "Inactivity timeout, transitioning to STANDBY")
+                ttsHelper?.speak("No activity detected. Going to standby.")
+                transitionTo(AssistantState.STANDBY)
+            }
+        }, inactivityTimeoutMs)
     }
 
     @SuppressLint("MissingPermission")
@@ -209,12 +263,6 @@ class SpeechRecognizerClient private constructor(context: Context) {
             return
         }
 
-        if (!hasSpokenConnectMessage) {
-                ttsHelper?.speak("Please wait while I connect.")
-                hasSpokenConnectMessage = true
-
-        }
-
         val request = Request.Builder()
             .url("wss://api.assemblyai.com/v2/realtime/ws?sample_rate=$sampleRate&utterances=true")
             .header("Authorization", "4bc0912e299e44b6b3e8ecab340ea0b1")
@@ -234,12 +282,10 @@ class SpeechRecognizerClient private constructor(context: Context) {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
                     handler.removeCallbacks(timeoutRunnable)
                     Log.i("SpeechRecognizerClient", "WebSocket connected")
-
                     this@SpeechRecognizerClient.webSocket = webSocket
-                    // Send utterance silence threshold configuration
-                    val configMessage = JSONObject().put("end_utterance_silence_threshold", 2000).toString()
+                    val configMessage = JSONObject().put("end_utterance_silence_threshold", 1500).toString()
                     webSocket.send(configMessage)
-                    Log.d("SpeechRecognizerClient", "Sent end_utterance_silence_threshold: 4000ms")
+                    Log.d("SpeechRecognizerClient", "Sent end_utterance_silence_threshold: 1500ms")
                     reconnectAttempts = 0
                     if (state == AssistantState.LISTENING) startAudioStreaming()
                 }
@@ -253,16 +299,6 @@ class SpeechRecognizerClient private constructor(context: Context) {
                                 val transcript = json.optString("text").trim()
                                 if (transcript.isNotEmpty()) {
                                     Log.i("SpeechRecognizerClient", "Final: $transcript")
-                                    // Filter known TTS phrases
-                                    if (transcript.equals("Please wait while I connect.", ignoreCase = true) ||
-                                        transcript.equals("An error occurred.", ignoreCase = true) ||
-                                        transcript.equals("Connection timed out.", ignoreCase = true) ||
-                                        transcript.equals("Text-to-speech setup failed.", ignoreCase = true)
-                                    ) {
-                                        Log.d("SpeechRecognizerClient", "Ignoring TTS output: $transcript")
-                                        transitionTo(AssistantState.LISTENING)
-                                        return
-                                    }
                                     commandBuffer.append(" ").append(transcript)
                                     Log.d("SpeechRecognizerClient", "Utterance finalized: ${commandBuffer.toString()}")
                                     ServiceManager.recognizedText = transcript
@@ -270,7 +306,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
                                     transitionTo(AssistantState.PROCESSING)
                                     processCommand(commandBuffer.toString().trim())
                                     commandBuffer.clear()
-                                    audioBuffer.clear()
+                                    resetInactivityTimeout()
                                 }
                             }
                             "PartialTranscript" -> {
@@ -279,7 +315,6 @@ class SpeechRecognizerClient private constructor(context: Context) {
                                     Log.d("SpeechRecognizerClient", "Partial: $partial")
                                     commandBuffer.clear()
                                     commandBuffer.append(partial)
-                                    lastSpeechTime = System.currentTimeMillis()
                                 }
                             }
                         }
@@ -324,23 +359,11 @@ class SpeechRecognizerClient private constructor(context: Context) {
                 }
                 Log.i("SpeechRecognizerClient", "Audio streaming started")
                 val buffer = ByteArray(bufferSize)
-                lastSpeechTime = System.currentTimeMillis()
 
                 while (isActive && state == AssistantState.LISTENING && webSocket != null && !isTtsSpeaking) {
                     val read = audioRecord?.read(buffer, 0, buffer.size) ?: 0
                     if (read > 0) {
-                        val bufferCopy = buffer.copyOf(read)
-                        audioBuffer.add(bufferCopy)
-                        if (!isSilence(buffer, read)) {
-                            lastSpeechTime = System.currentTimeMillis()
-                            audioBuffer.forEach { webSocket?.send(it.toByteString()) }
-                            audioBuffer.clear()
-                        } else if (System.currentTimeMillis() - lastSpeechTime >= silenceTimeoutMs) {
-                            Log.d("SpeechRecognizerClient", "Local silence timeout reached, sending buffered audio")
-                            audioBuffer.forEach { webSocket?.send(it.toByteString()) }
-                            audioBuffer.clear()
-                            break
-                        }
+                        webSocket?.send(buffer.copyOf(read).toByteString())
                     }
                 }
             } catch (e: Exception) {
@@ -353,14 +376,6 @@ class SpeechRecognizerClient private constructor(context: Context) {
                 withContext(Dispatchers.Main) { stopAudioStreaming() }
             }
         }
-    }
-
-    private fun isSilence(buffer: ByteArray, bytesRead: Int): Boolean {
-        for (i in 0 until bytesRead step 2) {
-            val sample = (buffer[i].toInt() and 0xFF) or (buffer[i + 1].toInt() shl 8)
-            if (abs(sample) > silenceThreshold) return false
-        }
-        return true
     }
 
     private fun stopAudioStreaming() {
@@ -380,7 +395,6 @@ class SpeechRecognizerClient private constructor(context: Context) {
                 audioRecord = null
                 audioJob?.cancel()
                 audioJob = null
-                lastSpeechTime = 0L
                 Log.d("SpeechRecognizerClient", "Audio streaming fully stopped")
             }
         }

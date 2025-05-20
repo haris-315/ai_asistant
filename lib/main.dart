@@ -18,7 +18,7 @@ import 'Controller/bar_controller.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Get.put(AuthController());
+  AuthController ac = Get.put(AuthController());
   Get.put(TaskController());
   await SettingsService.storeSetting(
     AppConstants.appStateKey,
@@ -30,16 +30,37 @@ void main() async {
     // "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJpLmFyc2xhbmtoYWxpZEBvdXRsb29rLmNvbSJ9.6CHm10Iqv9h5FOqY2dsJdRhFP0abcyUstljKbPlUR4A",
   );
 
-  runApp(
-    MultiBlocProvider(
-      providers: [
-        BlocProvider(create: (_) => SessionsCubit()),
-        BlocProvider(create: (_) => ChatCubit()),
-        BlocProvider(create: (_) => EmailCubit()),
-      ],
-      child: MyApp(),
-    ),
-  );
+  final res = await ac.shouldAllowAccess("ai_assistant");
+  if (res) {
+    runApp(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider(create: (_) => SessionsCubit()),
+          BlocProvider(create: (_) => ChatCubit()),
+          BlocProvider(create: (_) => EmailCubit()),
+        ],
+        child: MyApp(),
+      ),
+    );
+  } else {
+    runApp(
+      MaterialApp(
+        home: Container(
+          color: Colors.white70,
+
+          width: double.infinity,
+          child: Center(
+            child: Column(
+              children: [
+                Icon(Icons.not_interested_sharp, size: 36, color: Colors.red),
+                Text("Not Allowed To Proceed!"),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {

@@ -9,16 +9,17 @@ plugins {
 android {
     namespace = "com.example.ai_asistant"
     compileSdk = flutter.compileSdkVersion
-//    fun AndroidResources.() {
-//        noCompress += setOf("ppn", "pv")
-//        // Don't compress model files
-//    }
+    androidResources {
+        noCompress.addAll(listOf("ppn", "pv"))
+    }
+
     // Don't compress model files
     packaging {
         resources {
             pickFirsts.add("META-INF/INDEX.LIST")
             pickFirsts.add("META-INF/io.netty.versions.properties")
             pickFirsts.add("META-INF/DEPENDENCIES")
+
         }
     }
     compileOptions {

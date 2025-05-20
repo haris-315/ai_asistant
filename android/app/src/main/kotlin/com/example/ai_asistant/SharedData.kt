@@ -7,4 +7,5 @@ object SharedData {
     var projects: MutableList<String> = mutableListOf()
     var tasks: List<MutableMap<String, Any>> = emptyList()
     var currentVoice: Voice? = null
+    var porcupineAK: String = ""
 }
