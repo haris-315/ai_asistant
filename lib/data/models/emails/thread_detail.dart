@@ -2,18 +2,18 @@
 // ignore_for_file: non_constant_identifier_names
 
 class EmailMessage {
-  final String id;
-  final String subject;
-  final String senderName;
-  final String sender;
-  final List<String> recipients;
-  final List<String> cc;
-  final DateTime receivedAt;
-  final bool isRead;
-  final bool hasAttachments;
-  final String bodyPreview;
-  final String bodyPlain;
-  final String bodyHtml;
+  final String? id;
+  final String? subject;
+  final String? senderName;
+  final String? sender;
+  final List<dynamic>? recipients;
+  final List<dynamic>? cc;
+  final DateTime? receivedAt;
+  final bool? isRead;
+  final bool? hasAttachments;
+  final String? bodyPreview;
+  final String? bodyPlain;
+  final String? bodyHtml;
   final List<dynamic>? quick_replies;
   final String? summary;
   final String? topic;
@@ -60,8 +60,8 @@ class EmailMessage {
       senderName: json['sender_name'],
       // Fix sender field, assuming it's a single string
       sender: json['sender'],
-      recipients: List<String>.from(json['recipients']),
-      cc: List<String>.from(json['cc']),
+      recipients: json['recipients'],
+      cc: json['cc'],
       receivedAt: DateTime.parse(json['received_at']),
       isRead: json['is_read'],
       hasAttachments: json['has_attachments'],
@@ -85,8 +85,8 @@ class EmailMessage {
     String? subject,
     String? senderName,
     String? sender,
-    List<String>? recipients,
-    List<String>? cc,
+    List<dynamic>? recipients,
+    List<dynamic>? cc,
     DateTime? receivedAt,
     bool? isRead,
     bool? hasAttachments,

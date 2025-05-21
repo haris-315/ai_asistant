@@ -46,14 +46,14 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
             _scrollController.position.maxScrollExtent &&
         !_isLoadingMore &&
         !cubit.hasReachedEnd) {
-      setState(() => _isLoadingMore = true);
+      if (mounted) setState(() => _isLoadingMore = true);
       cubit.getEmails(loadAgain: false);
     }
 
     if (_scrollController.position.pixels > 300 && !_showScrollToTop) {
-      setState(() => _showScrollToTop = true);
+      if (mounted) setState(() => _showScrollToTop = true);
     } else if (_scrollController.position.pixels <= 300 && _showScrollToTop) {
-      setState(() => _showScrollToTop = false);
+      if (mounted) setState(() => _showScrollToTop = false);
     }
   }
 
@@ -95,37 +95,45 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
   }
 
   void _toggleExpandEmail(String emailId) {
-    setState(() {
-      expandedStates[emailId] = !(expandedStates[emailId] ?? false);
-    });
+    if (mounted) {
+      setState(() {
+        expandedStates[emailId] = !(expandedStates[emailId] ?? false);
+      });
+    }
   }
 
   Future<void> _loadSummary(EmailThread email) async {
     if (email.summary != null && email.summary!.isNotEmpty) return;
 
-    setState(() {
-      _loadingDetails = true;
-      summaryLoadingStates[email.conversationId] = true;
-    });
+    if (mounted) {
+      setState(() {
+        _loadingDetails = true;
+        summaryLoadingStates[email.conversationId] = true;
+      });
+    }
 
     final res = await authcontroller.threadAiProccess(email.conversationId);
 
-    setState(() {
-      _loadingDetails = false;
-      summaryLoadingStates[email.conversationId] = false;
-    });
+    if (mounted) {
+      setState(() {
+        _loadingDetails = false;
+        summaryLoadingStates[email.conversationId] = false;
+      });
+    }
 
     if (res != null) {
       final index = emails.indexWhere(
         (e) => e.conversationId == email.conversationId,
       );
       if (index != -1) {
-        setState(() {
-          emails[index] = emails[index].copyWith(
-            summary: res.summary,
-            topic: res.topic,
-          );
-        });
+        if (mounted) {
+          setState(() {
+            emails[index] = emails[index].copyWith(
+              summary: res.summary,
+              topic: res.topic,
+            );
+          });
+        }
       }
     }
   }
@@ -139,7 +147,7 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
         } else if (state is EmailSuccess) {
           if (currentFilter == "all") emailsAll = state.emails;
           emails = state.emails;
-          setState(() => _isLoadingMore = false);
+          if (mounted) setState(() => _isLoadingMore = false);
         }
       },
       builder: (context, state) {
@@ -148,16 +156,20 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
               _loadingDetails
                   ? () async {}
                   : () async {
-                    setState(() {
-                      _isRefreshing = true;
-                    });
+                    if (mounted) {
+                      setState(() {
+                        _isRefreshing = true;
+                      });
+                    }
                     searchController.clear();
                     await authcontroller.syncMailboxbulk();
                     await context.read<EmailCubit>().getEmails();
 
-                    setState(() {
-                      _isRefreshing = false;
-                    });
+                    if (mounted) {
+                      setState(() {
+                        _isRefreshing = false;
+                      });
+                    }
                   },
           child:
               (state is EmailLoading && emails.isEmpty && !_isRefreshing)
@@ -177,21 +189,23 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                               enabled: !_loadingDetails,
                               controller: searchController,
                               onChanged: (value) {
-                                setState(() {
-                                  isSearching = value.isNotEmpty;
-                                  emails =
-                                      emailsAll
-                                          .where(
-                                            (email) =>
-                                                email.subject
-                                                    ?.toLowerCase()
-                                                    .contains(
-                                                      value.toLowerCase(),
-                                                    ) ??
-                                                false,
-                                          )
-                                          .toList();
-                                });
+                                if (mounted) {
+                                  setState(() {
+                                    isSearching = value.isNotEmpty;
+                                    emails =
+                                        emailsAll
+                                            .where(
+                                              (email) =>
+                                                  email.subject
+                                                      ?.toLowerCase()
+                                                      .contains(
+                                                        value.toLowerCase(),
+                                                      ) ??
+                                                  false,
+                                            )
+                                            .toList();
+                                  });
+                                }
                               },
                               decoration: InputDecoration(
                                 hintText: 'Search emails...',
@@ -216,10 +230,12 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                     label: Text("All"),
                                     selected: currentFilter == "all",
                                     onSelected: (val) {
-                                      setState(() {
-                                        currentFilter = "all";
-                                        emails = emailsAll;
-                                      });
+                                      if (mounted) {
+                                        setState(() {
+                                          currentFilter = "all";
+                                          emails = emailsAll;
+                                        });
+                                      }
                                     },
                                   ),
                                   SizedBox(width: 8),
@@ -230,7 +246,7 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                   //       _loadingDetails
                                   //           ? (v) {}
                                   //           : (val) {
-                                  //             setState(() {
+                                  //             if (mounted) setState(() {
                                   //               currentFilter = "tasks";
                                   //               emails =
                                   //                   emailsAll
@@ -251,15 +267,18 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                     label: Text("Urgent"),
                                     selected: currentFilter == "urgent",
                                     onSelected: (val) {
-                                      setState(() {
-                                        currentFilter = "urgent";
-                                        emails =
-                                            emailsAll
-                                                .where(
-                                                  (e) => e.category == "urgent",
-                                                )
-                                                .toList();
-                                      });
+                                      if (mounted) {
+                                        setState(() {
+                                          currentFilter = "urgent";
+                                          emails =
+                                              emailsAll
+                                                  .where(
+                                                    (e) =>
+                                                        e.category == "urgent",
+                                                  )
+                                                  .toList();
+                                        });
+                                      }
                                     },
                                   ),
                                   SizedBox(width: 8),
@@ -267,17 +286,19 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                     label: Text("Informational"),
                                     selected: currentFilter == "informational",
                                     onSelected: (val) {
-                                      setState(() {
-                                        currentFilter = "informational";
-                                        emails =
-                                            emailsAll
-                                                .where(
-                                                  (e) =>
-                                                      e.category ==
-                                                      "informational",
-                                                )
-                                                .toList();
-                                      });
+                                      if (mounted) {
+                                        setState(() {
+                                          currentFilter = "informational";
+                                          emails =
+                                              emailsAll
+                                                  .where(
+                                                    (e) =>
+                                                        e.category ==
+                                                        "informational",
+                                                  )
+                                                  .toList();
+                                        });
+                                      }
                                     },
                                   ),
                                   SizedBox(width: 8),
@@ -285,15 +306,18 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                     label: Text("Normal"),
                                     selected: currentFilter == "normal",
                                     onSelected: (val) {
-                                      setState(() {
-                                        currentFilter = "normal";
-                                        emails =
-                                            emailsAll
-                                                .where(
-                                                  (e) => e.category == "normal",
-                                                )
-                                                .toList();
-                                      });
+                                      if (mounted) {
+                                        setState(() {
+                                          currentFilter = "normal";
+                                          emails =
+                                              emailsAll
+                                                  .where(
+                                                    (e) =>
+                                                        e.category == "normal",
+                                                  )
+                                                  .toList();
+                                        });
+                                      }
                                     },
                                   ),
                                 ],
@@ -381,19 +405,21 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                                 _loadingDetails
                                                     ? null
                                                     : () async {
-                                                      setState(() {
-                                                        int index = emails
-                                                            .indexOf(email);
-                                                        if (index != 1) {
-                                                          emails[index] = email
-                                                              .copyWith(
-                                                                is_read: true,
-                                                              );
+                                                      if (mounted) {
+                                                        setState(() {
+                                                          int index = emails
+                                                              .indexOf(email);
+                                                          if (index != 1) {
+                                                            emails[index] =
+                                                                email.copyWith(
+                                                                  is_read: true,
+                                                                );
 
-                                                          _loadingDetails =
-                                                              true;
-                                                        }
-                                                      });
+                                                            _loadingDetails =
+                                                                true;
+                                                          }
+                                                        });
+                                                      }
                                                       String? emailId =
                                                           email.conversationId;
                                                       if (emailId.isEmpty) {
@@ -413,9 +439,12 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                                             notToShowLoader:
                                                                 true,
                                                           );
-                                                      setState(() {
-                                                        _loadingDetails = false;
-                                                      });
+                                                      if (mounted) {
+                                                        setState(() {
+                                                          _loadingDetails =
+                                                              false;
+                                                        });
+                                                      }
                                                       if (threadData != null &&
                                                           threadData
                                                               .isNotEmpty) {

@@ -1,4 +1,3 @@
-
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsService {
@@ -8,8 +7,13 @@ class SettingsService {
   }
 
   static customSetting(Function(SharedPreferences sprefs) fn) async {
-        final prefs = await SharedPreferences.getInstance();
-        return await fn(prefs);
+    final prefs = await SharedPreferences.getInstance();
+    return await fn(prefs);
+  }
+
+  static Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString("access_token");
   }
 
   static getSetting(String key) async {

@@ -67,9 +67,11 @@ class MainActivity : FlutterActivity() {
                     val key = call.argument<String>("akey") ?: ""
                     SharedData.porcupineAK = key
 
-                    result.success("Done!")
-                }
+                    val keywordAsset = "your_keyword.ppn" // replace with actual asset name
+                    val isValid = HotWordDetector.checkKey(context, key, keywordAsset)
 
+                    result.success(mapOf("success" to isValid, "msg" to if (isValid) "Key format is corrected but not guranteed that it will be accepted by the server because there is a possibility that this key might have expired." else "Key format not correct!"))  // returns true or false to Flutter
+                }
                 "getInfo" -> {
                     val rawTasks = call.argument<List<MutableMap<String, Any>>>("tasks")
                     val taskList = rawTasks ?: emptyList()

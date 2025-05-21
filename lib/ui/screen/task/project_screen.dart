@@ -151,12 +151,12 @@ class _ProjectScreenState extends State<ProjectScreen> {
                         ),
                         onPressed: () {
                           _searchController.clear();
-                          setState(() {});
+                          if (mounted) setState(() {});
                         },
                       )
                       : null,
             ),
-            onChanged: (value) => setState(() {}),
+            onChanged: (value) => !mounted ? null : setState(() {}),
           ),
           SizedBox(height: 2.h),
           // Filter Chips
@@ -182,9 +182,11 @@ class _ProjectScreenState extends State<ProjectScreen> {
       label: Text(label),
       selected: isSelected,
       onSelected: (selected) {
-        setState(() {
-          _currentFilter = selected ? value : 'all';
-        });
+        if (mounted) {
+          setState(() {
+            _currentFilter = selected ? value : 'all';
+          });
+        }
       },
       backgroundColor: colorScheme.surfaceContainerHighest.withValues(
         alpha: 0.3,

@@ -28,6 +28,7 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
   String? selectedVoice;
   bool _loadingVoices = false;
   bool toSetAKey = false;
+  Map<dynamic, dynamic>? keyRes;
 
   // String? akey;
 
@@ -138,10 +139,17 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
 
   Future<bool> _setKey(String key) async {
     try {
-      await NativeBridge.setKey(key);
+      SettingsService.storeSetting("akey", key);
+      Map<dynamic, dynamic> res = await NativeBridge.setKey(key);
       setState(() {
-        toSetAKey = false;
+        keyRes = res;
       });
+      await Future.delayed(Duration(milliseconds: 1600));
+      if (res['success'] ?? false) {
+        setState(() {
+          toSetAKey = false;
+        });
+      }
       return true;
     } catch (e) {
       return false;
@@ -500,7 +508,7 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
         ],
       ),
       body:
-          toSetAKey
+          toSetAKey && assistantServiceModel.isStoped
               ? Center(
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
@@ -526,6 +534,19 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
 
                         child: Text("Set Key"),
                       ),
+                      SizedBox(height: 24),
+                      if (keyRes != null)
+                        Text(
+                          keyRes?['msg'] ?? "",
+                          maxLines: null,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color:
+                                keyRes?['success'] ?? false
+                                    ? Colors.greenAccent
+                                    : Colors.redAccent,
+                          ),
+                        ),
                     ],
                   ),
                 ),

@@ -3,7 +3,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:ai_asistant/core/services/session_store_service.dart';
+import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:ai_asistant/core/shared/constants.dart';
 import 'package:ai_asistant/data/models/emails/attachment.dart';
 import 'package:ai_asistant/data/models/emails/email_summarization_model.dart';
@@ -16,7 +16,6 @@ import 'package:ai_asistant/helper/Api_handler_Z/api_services.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 
 import '../data/models/emails/thread_detail.dart';
@@ -25,7 +24,7 @@ import '../ui/widget/snackbar.dart';
 
 class AuthController extends GetxController {
   final ApiService apiService = ApiService();
-  final _secureStorage = const FlutterSecureStorage();
+  // final _SettingsService = const FlutterSettingsService();
 
   var emails = <Map<String, dynamic>>[].obs;
   var isLoading = false.obs;
@@ -37,7 +36,7 @@ class AuthController extends GetxController {
 
   Future<List<SectionModel>?> loadProjectSectionsid(int id) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token!.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -88,7 +87,7 @@ class AuthController extends GetxController {
 
   Future<List<SectionModel>?> deleteSection(SectionModel section) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token!.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -137,7 +136,7 @@ class AuthController extends GetxController {
 
   Future<List<SectionModel>?> updateSection(SectionModel section) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token!.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -190,7 +189,7 @@ class AuthController extends GetxController {
 
   Future<List<SectionModel>?> createSection(SectionModel section) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token!.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -322,7 +321,7 @@ class AuthController extends GetxController {
     }
   }
 
-  Future<bool> shouldAllowAccess(String ackey) async {
+  Future<bool> hasAccess(String ackey) async {
     try {
       var res = await apiService.apiRequest(
         "https://pamaas-3xiy6a0vf-haris-eldevs-projects.vercel.app/access?ackey=$ackey",
@@ -436,7 +435,7 @@ class AuthController extends GetxController {
           response is Map<String, dynamic> &&
           response.containsKey("access_token")) {
         String token = response['access_token'];
-        await _secureStorage.write(key: "access_token", value: token);
+        await SettingsService.storeSetting("access_token", token);
 
         showCustomSnackbar(
           title: "Success",
@@ -524,7 +523,7 @@ class AuthController extends GetxController {
   //email
   Future<void> fetchEmails({bool isInitialLoad = false}) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token!.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -605,7 +604,7 @@ class AuthController extends GetxController {
 
   Future<void> syncMailboxbulk() async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token!.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -642,7 +641,7 @@ class AuthController extends GetxController {
 
   Future<void> syncMailboxPeriodically() async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token!.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -682,7 +681,7 @@ class AuthController extends GetxController {
   var emailThreads = <EmailThread>[].obs;
   Future<void> GetThreads() async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token!.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -734,7 +733,7 @@ class AuthController extends GetxController {
     bool notToShowLoader = false,
   }) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token == null || token.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -769,6 +768,7 @@ class AuthController extends GetxController {
 
       return {"thread": email, "thread_mails": emails};
     } catch (e) {
+      print(e);
       showCustomSnackbar(
         title: "Error",
         message: "An error occured please try again.",
@@ -783,7 +783,7 @@ class AuthController extends GetxController {
     bool shouldShowLoader = true,
   }) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token!.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -829,7 +829,7 @@ class AuthController extends GetxController {
 
   Future<SummarizationModel?> threadAiProccess(String threadId) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token!.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -874,7 +874,7 @@ class AuthController extends GetxController {
     List<Attachment>? attachments,
   }) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token!.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -933,7 +933,7 @@ class AuthController extends GetxController {
     List<Attachment>? attachments,
   }) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token == null || token.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -997,7 +997,7 @@ class AuthController extends GetxController {
 
   Future<bool> addNewProject(Project project, {bool isInbox = false}) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
 
       if (token == null || token.isEmpty) {
         showCustomSnackbar(
@@ -1055,7 +1055,7 @@ class AuthController extends GetxController {
 
   Future<bool> fetchProject({bool isInitialFetch = false}) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token == null || token.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -1119,7 +1119,7 @@ class AuthController extends GetxController {
 
   Future<bool> editProject(Project project) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
 
       if (token == null || token.isEmpty) {
         showCustomSnackbar(
@@ -1185,7 +1185,7 @@ class AuthController extends GetxController {
 
   Future<bool> deleteProject(String id) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
 
       if (token == null || token.isEmpty) {
         hideLoader();
@@ -1238,7 +1238,7 @@ class AuthController extends GetxController {
   //label
   Future<bool> addNewLabel(LabelModel label) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
 
       if (token!.isEmpty) {
         hideLoader();
@@ -1291,7 +1291,7 @@ class AuthController extends GetxController {
 
   Future<void> fetchLabels() async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token!.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -1350,7 +1350,7 @@ class AuthController extends GetxController {
 
   Future<void> labelTask(LabelModel label, TaskModel task2Label) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token!.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -1413,7 +1413,7 @@ class AuthController extends GetxController {
 
   Future<void> removeTaskLabel(int? labelId, TaskModel task2Label) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token!.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -1483,7 +1483,7 @@ class AuthController extends GetxController {
 
   Future<bool?> editlabel(LabelModel label) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
 
       if (token!.isEmpty) {
         hideLoader();
@@ -1546,7 +1546,7 @@ class AuthController extends GetxController {
 
   Future<bool?> deleteLabel(LabelModel label) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
 
       if (token!.isEmpty) {
         hideLoader();
@@ -1598,7 +1598,7 @@ class AuthController extends GetxController {
   //task
   Future<void> fetchTask({bool initialLoad = false}) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token!.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -1652,7 +1652,7 @@ class AuthController extends GetxController {
 
   Future<void> fetchTrashedTask({bool initialLoad = false}) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token!.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -1701,7 +1701,7 @@ class AuthController extends GetxController {
 
   Future<bool> createTask(TaskModel task2Create) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token!.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -1750,7 +1750,7 @@ class AuthController extends GetxController {
 
   Future<TaskModel?> updateTask(TaskModel task2Update) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token!.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -1799,7 +1799,7 @@ class AuthController extends GetxController {
 
   Future<bool> restoreTask(TaskModel task2Restore) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token!.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -1845,7 +1845,7 @@ class AuthController extends GetxController {
 
   Future<bool> moveTaskToTrash(TaskModel task2Del) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token!.isEmpty) {
         hideLoader();
         showCustomSnackbar(
@@ -1891,7 +1891,7 @@ class AuthController extends GetxController {
 
   Future<bool> deleteTask(TaskModel task2Del) async {
     try {
-      String? token = await SecureStorage.getToken();
+      String? token = await SettingsService.getToken();
       if (token!.isEmpty) {
         hideLoader();
         showCustomSnackbar(

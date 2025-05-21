@@ -56,6 +56,29 @@ class HotWordDetector(
         }
     }
 
+    companion object {
+        fun checkKey(context: Context, key: String, keywordAssetName: String): Boolean {
+            return try {
+                val testManager = PorcupineManager.Builder()
+                    .setKeywordPath(keywordAssetName)
+                    .setSensitivity(0.5f)
+                    .setAccessKey(key)
+                    .build(context) { /* no-op */ }
+
+                testManager.start()
+                testManager.stop()
+                testManager.delete()
+
+                Log.i("HWD", "Access key is valid")
+                true
+            } catch (e: Exception) {
+                Log.e("HWD", "Access key check failed: ${e.message}")
+                false
+            }
+        }
+    }
+
+
     fun stop() {
         try {
             porcupineManager?.stop()

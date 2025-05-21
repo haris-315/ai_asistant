@@ -1,8 +1,11 @@
+// ignore_for_file: unused_field
+
 import 'dart:convert';
 
 import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/ui/screen/home/emails/newemail_screen.dart';
 import 'package:ai_asistant/ui/screen/home/emails/summarization_screen.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:html/parser.dart' show parse;
@@ -62,14 +65,18 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
                 if (data['type'] == 'contentHeight') {
                   final newHeight = double.parse(data['height'].toString());
                   if (mounted) {
-                    setState(() {
-                      _webViewHeight = newHeight + 20; // Add padding
-                      _isWebViewLoading = false;
-                    });
+                    if (mounted) {
+                      setState(() {
+                        _webViewHeight = newHeight + 20; // Add padding
+                        _isWebViewLoading = false;
+                      });
+                    }
                   }
                 }
               } catch (e) {
-                print('Error parsing height: $e');
+                if (kDebugMode) {
+                  print('Error parsing height: $e');
+                }
               }
             },
           );
@@ -120,28 +127,34 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
                   Center(
                     child: ElevatedButton(
                       onPressed: () async {
-                        setState(() {
-                          isLoadingQuickReplies = true;
-                        });
+                        if (mounted) {
+                          setState(() {
+                            isLoadingQuickReplies = true;
+                          });
+                        }
 
                         var extension = await Get.find<AuthController>()
                             .emailAiProccess(
-                              emails.last.id,
+                              emails.last.id ?? "",
                               shouldShowLoader: false,
                             );
                         if (extension != null) {
+                          if (mounted) {
+                            setState(() {
+                              emails[emails.length - 1] = emails.last.copyWith(
+                                summary: extension.summary,
+                                quick_replies: extension.quick_replies,
+                                ai_draft: extension.ai_draft,
+                                topic: extension.topic,
+                              );
+                            });
+                          }
+                        }
+                        if (mounted) {
                           setState(() {
-                            emails[emails.length - 1] = emails.last.copyWith(
-                              summary: extension.summary,
-                              quick_replies: extension.quick_replies,
-                              ai_draft: extension.ai_draft,
-                              topic: extension.topic,
-                            );
+                            isLoadingQuickReplies = false;
                           });
                         }
-                        setState(() {
-                          isLoadingQuickReplies = false;
-                        });
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: colorScheme.primary,
@@ -154,7 +167,7 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         elevation: 2,
-                        shadowColor: Colors.black.withOpacity(0.2),
+                        shadowColor: Colors.black.withValues(alpha: 0.2),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -294,8 +307,8 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
                 radius: 20,
                 backgroundColor: _getAvatarColor(email.senderName),
                 child: Text(
-                  email.senderName.isNotEmpty
-                      ? email.senderName[0].toUpperCase()
+                  email.senderName!.isNotEmpty
+                      ? (email.senderName ?? "")[0].toUpperCase()
                       : "?",
                   style: textTheme.titleLarge?.copyWith(
                     color: colorScheme.onPrimary,
@@ -311,7 +324,7 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            email.senderName,
+                            email.senderName ?? "",
                             style: textTheme.bodyLarge?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
@@ -321,7 +334,7 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            if (email.hasAttachments)
+                            if (email.hasAttachments ?? false)
                               Icon(
                                 Icons.attach_email,
                                 color: Colors.grey[600],
@@ -329,7 +342,7 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
                               ),
                             SizedBox(width: 5),
                             Text(
-                              _formatDate(email.receivedAt),
+                              _formatDate(email.receivedAt ?? DateTime.now()),
                               style: textTheme.bodySmall?.copyWith(
                                 color: colorScheme.onSurface.withValues(
                                   alpha: 0.6,
@@ -371,7 +384,7 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
                                     () => EmailSummaryScreen(
                                       toSummarize: EmailSummarizable(
                                         hasSummary: email.summary,
-                                        emailId: email.id,
+                                        emailId: email.id ?? "",
                                       ),
                                     ),
                                   );
@@ -425,7 +438,7 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
                                 ),
                               ),
                               Text(
-                                "to ${email.recipients.join(', ')}",
+                                "to ${(email.recipients ?? ['', '']).join(', ')}",
                                 style: textTheme.bodySmall?.copyWith(
                                   color: colorScheme.onSurface.withValues(
                                     alpha: 0.6,
@@ -445,11 +458,11 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
             ],
           ),
           SizedBox(height: 2.h),
-          if (email.subject.isNotEmpty)
+          if (email.subject != null && email.subject!.isNotEmpty)
             Padding(
               padding: EdgeInsets.only(bottom: 1.h),
               child: Text(
-                email.subject,
+                email.subject ?? "",
                 style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -457,7 +470,10 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
             ),
           Padding(
             padding: EdgeInsets.symmetric(vertical: 0.8.h),
-            child: _buildEmailBody(email.bodyHtml, context),
+            child: _buildEmailBody(
+              email.bodyHtml ?? "<h1>Email has no body</h1>",
+              context,
+            ),
           ),
         ],
       ),
@@ -602,10 +618,10 @@ String generateForwardedThread(List<EmailMessage> emails) {
         return '''
 ---------- Forwarded message ----------
 From: ${email.sender}
-To: ${email.recipients.join(', ')}
+To: ${(email.recipients ?? ['', '']).join(', ')}
 Subject: ${email.subject}
 
-${_stripHtmlTags(email.bodyHtml)}
+${_stripHtmlTags(email.bodyHtml ?? "")}
 ''';
       })
       .join('\n\n');
@@ -641,7 +657,7 @@ class _EmailWebViewWidgetState extends State<EmailWebViewWidget> {
               try {
                 final height = double.tryParse(message.message);
                 if (height != null && mounted) {
-                  setState(() => _webViewHeight = height + 20);
+                  if (mounted) setState(() => _webViewHeight = height + 20);
                 }
               } catch (_) {}
             },

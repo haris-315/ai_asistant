@@ -10,6 +10,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
+import java.time.ZonedDateTime
 
 class OpenAIClient(
     private val context: Context,
@@ -33,8 +34,10 @@ Your response **must always** be a **strict JSON object**, following these rules
      "description": "task description",
      "is_completed": false,
      "priority": 1 to 3,
-     "project_id": INT
-   }
+     "project_id": INT,
+     "due_date" : null or "ISO String of the due date"
+     "reminder_at": null or "ISO String of time(ten mins less than due_date)"
+     }
 3. If the user requests a **project**, include a "project" object with:
    {
      "name": "project name",
@@ -53,9 +56,12 @@ Rules:
 - NEVER add extra fields.
 - NEVER change "view_style" — it must always be "list".
 - "is_favorite" must always be false unless the user specifically says to favorite the project.
+- If user specify the task time then you must also iniclude the due_date along with time in ISO format and the reminder_at
 - If no project matches, assign task to "Inbox" with default id. and if asked to assign to special project, here are the available projects ${projects.toString()}
 - For app opening requests, you MUST provide the exact package name (e.g., "com.google.android.youtube" for YouTube).
 - DO NOT include markdown or explanations — only a single JSON object as a string.
+SOME INFO FOR YOR:
+- Current Time and Today's Date ${ZonedDateTime.now().toString()}
 """.trimIndent()
 
     fun getMessageHistory(): List<JSONObject> = messages.toList()
@@ -67,7 +73,7 @@ Rules:
         model: String = "gpt-4-turbo",
         onResponse: (String) -> Unit,
         onError: (String) -> Unit,
-//        onStandBy: (String) -> Unit
+//        onStandBy: () -> Unit
     ) {
         messages.add(JSONObject().apply {
             put("role", "user")
@@ -142,7 +148,7 @@ Rules:
                         }
                     }
 //                    if (toStandBy != null) {
-////                        onStandBy()
+//                        onStandBy()
 //
 //                    }
 

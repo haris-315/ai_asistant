@@ -11,5 +11,6 @@ object ServiceManager {
     var recognizedText : String? = ""
     var initializing : Boolean = false
     var ttsVoices: List<Voice> = mutableListOf<Voice>()
+    var ppnKeyResult: Map<String, Any> = mutableMapOf("success" to true, "msg" to "Key Accepted!" );
 
 }

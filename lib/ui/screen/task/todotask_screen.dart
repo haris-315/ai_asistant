@@ -35,9 +35,11 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
 
   Future<void> _loadTasks() async {
     await _controller.fetchTask(initialLoad: true);
-    setState(() {
+    if (mounted) {
+      setState(() {
       isLoading = false;
     });
+    }
   }
 
   @override
@@ -330,12 +332,12 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
                         ),
                         onPressed: () {
                           _searchController.clear();
-                          setState(() {});
+                          if (mounted) setState(() {});
                         },
                       )
                       : null,
             ),
-            onChanged: (value) => setState(() {}),
+            onChanged: (value) => !mounted ? null : setState(() {}),
           ),
           if (isTrashing) CustomLinearIndicator(isDangrousAction: true),
           SizedBox(height: 2.h),
@@ -373,7 +375,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
     return FilterChip(
       label: Text(label),
       selected: isSelected,
-      onSelected: (selected) => setState(() => _currentFilter = value),
+      onSelected: (selected) =>  !mounted ? null : setState(() => _currentFilter = value),
       backgroundColor: colorScheme.surface,
       selectedColor: colorScheme.primary.withValues(alpha: 0.2),
       labelStyle: TextStyle(
@@ -429,7 +431,7 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
               ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
               : null,
       onTap: () {
-        setState(() => _currentSort = value);
+        if (mounted) setState(() => _currentSort = value);
         Navigator.pop(context);
       },
     );
@@ -732,9 +734,9 @@ class _TodotaskScreenState extends State<TodotaskScreen> {
   }
 
   void _trashTask(TaskModel task) async {
-    setState(() => isTrashing = true);
+    if (mounted) setState(() => isTrashing = true);
     await _controller.moveTaskToTrash(task);
-    setState(() => isTrashing = false);
+    if (mounted) setState(() => isTrashing = false);
   }
 
   Color _getPriorityColor(int priority) {

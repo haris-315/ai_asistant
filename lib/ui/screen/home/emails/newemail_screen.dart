@@ -43,7 +43,7 @@ class _NewMessageScreenState extends State<NewMessageScreen> {
   List<Attachment> attachments = [];
 
   void setControllers(EmailMessage email) {
-    tocontroller.text = email.sender;
+    tocontroller.text = email.sender ?? "";
     subjectcontroller.text = "Re: ${email.subject}";
     bodycontroller.text = widget.body;
   }

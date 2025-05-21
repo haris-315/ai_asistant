@@ -95,9 +95,9 @@ class NativeBridge {
     }
   }
 
-  static Future<String> setKey(String key) async {
+  static Future<Map<dynamic,dynamic>> setKey(String key) async {
     try {
-      final String result = await _methodChannel.invokeMethod("setKey", {
+      final Map<dynamic,dynamic> result = await _methodChannel.invokeMethod("setKey", {
         "akey": key,
       });
       // print(result);

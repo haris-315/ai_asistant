@@ -40,9 +40,11 @@ class _HomeContentState extends State<HomeContent> {
   }
 
   void handleLoading() {
-    setState(() {
-      isSomeThingLoading = !isSomeThingLoading;
-    });
+    if (mounted) {
+      setState(() {
+        isSomeThingLoading = !isSomeThingLoading;
+      });
+    }
   }
 
   @override

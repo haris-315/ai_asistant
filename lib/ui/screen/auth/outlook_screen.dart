@@ -70,11 +70,13 @@
 //   }
 // }
 import 'dart:convert';
+
+import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 import 'package:get/get.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+
 import '../home/dashboard.dart';
 
 class OutlookScreen extends StatefulWidget {
@@ -87,7 +89,7 @@ class OutlookScreen extends StatefulWidget {
 class _OutlookScreenState extends State<OutlookScreen> {
   late WebViewController _controller;
   bool isLoading = true;
-  final _secureStorage = const FlutterSecureStorage();
+  // final _secureStorage = const FlutterSecureStorage();
 
   @override
   void initState() {
@@ -99,7 +101,10 @@ class _OutlookScreenState extends State<OutlookScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Outlook", style: TextStyle(color: Colors.white, fontSize: 18)),
+        title: const Text(
+          "Outlook",
+          style: TextStyle(color: Colors.white, fontSize: 18),
+        ),
         backgroundColor: Colors.blue,
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
@@ -107,34 +112,36 @@ class _OutlookScreenState extends State<OutlookScreen> {
       body: Stack(
         children: [
           WebViewWidget(controller: _controller),
-          if (isLoading)
-            const Center(
-              child: CircularProgressIndicator(),
-            ),
+          if (isLoading) const Center(child: CircularProgressIndicator()),
         ],
       ),
     );
   }
 
   void initializeWebView() {
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(Colors.white)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (url) {
-            setState(() => isLoading = true);
-          },
-          onPageFinished: (url) {
-            setState(() => isLoading = false);
-            checkForToken(url);
-          },
-          onNavigationRequest: (request) {
-            return NavigationDecision.navigate;
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse("https://ai-assistant-backend-dk0q.onrender.com/auth/outlook/login"));
+    _controller =
+        WebViewController()
+          ..setJavaScriptMode(JavaScriptMode.unrestricted)
+          ..setBackgroundColor(Colors.white)
+          ..setNavigationDelegate(
+            NavigationDelegate(
+              onPageStarted: (url) {
+                setState(() => isLoading = true);
+              },
+              onPageFinished: (url) {
+                setState(() => isLoading = false);
+                checkForToken(url);
+              },
+              onNavigationRequest: (request) {
+                return NavigationDecision.navigate;
+              },
+            ),
+          )
+          ..loadRequest(
+            Uri.parse(
+              "https://ai-assistant-backend-dk0q.onrender.com/auth/outlook/login",
+            ),
+          );
   }
 
   void checkForToken(String url) async {
@@ -149,7 +156,11 @@ class _OutlookScreenState extends State<OutlookScreen> {
           }
         }
 
-        String rawResponse = await _controller.runJavaScriptReturningResult("document.body.innerText") as String;
+        String rawResponse =
+            await _controller.runJavaScriptReturningResult(
+                  "document.body.innerText",
+                )
+                as String;
 
         if (kDebugMode) {
           print("Raw Response: $rawResponse");
@@ -158,7 +169,7 @@ class _OutlookScreenState extends State<OutlookScreen> {
         String extractedToken = extractToken(rawResponse);
 
         if (extractedToken.isNotEmpty) {
-          await _secureStorage.write(key: "access_token", value: extractedToken);
+          await SettingsService.storeSetting("access_token", extractedToken);
           if (kDebugMode) {
             print("Stored Token: $extractedToken");
           }
@@ -171,7 +182,6 @@ class _OutlookScreenState extends State<OutlookScreen> {
             print("Error: Token extraction failed");
           }
         }
-
       } catch (e) {
         if (kDebugMode) {
           print("Error extracting token: $e");
@@ -182,7 +192,10 @@ class _OutlookScreenState extends State<OutlookScreen> {
 
   String extractToken(String jsonResponse) {
     try {
-      String cleanJson = jsonResponse.replaceAll("\\\"", "\"").replaceAll("\"{", "{").replaceAll("}\"", "}");
+      String cleanJson = jsonResponse
+          .replaceAll("\\\"", "\"")
+          .replaceAll("\"{", "{")
+          .replaceAll("}\"", "}");
 
       Map<String, dynamic> jsonMap = jsonDecode(cleanJson);
 

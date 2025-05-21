@@ -339,12 +339,12 @@ class _TasksTrashScreenState extends State<TasksTrashScreen> {
                         ),
                         onPressed: () {
                           _searchController.clear();
-                          setState(() {});
+                          if (mounted) setState(() {});
                         },
                       )
                       : null,
             ),
-            onChanged: (value) => setState(() {}),
+            onChanged: (value) => !mounted ? null : setState(() {}),
           ),
           SizedBox(height: 2.h),
           if (isDeleting) CustomLinearIndicator(isDangrousAction: true),
@@ -512,23 +512,31 @@ class _TasksTrashScreenState extends State<TasksTrashScreen> {
   }
 
   void _restoreTask(TaskModel task) async {
-    setState(() {
+    if (mounted) {
+      setState(() {
       isRestroing = true;
     });
+    }
     final _ = await _controller.restoreTask(task);
-    setState(() {
+    if (mounted) {
+      setState(() {
       isRestroing = false;
     });
+    }
   }
 
   void _deleteTask(TaskModel task) async {
-    setState(() {
+    if (mounted) {
+      setState(() {
       isDeleting = true;
     });
+    }
     final _ = await _controller.deleteTask(task);
-    setState(() {
+    if (mounted) {
+      setState(() {
       isDeleting = false;
     });
+    }
   }
 
   Color _getPriorityColor(int priority) {

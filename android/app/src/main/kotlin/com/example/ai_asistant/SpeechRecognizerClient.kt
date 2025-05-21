@@ -53,7 +53,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
     ) * 2
     private val processingTimeoutMs = 10000L
     private val connectionTimeoutMs = 10000L
-    private val inactivityTimeoutMs = 30000L // 30 seconds
+    private val inactivityTimeoutMs = 30000L
     private val maxReconnectAttempts = 3
     private var reconnectAttempts = 0
     private val commandBuffer = StringBuilder()
@@ -65,16 +65,28 @@ class SpeechRecognizerClient private constructor(context: Context) {
         "Yes, I'm listening. Go ahead.",
         "Hey there! Need something?",
         "At your service. What do you need?",
-        "Absolutely! How can I be of help?",
+        "How can I be of help?",
         "Ready when you are. What's on your mind?"
     )
-    private val ttsHelper by lazy {
+
+    private var ttsHelper: TextToSpeechHelper? = null
+
+    init {
         context?.let {
-            TextToSpeechHelper(it) { voices ->
+            ttsHelper = TextToSpeechHelper(it) { voices ->
                 Log.d("TTS", "TTS speaking complete")
                 isTtsSpeaking = false
                 if (ServiceManager.ttsVoices.isEmpty()) ServiceManager.ttsVoices = voices
                 if (state == AssistantState.SPEAKING) transitionTo(AssistantState.LISTENING)
+            }
+
+            CoroutineScope(Dispatchers.Main).launch {
+                val initialized = ttsHelper?.waitForInitialization(3000L) ?: false
+                if (!initialized) {
+                    Log.w("SpeechRecognizerClient", "TTS preinitialization failed, retrying")
+                    ttsHelper?.reinitialize()
+                    ttsHelper?.waitForInitialization(3000L)
+                }
             }
         }
     }
@@ -83,12 +95,23 @@ class SpeechRecognizerClient private constructor(context: Context) {
         context?.let {
             try {
                 HotWordDetector(context = it, keywordAssetName = "hey_jarvis.ppn") {
-                    if (state == AssistantState.STANDBY) {
-                        Log.d("HWD", "Hotword detected!")
-                        transitionTo(AssistantState.SPEAKING)
-                        ttsHelper?.speak(wakeResponses.random())
-                    }
-                }
+    if (state == AssistantState.STANDBY) {
+        Log.d("HWD", "Hotword detected!")
+
+        // Ensure TTS is ready before transitioning
+        CoroutineScope(Dispatchers.Main).launch {
+            val ttsReady = ttsHelper?.waitForInitialization(2000L) == true
+            if (ttsReady) {
+                transitionTo(AssistantState.SPEAKING)
+                ttsHelper?.speak(wakeResponses.random())
+            } else {
+                Log.e("HWD", "TTS still not ready. Cannot transition to SPEAKING.")
+                ttsHelper?.reinitialize()
+                ttsHelper?.waitForInitialization(2000L)
+            }
+        }
+    }
+}
             } catch (e: Exception) {
                 Log.e("SpeechRecognizerClient", "Failed to initialize HotWordDetector: ${e.message}")
                 null
@@ -127,18 +150,6 @@ class SpeechRecognizerClient private constructor(context: Context) {
         }
 
         CoroutineScope(Dispatchers.Main).launch {
-            // Initialize TTS
-            if (!ttsHelper?.waitForInitialization(5000L)!!) {
-                Log.w("SpeechRecognizerClient", "TTS initialization failed, retrying")
-                ttsHelper?.reinitialize()
-                if (!ttsHelper?.waitForInitialization(5000L)!!) {
-                    Log.e("SpeechRecognizerClient", "TTS initialization failed")
-                    ttsHelper?.speak("Text-to-speech setup failed.")
-                    onInitialized(null)
-                    return@launch
-                }
-            }
-
             // Start hotword detection
             try {
                 hwDetector?.start() ?: run {
@@ -210,7 +221,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
             }
             AssistantState.SPEAKING -> {
                 isTtsSpeaking = true
-                stopAudioStreaming() // Stop recording to avoid capturing TTS
+                stopAudioStreaming()
             }
         }
     }
@@ -302,7 +313,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
                                     commandBuffer.append(" ").append(transcript)
                                     Log.d("SpeechRecognizerClient", "Utterance finalized: ${commandBuffer.toString()}")
                                     ServiceManager.recognizedText = transcript
-                                    com.example.ai_asistant.SpeechResultListener.sendResult(commandBuffer.toString())
+                                    SpeechResultListener.sendResult(commandBuffer.toString())
                                     transitionTo(AssistantState.PROCESSING)
                                     processCommand(commandBuffer.toString().trim())
                                     commandBuffer.clear()

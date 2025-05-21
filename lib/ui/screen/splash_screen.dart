@@ -1,11 +1,11 @@
 // ignore_for_file: library_private_types_in_public_api
 
+import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:ai_asistant/ui/screen/home/dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:page_transition/page_transition.dart';
 
-import '../../core/services/session_store_service.dart';
 import 'auth/login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -61,7 +61,7 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _checkAuthStatus() async {
     await Future.delayed(const Duration(milliseconds: 800));
 
-    final token = await SecureStorage.getToken();
+    final token = await SettingsService.getToken();
     if (!mounted) return;
 
     Navigator.pushReplacement(

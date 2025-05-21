@@ -41,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final HomeController controller = Get.put(HomeController());
   final AuthController authcontroller = Get.find<AuthController>();
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+  final PageController pageController = PageController();
 
   @override
   void initState() {
@@ -127,36 +128,8 @@ class _HomeScreenState extends State<HomeScreen> {
           onAddTask: _handleAddTask,
         ),
         drawer: const SideMenu(),
-        body: SafeArea(
-          child: AnimatedSwitcher(
-            duration: Duration(milliseconds: 400),
-            switchInCurve: Curves.easeInOut,
-            switchOutCurve: Curves.easeInOut,
-            transitionBuilder: (child, animation) {
-              final rotateAnim = Tween(begin: 1.0, end: 0.0).animate(animation);
-              final slideAnim = Tween<Offset>(
-                begin: const Offset(1, 0),
-                end: Offset.zero,
-              ).animate(animation);
+        body: SafeArea(child: _buildScreen()),
 
-              return AnimatedBuilder(
-                animation: animation,
-                child: child,
-                builder: (context, child) {
-                  return Transform(
-                    alignment: Alignment.center,
-                    transform:
-                        Matrix4.identity()
-                          ..setEntry(3, 2, 0.001) // perspective
-                          ..rotateY(rotateAnim.value * 0.5), // rotate
-                    child: SlideTransition(position: slideAnim, child: child),
-                  );
-                },
-              );
-            },
-            child: _buildScreen(),
-          ),
-        ),
         bottomNavigationBar: AnimatedNotchBottomBar(
           kBottomRadius: 18,
           kIconSize: 22,
@@ -285,7 +258,7 @@ class _SpeedDialFabState extends State<SpeedDialFab>
             label: "Trash",
             color: Colors.redAccent,
             onTap: () {
-              setState(() => isExpanded = false);
+              if (mounted) if (mounted) setState(() => isExpanded = false);
               _animationController.reverse();
               Navigator.push(
                 context,
@@ -302,7 +275,7 @@ class _SpeedDialFabState extends State<SpeedDialFab>
             label: "Quick Task",
             color: Colors.green,
             onTap: () {
-              setState(() => isExpanded = false);
+              if (mounted) if (mounted) setState(() => isExpanded = false);
               _animationController.reverse();
               widget.onAddTask();
             },
@@ -317,7 +290,7 @@ class _SpeedDialFabState extends State<SpeedDialFab>
             borderRadius: BorderRadius.circular(16),
           ),
           onPressed: () {
-            setState(() => isExpanded = !isExpanded);
+            if (mounted) if (mounted) setState(() => isExpanded = !isExpanded);
             isExpanded
                 ? _animationController.forward()
                 : _animationController.reverse();
@@ -416,3 +389,36 @@ class _SpeedDialFabState extends State<SpeedDialFab>
     );
   }
 }
+
+
+
+        // SafeArea(
+        // child: AnimatedSwitcher(
+        //   duration: Duration(milliseconds: 400),
+        //   switchInCurve: Curves.easeInOut,
+        //   switchOutCurve: Curves.easeInOut,
+        //   transitionBuilder: (child, animation) {
+        //     final rotateAnim = Tween(begin: 1.0, end: 0.0).animate(animation);
+        //     final slideAnim = Tween<Offset>(
+        //       begin: const Offset(1, 0),
+        //       end: Offset.zero,
+        //     ).animate(animation);
+
+        //     return AnimatedBuilder(
+        //       animation: animation,
+        //       child: child,
+        //       builder: (context, child) {
+        //         return Transform(
+        //           alignment: Alignment.center,
+        //           transform:
+        //               Matrix4.identity()
+        //                 ..setEntry(3, 2, 0.001) // perspective
+        //                 ..rotateY(rotateAnim.value * 0.5), // rotate
+        //           child: SlideTransition(position: slideAnim, child: child),
+        //         );
+        //       },
+        //     );
+        //   },
+        //   child: _buildScreen(),
+        // ),
+        // ),
