@@ -8,22 +8,37 @@ import android.util.Log
 import com.example.openai.SharedData
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
+import java.lang.ref.WeakReference
 import java.util.Locale
 
 class TextToSpeechHelper(
-    private val context: Context,
+    context: Context,
     private val onDone: (List<Voice>) -> Unit
 ) {
+    private val contextRef = WeakReference(context.applicationContext)
     private var tts: TextToSpeech? = null
     private var isInitialized = false
+    private val initTimeoutMs = 10000L
+    private val maxInitAttempts = 3
+    private var initializationInProgress = false
 
     init {
         initializeTTS()
     }
 
-    private fun initializeTTS() {
+    private fun initializeTTS(attempt: Int = 1) {
+        if (initializationInProgress) {
+            Log.d("TTS", "TTS initialization already in progress")
+            return
+        }
+        initializationInProgress = true
+        val ctx = contextRef.get() ?: run {
+            Log.e("TTS", "Context is null, cannot initialize TTS")
+            initializationInProgress = false
+            return
+        }
         try {
-            tts = TextToSpeech(context) { status ->
+            tts = TextToSpeech(ctx) { status ->
                 if (status == TextToSpeech.SUCCESS) {
                     isInitialized = true
                     tts?.language = Locale.US
@@ -56,16 +71,45 @@ class TextToSpeechHelper(
                         }
                     })
 
-                    Log.d("TTS", "TTS initialized successfully")
+                    Log.d("TTS", "TTS initialized successfully on attempt $attempt")
+                    preWarm()
+                    initializationInProgress = false
                 } else {
-                    Log.e("TTS", "TTS initialization failed: $status")
+                    Log.e("TTS", "TTS initialization failed with status $status on attempt $attempt")
                     isInitialized = false
+                    retryInitialization(attempt)
                 }
             }
         } catch (e: Exception) {
-            Log.e("TTS", "TTS initialization crashed: ${e.message}")
+            Log.e("TTS", "TTS initialization crashed on attempt $attempt: ${e.message}")
             isInitialized = false
+            retryInitialization(attempt)
         }
+    }
+
+    private fun preWarm() {
+        if (!isInitialized) {
+            Log.w("TTS", "Cannot pre-warm TTS: not initialized")
+            return
+        }
+        try {
+            tts?.setSpeechRate(1.0f)
+            tts?.setPitch(1.0f)
+            tts?.speak("", TextToSpeech.QUEUE_FLUSH, null, "prewarm_${System.currentTimeMillis()}")
+            Log.d("TTS", "TTS pre-warmed with silent utterance")
+        } catch (e: Exception) {
+            Log.e("TTS", "Pre-warm failed: ${e.message}")
+        }
+    }
+
+    private fun retryInitialization(attempt: Int) {
+        if (attempt >= maxInitAttempts) {
+            Log.e("TTS", "Max TTS initialization attempts reached")
+            initializationInProgress = false
+            return
+        }
+        Log.d("TTS", "Retrying TTS initialization, attempt ${attempt + 1}")
+        initializeTTS(attempt + 1)
     }
 
     fun reinitialize() {
@@ -76,8 +120,12 @@ class TextToSpeechHelper(
 
     fun isInitialized(): Boolean = isInitialized
 
-    suspend fun waitForInitialization(timeoutMs: Long): Boolean {
+    suspend fun waitForInitialization(timeoutMs: Long = initTimeoutMs): Boolean {
         if (isInitialized) return true
+        if (!initializationInProgress) {
+            Log.w("TTS", "TTS initialization not in progress, triggering reinitialization")
+            reinitialize()
+        }
         return withTimeoutOrNull(timeoutMs) {
             while (!isInitialized) {
                 delay(100)
@@ -88,7 +136,7 @@ class TextToSpeechHelper(
 
     fun speak(text: String) {
         if (!isInitialized) {
-            Log.e("TTS", "TTS not initialized")
+            Log.e("TTS", "TTS not initialized, attempting reinitialization")
             reinitialize()
             return
         }
@@ -101,6 +149,7 @@ class TextToSpeechHelper(
             Log.d("TTS", "Speaking: $text")
         } catch (e: Exception) {
             Log.e("TTS", "Speak failed: ${e.message}")
+            reinitialize()
         }
     }
 
@@ -126,12 +175,14 @@ class TextToSpeechHelper(
 
     fun shutdown() {
         try {
+            tts?.stop()
             tts?.shutdown()
         } catch (e: Exception) {
             Log.e("TTS", "Shutdown failed: ${e.message}")
         } finally {
             tts = null
             isInitialized = false
+            initializationInProgress = false
             Log.d("TTS", "TTS shutdown")
         }
     }

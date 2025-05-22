@@ -37,6 +37,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
 
     private val contextRef = WeakReference(context.applicationContext)
     private val context: Context? get() = contextRef.get()
+    private var ttsHelper: TextToSpeechHelper? = null
 
     private enum class AssistantState {
         STANDBY, LISTENING, PROCESSING, SPEAKING
@@ -69,52 +70,20 @@ class SpeechRecognizerClient private constructor(context: Context) {
         "Ready when you are. What's on your mind?"
     )
 
-    private var ttsHelper: TextToSpeechHelper? = null
+    private var hwDetector: HotWordDetector? = null
 
     init {
         context?.let {
+            // Initialize TTS on background thread
+            ServiceManager.isWarmingTts = true
             ttsHelper = TextToSpeechHelper(it) { voices ->
-                Log.d("TTS", "TTS speaking complete")
+                Log.d("TTS", "TTS speaking complete at ${System.currentTimeMillis()}")
                 isTtsSpeaking = false
                 if (ServiceManager.ttsVoices.isEmpty()) ServiceManager.ttsVoices = voices
-                if (state == AssistantState.SPEAKING) transitionTo(AssistantState.LISTENING)
-            }
-
-            CoroutineScope(Dispatchers.Main).launch {
-                val initialized = ttsHelper?.waitForInitialization(3000L) ?: false
-                if (!initialized) {
-                    Log.w("SpeechRecognizerClient", "TTS preinitialization failed, retrying")
-                    ttsHelper?.reinitialize()
-                    ttsHelper?.waitForInitialization(3000L)
+                ServiceManager.isWarmingTts = false
+                if (state == AssistantState.SPEAKING) {
+                    transitionTo(AssistantState.LISTENING)
                 }
-            }
-        }
-    }
-
-    private val hwDetector by lazy {
-        context?.let {
-            try {
-                HotWordDetector(context = it, keywordAssetName = "hey_jarvis.ppn") {
-    if (state == AssistantState.STANDBY) {
-        Log.d("HWD", "Hotword detected!")
-
-        // Ensure TTS is ready before transitioning
-        CoroutineScope(Dispatchers.Main).launch {
-            val ttsReady = ttsHelper?.waitForInitialization(2000L) == true
-            if (ttsReady) {
-                transitionTo(AssistantState.SPEAKING)
-                ttsHelper?.speak(wakeResponses.random())
-            } else {
-                Log.e("HWD", "TTS still not ready. Cannot transition to SPEAKING.")
-                ttsHelper?.reinitialize()
-                ttsHelper?.waitForInitialization(2000L)
-            }
-        }
-    }
-}
-            } catch (e: Exception) {
-                Log.e("SpeechRecognizerClient", "Failed to initialize HotWordDetector: ${e.message}")
-                null
             }
         }
     }
@@ -133,6 +102,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
     private val client = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(0, TimeUnit.MILLISECONDS)
+        .pingInterval(30, TimeUnit.SECONDS)
         .build()
 
     fun initialize(onInitialized: (TextToSpeechHelper?) -> Unit) {
@@ -150,14 +120,85 @@ class SpeechRecognizerClient private constructor(context: Context) {
         }
 
         CoroutineScope(Dispatchers.Main).launch {
-            // Start hotword detection
+            // Wait for TTS initialization
+            if (!ttsHelper?.waitForInitialization(10000L)!!) {
+                Log.e("SpeechRecognizerClient", "TTS initialization failed")
+                ttsHelper?.speak("Text-to-speech setup failed.")
+                onInitialized(null)
+                return@launch
+            }
+
+            // Initialize HotWordDetector and wait for completion
             try {
-                hwDetector?.start() ?: run {
-                    Log.e("SpeechRecognizerClient", "HotWordDetector is null")
-                    ttsHelper?.speak("Hotword detection setup failed.")
+                if (SharedData.porcupineAK.isNullOrBlank()) {
+                    Log.e("SpeechRecognizerClient", "Picovoice access key is missing")
+                    ttsHelper?.speak("Hotword detection key is missing.")
                     onInitialized(null)
                     return@launch
                 }
+
+                // Verify asset exists
+                val assets = context!!.assets.list("")?.toList() ?: emptyList()
+                if (!assets.contains("hey_jarvis.ppn")) {
+                    Log.e("SpeechRecognizerClient", "Hotword asset hey_jarvis.ppn not found in assets")
+                    ttsHelper?.speak("Hotword detection asset missing.")
+                    onInitialized(null)
+                    return@launch
+                }
+
+                hwDetector = HotWordDetector(context!!, "hey_jarvis.ppn") {
+                    if (state == AssistantState.STANDBY) {
+                        Log.d("HWD", "Hotword detected at ${System.currentTimeMillis()}")
+                        transitionTo(AssistantState.SPEAKING)
+                        ttsHelper?.speak(wakeResponses.random())
+                    }
+                }
+
+                // Wait for HotWordDetector to initialize
+                if (!hwDetector!!.waitForInitialization(10000L)) {
+                    Log.e("SpeechRecognizerClient", "HotWordDetector initialization failed")
+                    ttsHelper?.speak("Hotword detection setup failed.")
+                    hwDetector = null
+                    onInitialized(null)
+                    return@launch
+                }
+            } catch (e: Exception) {
+                Log.e("SpeechRecognizerClient", "HotWordDetector init failed: ${e.message}")
+                ttsHelper?.speak("Hotword detection setup failed.")
+                hwDetector = null
+                onInitialized(null)
+                return@launch
+            }
+
+            // Initialize AudioRecord
+            try {
+                synchronized(audioLock) {
+                    audioRecord = AudioRecord(
+                        MediaRecorder.AudioSource.VOICE_RECOGNITION,
+                        sampleRate,
+                        AudioFormat.CHANNEL_IN_MONO,
+                        AudioFormat.ENCODING_PCM_16BIT,
+                        bufferSize
+                    ).apply {
+                        if (state != AudioRecord.STATE_INITIALIZED) {
+                            Log.e("SpeechRecognizerClient", "AudioRecord failed to initialize")
+                            ttsHelper?.speak("Microphone access failed.")
+                            release()
+                            onInitialized(null)
+                            return@launch
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("SpeechRecognizerClient", "AudioRecord initialization error: ${e.message}")
+                ttsHelper?.speak("Microphone setup failed.")
+                onInitialized(null)
+                return@launch
+            }
+
+            // Start HotWordDetector
+            try {
+                hwDetector?.start()
             } catch (e: Exception) {
                 Log.e("SpeechRecognizerClient", "Hotword detection failed to start: ${e.message}")
                 ttsHelper?.speak("Hotword detection setup failed.")
@@ -177,7 +218,11 @@ class SpeechRecognizerClient private constructor(context: Context) {
         webSocket?.close(1000, "Shutdown")
         webSocket = null
         ttsHelper?.shutdown()
-        hwDetector?.stop()
+        hwDetector?.release()
+        synchronized(audioLock) {
+            audioRecord?.release()
+            audioRecord = null
+        }
         state = AssistantState.STANDBY
         reconnectAttempts = 0
         isTtsSpeaking = false
@@ -188,7 +233,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
         Log.i("SpeechRecognizerClient", "Shutdown complete")
     }
 
-    private fun transitionTo(newState: AssistantState) {
+    private fun transitionTo(newState: AssistantState, fromManualStandby: Boolean = false) {
         if (state == newState) return
         Log.i("SpeechRecognizerClient", "State: $state -> $newState")
         state = newState
@@ -196,12 +241,20 @@ class SpeechRecognizerClient private constructor(context: Context) {
         when (newState) {
             AssistantState.STANDBY -> {
                 stopAudioStreaming()
-                webSocket?.close(1000, "Standby")
-                webSocket = null
+                if (fromManualStandby) {
+                    webSocket?.close(1000, "Manual standby")
+                    webSocket = null
+                }
                 handler.removeCallbacksAndMessages(null)
                 commandBuffer.clear()
-                hwDetector?.start()
+                try {
+                    hwDetector?.start()
+                } catch (e: Exception) {
+                    Log.e("SpeechRecognizerClient", "Failed to start HotWordDetector in STANDBY: ${e.message}")
+                    ttsHelper?.speak("Hotword detection failed.")
+                }
                 ServiceManager.isStandBy = true
+                ServiceManager.isStoped = true
             }
             AssistantState.LISTENING -> {
                 hwDetector?.stop()
@@ -211,17 +264,22 @@ class SpeechRecognizerClient private constructor(context: Context) {
                 resetInactivityTimeout()
             }
             AssistantState.PROCESSING -> {
+                stopAudioStreaming()
                 handler.postDelayed({
                     if (state == AssistantState.PROCESSING) {
-                        Log.w("SpeechRecognizerClient", "Processing timeout, returning to LISTENING")
-                        ttsHelper?.speak("Processing took too long. Returning to listening.")
+                        Log.w("SpeechRecognizerClient", "Processing timeout")
+                        ttsHelper?.speak("Processing took too long.")
                         transitionTo(AssistantState.LISTENING)
                     }
                 }, processingTimeoutMs)
+                ServiceManager.isStoped = false
+                ServiceManager.isStandBy = false
             }
             AssistantState.SPEAKING -> {
-                isTtsSpeaking = true
                 stopAudioStreaming()
+                isTtsSpeaking = true
+                ServiceManager.isStoped = false
+                ServiceManager.isStandBy = false
             }
         }
     }
@@ -229,7 +287,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
     private fun resetInactivityTimeout() {
         handler.removeCallbacksAndMessages(null)
         handler.postDelayed({
-            if (state == AssistantState.LISTENING) {
+            if (state != AssistantState.STANDBY) {
                 Log.d("SpeechRecognizerClient", "Inactivity timeout, transitioning to STANDBY")
                 ttsHelper?.speak("No activity detected. Going to standby.")
                 transitionTo(AssistantState.STANDBY)
@@ -242,35 +300,46 @@ class SpeechRecognizerClient private constructor(context: Context) {
         if (state != AssistantState.LISTENING) return
         context ?: return
 
-        try {
-            synchronized(audioLock) {
-                audioRecord = AudioRecord(
-                    MediaRecorder.AudioSource.VOICE_RECOGNITION,
-                    sampleRate,
-                    AudioFormat.CHANNEL_IN_MONO,
-                    AudioFormat.ENCODING_PCM_16BIT,
-                    bufferSize
-                ).apply {
-                    if (state != AudioRecord.STATE_INITIALIZED) {
-                        Log.e("SpeechRecognizerClient", "AudioRecord failed to initialize")
-                        ttsHelper?.speak("Microphone access failed.")
-                        transitionTo(AssistantState.STANDBY)
-                        return
+        synchronized(audioLock) {
+            if (audioRecord == null || audioRecord?.state != AudioRecord.STATE_INITIALIZED) {
+                try {
+                    audioRecord?.release()
+                    audioRecord = AudioRecord(
+                        MediaRecorder.AudioSource.VOICE_RECOGNITION,
+                        sampleRate,
+                        AudioFormat.CHANNEL_IN_MONO,
+                        AudioFormat.ENCODING_PCM_16BIT,
+                        bufferSize
+                    ).apply {
+                        if (state != AudioRecord.STATE_INITIALIZED) {
+                            Log.e("SpeechRecognizerClient", "AudioRecord failed to initialize")
+                            ttsHelper?.speak("Microphone access failed.")
+                            release()
+                            transitionTo(AssistantState.STANDBY)
+                            return
+                        }
                     }
+                    Log.d("SpeechRecognizerClient", "AudioRecord recreated")
+                } catch (e: Exception) {
+                    Log.e("SpeechRecognizerClient", "AudioRecord initialization error: ${e.message}")
+                    ttsHelper?.speak("Microphone setup failed.")
+                    transitionTo(AssistantState.STANDBY)
+                    return
                 }
             }
+        }
+
+        if (webSocket == null) {
             connectWebSocket()
-        } catch (e: Exception) {
-            Log.e("SpeechRecognizerClient", "Speech recognition error: ${e.message}")
-            ttsHelper?.speak("An error occurred.")
-            transitionTo(AssistantState.STANDBY)
+        } else {
+            startAudioStreaming()
         }
     }
 
     private fun connectWebSocket() {
         if (webSocket != null) {
             Log.d("SpeechRecognizerClient", "WebSocket already connected")
-            startAudioStreaming()
+            if (state == AssistantState.LISTENING) startAudioStreaming()
             return
         }
 
@@ -292,11 +361,11 @@ class SpeechRecognizerClient private constructor(context: Context) {
             client.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
                     handler.removeCallbacks(timeoutRunnable)
-                    Log.i("SpeechRecognizerClient", "WebSocket connected")
+                    Log.i("SpeechRecognizerClient", "WebSocket connected at ${System.currentTimeMillis()}")
                     this@SpeechRecognizerClient.webSocket = webSocket
-                    val configMessage = JSONObject().put("end_utterance_silence_threshold", 1500).toString()
+                    val configMessage = JSONObject().put("end_utterance_silence_threshold", 1000).toString()
                     webSocket.send(configMessage)
-                    Log.d("SpeechRecognizerClient", "Sent end_utterance_silence_threshold: 1500ms")
+                    Log.d("SpeechRecognizerClient", "Sent end_utterance_silence_threshold: 1000ms")
                     reconnectAttempts = 0
                     if (state == AssistantState.LISTENING) startAudioStreaming()
                 }
@@ -313,7 +382,6 @@ class SpeechRecognizerClient private constructor(context: Context) {
                                     commandBuffer.append(" ").append(transcript)
                                     Log.d("SpeechRecognizerClient", "Utterance finalized: ${commandBuffer.toString()}")
                                     ServiceManager.recognizedText = transcript
-                                    SpeechResultListener.sendResult(commandBuffer.toString())
                                     transitionTo(AssistantState.PROCESSING)
                                     processCommand(commandBuffer.toString().trim())
                                     commandBuffer.clear()
@@ -350,6 +418,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
                 }
 
                 override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                    Log.i("SpeechRecognizerClient", "WebSocket closing: $reason")
                     this@SpeechRecognizerClient.webSocket = null
                     webSocket.close(1000, "Closing")
                 }
@@ -364,27 +433,52 @@ class SpeechRecognizerClient private constructor(context: Context) {
     private fun startAudioStreaming() {
         audioJob?.cancel()
         audioJob = CoroutineScope(Dispatchers.IO).launch {
+            var shouldStopStreaming = false
             try {
                 synchronized(audioLock) {
-                    audioRecord?.startRecording() ?: return@launch
+                    if (audioRecord?.state != AudioRecord.STATE_INITIALIZED) {
+                        Log.e("SpeechRecognizerClient", "AudioRecord not initialized")
+                        shouldStopStreaming = true
+                        return@synchronized
+                    }
+                    audioRecord?.startRecording() ?: run {
+                        Log.e("SpeechRecognizerClient", "Failed to start AudioRecord")
+                        shouldStopStreaming = true
+                        return@synchronized
+                    }
                 }
-                Log.i("SpeechRecognizerClient", "Audio streaming started")
+                if (shouldStopStreaming) {
+                    CoroutineScope(Dispatchers.Main).launch {
+                        ttsHelper?.speak("Microphone error.")
+                        transitionTo(AssistantState.STANDBY)
+                    }
+                    return@launch
+                }
+                Log.i("SpeechRecognizerClient", "Audio streaming started at ${System.currentTimeMillis()}")
                 val buffer = ByteArray(bufferSize)
 
                 while (isActive && state == AssistantState.LISTENING && webSocket != null && !isTtsSpeaking) {
-                    val read = audioRecord?.read(buffer, 0, buffer.size) ?: 0
+                    val read = audioRecord?.read(buffer, 0, buffer.size) ?: -1
                     if (read > 0) {
-                        webSocket?.send(buffer.copyOf(read).toByteString())
+                        if (webSocket?.send(buffer.copyOf(read).toByteString()) != true) {
+                            Log.w("SpeechRecognizerClient", "WebSocket send failed")
+                            break
+                        }
+                    } else if (read < 0) {
+                        Log.e("SpeechRecognizerClient", "AudioRecord read error: $read")
+                        break
                     }
                 }
             } catch (e: Exception) {
                 Log.e("SpeechRecognizerClient", "Audio streaming error: ${e.message}")
-                withContext(Dispatchers.Main) {
+                CoroutineScope(Dispatchers.Main).launch {
                     ttsHelper?.speak("Audio error.")
-                    transitionTo(AssistantState.LISTENING)
+                    transitionTo(AssistantState.STANDBY)
                 }
             } finally {
-                withContext(Dispatchers.Main) { stopAudioStreaming() }
+                CoroutineScope(Dispatchers.Main).launch {
+                    stopAudioStreaming()
+                }
             }
         }
     }
@@ -397,27 +491,18 @@ class SpeechRecognizerClient private constructor(context: Context) {
                         it.stop()
                         Log.d("SpeechRecognizerClient", "AudioRecord stopped")
                     }
-                    it.release()
-                    Log.d("SpeechRecognizerClient", "AudioRecord released")
                 }
             } catch (e: IllegalStateException) {
-                Log.w("SpeechRecognizerClient", "AudioRecord stop/release failed: ${e.message}")
+                Log.w("SpeechRecognizerClient", "AudioRecord stop failed: ${e.message}")
             } finally {
-                audioRecord = null
                 audioJob?.cancel()
                 audioJob = null
-                Log.d("SpeechRecognizerClient", "Audio streaming fully stopped")
+                Log.d("SpeechRecognizerClient", "Audio streaming stopped")
             }
         }
     }
 
     private fun processCommand(transcript: String) {
-        if (transcript.lowercase().contains("standby")) {
-            ttsHelper?.speak("Entering standby mode.")
-            transitionTo(AssistantState.STANDBY)
-            return
-        }
-
         openAiClient?.sendMessage(
             userMessage = transcript,
             onResponse = { response ->
@@ -430,6 +515,12 @@ class SpeechRecognizerClient private constructor(context: Context) {
                 CoroutineScope(Dispatchers.Main).launch {
                     ttsHelper?.speak("Sorry, I couldn’t process that.")
                     transitionTo(AssistantState.LISTENING)
+                }
+            },
+            onStandBy = {
+                CoroutineScope(Dispatchers.Main).launch {
+                    ttsHelper?.speak("Entering standby mode.")
+                    transitionTo(AssistantState.STANDBY, fromManualStandby = true)
                 }
             }
         )

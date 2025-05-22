@@ -5,20 +5,19 @@ class AssistantServiceModel {
   final bool isBound;
   final bool isStoped;
   final bool isStandBy;
-  final String channel;
-  final String resultChannel;
+
   final String recognizedText;
   final bool initializing;
-
+  final bool isWarmingTts;
 
   AssistantServiceModel({
-    required this.recognizedText,
     required this.isBound,
-    required this.initializing,
     required this.isStoped,
     required this.isStandBy,
-    required this.channel,
-    required this.resultChannel,
+
+    required this.recognizedText,
+    required this.initializing,
+    required this.isWarmingTts,
   });
 
   Map<String, dynamic> toMap() {
@@ -26,10 +25,10 @@ class AssistantServiceModel {
       'isBound': isBound,
       'isStoped': isStoped,
       'isStandBy': isStandBy,
-      'channel': channel,
-      'result_channel': resultChannel,
+
       'recognizedText': recognizedText,
-      'initializing' : initializing
+      'initializing': initializing,
+      'isWarmingTts': isWarmingTts,
     };
   }
 
@@ -38,10 +37,9 @@ class AssistantServiceModel {
       isBound: map['isBound'] as bool,
       isStoped: map['isStoped'] as bool,
       isStandBy: map['isStandBy'] as bool,
-      channel: map['channel'] as String,
-      resultChannel: map['result_channel'] as String,
-      recognizedText: map['recognizedText'] ?? "",
-      initializing: map['initializing'] ?? false
+      recognizedText: map['recognizedText'] as String? ?? "",
+      initializing: map['initializing'] as bool,
+      isWarmingTts: map['isWarmingTts'] as bool,
     );
   }
 
@@ -49,10 +47,10 @@ class AssistantServiceModel {
     isBound: false,
     isStoped: false,
     isStandBy: false,
-    channel: "empty",
-    resultChannel: "empty",
+
     recognizedText: '',
-    initializing: false
+    initializing: false,
+    isWarmingTts: false,
   );
 
   String toJson() => json.encode(toMap());
@@ -70,15 +68,43 @@ class AssistantServiceModel {
     String? resultChannel,
     String? recognizedText,
     bool? initializing,
+    bool? isWarmingTts,
   }) {
     return AssistantServiceModel(
       isBound: isBound ?? this.isBound,
       isStoped: isStoped ?? this.isStoped,
       isStandBy: isStandBy ?? this.isStandBy,
-      channel: channel ?? this.channel,
-      resultChannel: resultChannel ?? this.resultChannel,
+
       recognizedText: recognizedText ?? this.recognizedText,
-      initializing: initializing ?? this.initializing
+      initializing: initializing ?? this.initializing,
+      isWarmingTts: isWarmingTts ?? this.isWarmingTts,
     );
+  }
+
+  @override
+  String toString() {
+    return 'AssistantServiceModel(isBound: $isBound, isStoped: $isStoped, isStandBy: $isStandBy, recognizedText: $recognizedText, initializing: $initializing, isWarmingTts: $isWarmingTts)';
+  }
+
+  @override
+  bool operator ==(covariant AssistantServiceModel other) {
+    if (identical(this, other)) return true;
+
+    return other.isBound == isBound &&
+        other.isStoped == isStoped &&
+        other.isStandBy == isStandBy &&
+        other.recognizedText == recognizedText &&
+        other.initializing == initializing &&
+        other.isWarmingTts == isWarmingTts;
+  }
+
+  @override
+  int get hashCode {
+    return isBound.hashCode ^
+        isStoped.hashCode ^
+        isStandBy.hashCode ^
+        recognizedText.hashCode ^
+        initializing.hashCode ^
+        isWarmingTts.hashCode;
   }
 }

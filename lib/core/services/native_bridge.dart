@@ -74,10 +74,10 @@ class NativeBridge {
         isBound: false,
         isStoped: false,
         isStandBy: false,
-        channel: "error",
-        resultChannel: "error",
+
         recognizedText: "There was an error!",
         initializing: false,
+        isWarmingTts: false,
       );
     }
   }
@@ -95,11 +95,12 @@ class NativeBridge {
     }
   }
 
-  static Future<Map<dynamic,dynamic>> setKey(String key) async {
+  static Future<Map<dynamic, dynamic>> setKey(String key) async {
     try {
-      final Map<dynamic,dynamic> result = await _methodChannel.invokeMethod("setKey", {
-        "akey": key,
-      });
+      final Map<dynamic, dynamic> result = await _methodChannel.invokeMethod(
+        "setKey",
+        {"akey": key},
+      );
       // print(result);
       return result;
     } on PlatformException catch (_) {

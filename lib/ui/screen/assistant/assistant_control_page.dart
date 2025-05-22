@@ -579,6 +579,7 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
                     ),
                     const Spacer(),
                     _ControlButton(
+                      isWarmingTts: assistantServiceModel.isWarmingTts,
                       isActive: isActive,
                       hasPermission: _hasPermission == true,
                       onPressed: () async {
@@ -937,12 +938,14 @@ class _MicrophonePermissionCard extends StatelessWidget {
 class _ControlButton extends StatelessWidget {
   final bool isActive;
   final bool hasPermission;
+  final bool isWarmingTts;
   final VoidCallback onPressed;
 
   const _ControlButton({
     required this.isActive,
     required this.hasPermission,
     required this.onPressed,
+    required this.isWarmingTts,
   });
 
   @override
@@ -953,24 +956,40 @@ class _ControlButton extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       child: FilledButton(
-        onPressed: hasPermission ? onPressed : null,
+        onPressed:
+            hasPermission && !isWarmingTts
+                ? () async {
+                  onPressed.call();
+                }
+                : null,
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
           backgroundColor:
-              isActive ? colors.errorContainer : colors.primaryContainer,
+              isWarmingTts
+                  ? Colors.grey
+                  : isActive
+                  ? colors.errorContainer
+                  : colors.primaryContainer,
           foregroundColor:
               isActive ? colors.onErrorContainer : colors.onPrimaryContainer,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(isActive ? Icons.stop_circle : Icons.mic_none, size: 24),
+            if (isWarmingTts)
+              CircularProgressIndicator(color: Colors.blue)
+            else
+              Icon(isActive ? Icons.stop_circle : Icons.mic_none, size: 24),
             const SizedBox(width: 12),
             Text(
-              isActive ? 'Deactivate Assistant' : 'Activate Assistant',
+              isWarmingTts
+                  ? "Warming Engine..."
+                  : isActive
+                  ? 'Deactivate Assistant'
+                  : 'Activate Assistant',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),

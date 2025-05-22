@@ -67,7 +67,7 @@ class MainActivity : FlutterActivity() {
                     val key = call.argument<String>("akey") ?: ""
                     SharedData.porcupineAK = key
 
-                    val keywordAsset = "your_keyword.ppn" // replace with actual asset name
+                    val keywordAsset = "hey_jarvis.ppn" // replace with actual asset name
                     val isValid = HotWordDetector.checkKey(context, key, keywordAsset)
 
                     result.success(mapOf("success" to isValid, "msg" to if (isValid) "Key format is corrected but not guranteed that it will be accepted by the server because there is a possibility that this key might have expired." else "Key format not correct!"))  // returns true or false to Flutter
@@ -82,15 +82,7 @@ class MainActivity : FlutterActivity() {
                     }
 
                     result.success(
-                        mutableMapOf(
-                            "isBound" to ServiceManager.isBound,
-                            "isStoped" to ServiceManager.isStoped,
-                            "isStandBy" to ServiceManager.isStandBy,
-                            "recognizedText" to ServiceManager.recognizedText,
-                            "channel" to ServiceManager.serviceChannelName,
-                            "result_channel" to ServiceManager.resultEventChannel,
-                            "initializing" to ServiceManager.initializing
-                        )
+                        ServiceManager.toMap()
                     )
                 }
 

@@ -34,10 +34,8 @@ Your response **must always** be a **strict JSON object**, following these rules
      "description": "task description",
      "is_completed": false,
      "priority": 1 to 3,
-     "project_id": INT,
-     "due_date" : null or "ISO String of the due date"
-     "reminder_at": null or "ISO String of time(ten mins less than due_date)"
-     }
+     "project_id": INT
+   }
 3. If the user requests a **project**, include a "project" object with:
    {
      "name": "project name",
@@ -51,17 +49,18 @@ Your response **must always** be a **strict JSON object**, following these rules
      "name": "App Name" (optional, for display purposes)
    }
 5. If the user makes a general request (not task/project/app), ONLY return the "chatres".
+6. If the user says something like "be quiet", "go to sleep", "stop listening", or anything that implies you should stop responding or listen passively, include "shouldStandBy": true in the response.
 
 Rules:
 - NEVER add extra fields.
 - NEVER change "view_style" — it must always be "list".
 - "is_favorite" must always be false unless the user specifically says to favorite the project.
-- If user specify the task time then you must also iniclude the due_date along with time in ISO format and the reminder_at
+- If user specify the task time then you must also include the due_date along with time in ISO format and the reminder_at.
 - If no project matches, assign task to "Inbox" with default id. and if asked to assign to special project, here are the available projects ${projects.toString()}
 - For app opening requests, you MUST provide the exact package name (e.g., "com.google.android.youtube" for YouTube).
 - DO NOT include markdown or explanations — only a single JSON object as a string.
-SOME INFO FOR YOR:
-- Current Time and Today's Date ${ZonedDateTime.now().toString()}
+SOME INFO FOR YOU:
+- Current Time and Today's Date ${ZonedDateTime.now()}
 """.trimIndent()
 
     fun getMessageHistory(): List<JSONObject> = messages.toList()
@@ -73,7 +72,7 @@ SOME INFO FOR YOR:
         model: String = "gpt-4-turbo",
         onResponse: (String) -> Unit,
         onError: (String) -> Unit,
-//        onStandBy: () -> Unit
+        onStandBy: () -> Unit
     ) {
         messages.add(JSONObject().apply {
             put("role", "user")
@@ -117,13 +116,14 @@ SOME INFO FOR YOR:
                         .getJSONObject(0)
                         .getJSONObject("message")
                         .getString("content")
-                    
+
                     val replyJson = JSONObject(replyContent)
                     val chatres = replyJson.optString("chatres", "Okay.")
                     val taskJson = replyJson.optJSONObject("tsk")
                     val projectJson = replyJson.optJSONObject("project")
                     val appJson = replyJson.optJSONObject("app")
-//                    val toStandBy = replyJson.optJSONObject("shouldStandBy")
+                    val shouldStandBy = replyJson.optBoolean("shouldStandBy", false)
+
                     messages.add(JSONObject().apply {
                         put("role", "assistant")
                         put("content", chatres)
@@ -147,12 +147,10 @@ SOME INFO FOR YOR:
                             }
                         }
                     }
-//                    if (toStandBy != null) {
-//                        onStandBy()
-//
-//                    }
 
-                    onResponse(chatres)
+                    if (shouldStandBy) {
+                        onStandBy()
+                    } else {onResponse(chatres)}
                 } catch (e: Exception) {
                     Log.e("OpenAI", "Parsing error: ${e.message}")
                     onResponse("Sorry, I didn't quite get that. Please try again.")
