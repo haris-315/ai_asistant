@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:ai_asistant/Controller/auth_controller.dart';
-import 'package:ai_asistant/core/services/session_store_service.dart';
+import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:ai_asistant/data/models/service_models/assistant_service_model.dart';
 import 'package:ai_asistant/data/models/service_models/voice.dart';
 import 'package:flutter/services.dart';
@@ -22,7 +22,7 @@ class NativeBridge {
   /// Starts the Android STT recognizer
   static Future<bool> startListening() async {
     try {
-      String authToken = await SecureStorage.getToken() ?? "No Token";
+      String authToken = await SettingsService.getToken() ?? "No Token";
       List<String> projects =
           authController.projects.map((f) => f.toString()).toList();
       final bool result = await _methodChannel.invokeMethod('startListening', {

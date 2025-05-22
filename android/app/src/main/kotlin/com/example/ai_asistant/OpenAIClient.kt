@@ -34,7 +34,9 @@ Your response **must always** be a **strict JSON object**, following these rules
      "description": "task description",
      "is_completed": false,
      "priority": 1 to 3,
-     "project_id": INT
+     "project_id": INT,
+     "due_date" : ISO-8601 (if specified),
+     "reminder_at" : ISO-8601 (10 minutes less than due_date if not specified)
    }
 3. If the user requests a **project**, include a "project" object with:
    {

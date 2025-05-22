@@ -17,6 +17,8 @@ import io.flutter.plugin.common.MethodChannel
 import com.example.openai.SharedData
 import android.net.Uri
 import com.example.svc_mng.ServiceManager
+import kotlinx.coroutines.*
+
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.example.ai_assistant/stt"
@@ -25,6 +27,8 @@ class MainActivity : FlutterActivity() {
 
     private lateinit var messenger: BinaryMessenger
     private lateinit var eventChannel: EventChannel
+    val mainScope = CoroutineScope(Dispatchers.Main + Job())
+
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -67,11 +71,25 @@ class MainActivity : FlutterActivity() {
                     val key = call.argument<String>("akey") ?: ""
                     SharedData.porcupineAK = key
 
-                    val keywordAsset = "hey_jarvis.ppn" // replace with actual asset name
-                    val isValid = HotWordDetector.checkKey(context, key, keywordAsset)
+                    val keywordAsset = "hey_jarvis.ppn" // Replace with actual asset name
 
-                    result.success(mapOf("success" to isValid, "msg" to if (isValid) "Key format is corrected but not guranteed that it will be accepted by the server because there is a possibility that this key might have expired." else "Key format not correct!"))  // returns true or false to Flutter
-                }
+                    mainScope.launch {
+                        // Run on background thread
+                        val isValid = withContext(Dispatchers.IO) {
+                            HotWordDetector.checkKey(context, key, keywordAsset)
+                        }
+
+                        // Return result to Flutter on main thread
+                        result.success(
+                            mapOf(
+                                "success" to isValid,
+                                "msg" to if (isValid)
+                                    "Key format is corrected but not guaranteed that it will be accepted by the server because there is a possibility that this key might have expired."
+                                else
+                                    "Key format not correct!"
+                            )
+                        )
+                    } }
                 "getInfo" -> {
                     val rawTasks = call.argument<List<MutableMap<String, Any>>>("tasks")
                     val taskList = rawTasks ?: emptyList()
