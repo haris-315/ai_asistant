@@ -62,7 +62,7 @@ Rules:
 - For app opening requests, you MUST provide the exact package name (e.g., "com.google.android.youtube" for YouTube).
 - DO NOT include markdown or explanations — only a single JSON object as a string.
 SOME INFO FOR YOU:
-- Current Time and Today's Date ${ZonedDateTime.now()}
+- Current Time and Today's Date ${ZonedDateTime.now().toString()}
 """.trimIndent()
 
     fun getMessageHistory(): List<JSONObject> = messages.toList()

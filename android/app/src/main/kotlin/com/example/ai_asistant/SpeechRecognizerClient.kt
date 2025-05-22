@@ -54,7 +54,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
     ) * 2
     private val processingTimeoutMs = 10000L
     private val connectionTimeoutMs = 10000L
-    private val inactivityTimeoutMs = 30000L
+    private val inactivityTimeoutMs = 9000L
     private val maxReconnectAttempts = 3
     private var reconnectAttempts = 0
     private val commandBuffer = StringBuilder()
@@ -363,9 +363,9 @@ class SpeechRecognizerClient private constructor(context: Context) {
                     handler.removeCallbacks(timeoutRunnable)
                     Log.i("SpeechRecognizerClient", "WebSocket connected at ${System.currentTimeMillis()}")
                     this@SpeechRecognizerClient.webSocket = webSocket
-                    val configMessage = JSONObject().put("end_utterance_silence_threshold", 1000).toString()
+                    val configMessage = JSONObject().put("end_utterance_silence_threshold", 700).toString()
                     webSocket.send(configMessage)
-                    Log.d("SpeechRecognizerClient", "Sent end_utterance_silence_threshold: 1000ms")
+                    Log.d("SpeechRecognizerClient", "Sent end_utterance_silence_threshold: 700ms")
                     reconnectAttempts = 0
                     if (state == AssistantState.LISTENING) startAudioStreaming()
                 }

@@ -51,7 +51,7 @@ class HotWordDetector(
             porcupine = Porcupine.Builder()
                 .setAccessKey(SharedData.porcupineAK ?: throw IllegalStateException("Picovoice access key is null"))
                 .setKeywordPaths(arrayOf(File(context.filesDir, keywordAssetName).absolutePath))
-                .setSensitivities(floatArrayOf(0.7f))
+                .setSensitivities(floatArrayOf(0.9f))
                 .build(context)
 
             isInitialized = true
