@@ -40,7 +40,8 @@ class _SearchScreenState extends State<SearchScreen> {
       "image": "assets/Image3.png",
       "views": "101",
       "likes": "12",
-    },{
+    },
+    {
       "title": "3D Arcade style experiments",
       "artist": "ARTCADE STUDIO",
       "image": "assets/Image.png",
@@ -67,7 +68,8 @@ class _SearchScreenState extends State<SearchScreen> {
       "image": "assets/Image3.png",
       "views": "101",
       "likes": "12",
-    },{
+    },
+    {
       "title": "3D Arcade style experiments",
       "artist": "ARTCADE STUDIO",
       "image": "assets/Image.png",
@@ -94,7 +96,8 @@ class _SearchScreenState extends State<SearchScreen> {
       "image": "assets/Image3.png",
       "views": "101",
       "likes": "12",
-    },{
+    },
+    {
       "title": "3D Arcade style experiments",
       "artist": "ARTCADE STUDIO",
       "image": "assets/Image.png",
@@ -167,7 +170,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Image.asset(
-                               item["image"]!,
+                              item["image"]!,
                               width: double.infinity,
                               height: 19.h,
                               fit: BoxFit.cover,
@@ -176,31 +179,54 @@ class _SearchScreenState extends State<SearchScreen> {
                           SizedBox(height: 8),
                           Row(
                             children: [
-                              Expanded( // Prevents overflow
+                              Expanded(
+                                // Prevents overflow
                                 child: Text(
                                   item["title"]!,
-                                  style: textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+                                  style: textTheme.bodySmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               SizedBox(width: 1),
-                              Icon(Icons.favorite, size: 14, color: Colors.grey),
+                              Icon(
+                                Icons.favorite,
+                                size: 14,
+                                color: Colors.grey,
+                              ),
                               SizedBox(width: 1),
-                              Text(item["likes"]!, style: textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                              Text(
+                                item["likes"]!,
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: Colors.grey,
+                                ),
+                              ),
                               SizedBox(width: 1.w),
-                              Icon(Icons.visibility, size: 14, color: Colors.grey),
+                              Icon(
+                                Icons.visibility,
+                                size: 14,
+                                color: Colors.grey,
+                              ),
                               SizedBox(width: 1),
-                              Text(item["views"]!, style: textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                              Text(
+                                item["views"]!,
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: Colors.grey,
+                                ),
+                              ),
                             ],
                           ),
                           SizedBox(height: 1.5.h),
 
                           Text(
                             item["artist"]!,
-                            style: textTheme.bodySmall?.copyWith(color: Colors.black54, fontWeight: FontWeight.bold),
+                            style: textTheme.bodySmall?.copyWith(
+                              color: Colors.black54,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-
                         ],
                       ),
                     ),

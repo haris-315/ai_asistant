@@ -7,6 +7,7 @@ import 'package:ai_asistant/core/shared/functions/is_today.dart';
 import 'package:ai_asistant/data/models/threadmodel.dart';
 import 'package:ai_asistant/state_mgmt/email/cubit/email_cubit.dart';
 import 'package:ai_asistant/ui/screen/assistant/assistant_control_page.dart';
+import 'package:ai_asistant/ui/screen/assistant/meetings.dart';
 import 'package:ai_asistant/ui/screen/home/chat_screen.dart';
 import 'package:ai_asistant/ui/screen/home/dashboard.dart';
 import 'package:ai_asistant/ui/screen/task/create_task_sheet.dart';
@@ -14,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:page_transition/page_transition.dart';
 
 class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
@@ -236,6 +238,22 @@ class _HomeContentState extends State<HomeContent> {
                                   ),
                                 );
                                 handleLoading();
+                              },
+                    ),
+                    QuickAccessTile(
+                      icon: Icons.people_outlined,
+                      title: "Meetings & Notes",
+                      onTap:
+                          isSomeThingLoading
+                              ? null
+                              : () {
+                                Navigator.push(
+                                  context,
+                                  PageTransition(
+                                    type: PageTransitionType.rightToLeft,
+                                    child: MeetingListPage(),
+                                  ),
+                                );
                               },
                     ),
                     QuickAccessTile(

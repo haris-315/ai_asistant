@@ -69,6 +69,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    precacheImage(AssetImage("assets/output.webp"), context);
+
     return ResponsiveSizer(
       builder: (context, orientation, screenType) {
         return GetMaterialApp(

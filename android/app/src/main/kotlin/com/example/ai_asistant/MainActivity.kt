@@ -121,11 +121,13 @@ class MainActivity : FlutterActivity() {
                     startSpeechService()
                     result.success(emptyList<Map<String, Any>>())
                 }
-
+                "getDbPath" -> {
+                    val dbPath = context.getDatabasePath("meeting.db").path
+                    result.success(dbPath)
+                }
                 else -> result.notImplemented()
             }
         }
-
         // Event channel for sending recognition results
         eventChannel = EventChannel(messenger, EVENT_CHANNEL)
         eventChannel.setStreamHandler(object : EventChannel.StreamHandler {

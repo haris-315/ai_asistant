@@ -81,7 +81,7 @@ class _SideMenuState extends State<SideMenu> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Image.asset('assets/Rectangle.png', height: 40),
+                        Image.asset('assets/launchericon.png', height: 40),
                         SizedBox(width: 10),
                         Text(
                           "AI Assistant",

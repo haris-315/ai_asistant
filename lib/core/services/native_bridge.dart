@@ -4,6 +4,7 @@ import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:ai_asistant/data/models/service_models/assistant_service_model.dart';
 import 'package:ai_asistant/data/models/service_models/voice.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
@@ -45,13 +46,24 @@ class NativeBridge {
     }
   }
 
-  /// Checks if the STT recognizer is currently listening
   static Future<bool> isListening() async {
     try {
       final bool result = await _methodChannel.invokeMethod('isListening');
       return result;
     } on PlatformException catch (_) {
       return false;
+    }
+  }
+
+  static Future<String> getDbPath() async {
+    try {
+      final String result = await _methodChannel.invokeMethod('getDbPath');
+      return result;
+    } on PlatformException catch (e) {
+      if (kDebugMode) {
+        print(e);
+      }
+      rethrow;
     }
   }
 

@@ -33,7 +33,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
           ),
           SizedBox(width: 8),
-          Image.asset('assets/Rectangle.png', height: 50),
+          Image.asset('assets/launchericon.png', height: 80),
 
           // Row(
           //   children: [

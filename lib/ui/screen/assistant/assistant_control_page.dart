@@ -71,6 +71,7 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
     final currentVoice = await SettingsService.getSetting(
       AppConstants.cuVoiceKey,
     );
+    await NativeBridge.getOrSetAvailableVoices(currentVoice);
     if (!_mounted) return;
     setState(() => selectedVoice = currentVoice);
   }
@@ -127,7 +128,7 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
   }
 
   Future<void> _loadKey() async {
-    // await SettingsService.removeSetting("akey");
+    await SettingsService.removeSetting("akey");
     String? key = await SettingsService.getSetting("akey");
     if (key != null) {
       await NativeBridge.setKey(key);
