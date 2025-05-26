@@ -6,6 +6,7 @@ class Meeting {
   final String endTime;
   final String actualTranscript;
   final String summary;
+  final String keypoints;
 
   Meeting({
     required this.id,
@@ -14,6 +15,7 @@ class Meeting {
     required this.endTime,
     required this.actualTranscript,
     required this.summary,
+    required this.keypoints,
   });
 
   factory Meeting.fromMap(Map<String, dynamic> map) => Meeting(
@@ -23,11 +25,14 @@ class Meeting {
         endTime: map['endTime'],
         actualTranscript: map['actualTranscript'],
         summary: map['summary'],
+        keypoints: map['keypoints'] ?? '[]', //
       );
-@override
+
+  @override
   String toString() {
     return """
             A Meeting about '$title' on '$startTime'
-              """;
+            Key Points: $keypoints
+            """;
   }
 }

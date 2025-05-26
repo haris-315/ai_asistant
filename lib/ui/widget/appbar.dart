@@ -27,8 +27,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             title,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: Colors.black,
-              fontSize: 20,
+              color: const Color.fromRGBO(0, 0, 0, 1),
+              fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
           ),

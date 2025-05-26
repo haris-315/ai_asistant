@@ -66,13 +66,13 @@ class SpeechRecognizerClient private constructor(context: Context) {
     private val handler = Handler(Looper.getMainLooper())
     private val audioLock = Any()
     private val wakeResponses: List<String> = listOf(
-        "Hello, how can I assist you?",
-        "What can I help you with today?",
-        "Yes, I'm listening. Go ahead.",
-        "Hey there! Need something?",
-        "At your service. What do you need?",
-        "How can I be of help?",
-        "Ready when you are. What's on your mind?"
+        "Hello, Please let me connect to my server.",
+        "Just as sec, I will be assisting you.",
+        "Yes!, Let me connect.",
+        "Hey there!, Please wait while I am connecting to my server.",
+        "At your service, Surely after connection.",
+        "Let me hit the server.",
+        "It's all yours after the connection."
     )
 
     private var hwDetector: HotWordDetector? = null
@@ -266,7 +266,6 @@ class SpeechRecognizerClient private constructor(context: Context) {
                     ttsHelper?.speak("Hotword detection failed.")
                 }
                 ServiceManager.isStandBy = true
-                ServiceManager.isStoped = true
             }
             AssistantState.LISTENING -> {
                 hwDetector?.stop()
@@ -606,12 +605,12 @@ class SpeechRecognizerClient private constructor(context: Context) {
             return
         }
 
-        ttsHelper?.speak("Please wait while the transcript is being summarized.")
+        ttsHelper?.speak("Please Let me summarize the information.")
 
 
         openAiClient?.generateMeetingSummary(
             transcript = transcript,
-            onDone = { title, summary ->
+            onDone = { title, summary, keypoints ->
                 CoroutineScope(Dispatchers.Main).launch {
                     Log.i("SpeechRecognizerClient", "Meeting summary: $summary")
                     context?.let { ctx ->
@@ -622,7 +621,8 @@ class SpeechRecognizerClient private constructor(context: Context) {
                             startTime = if (forChat) LocalDateTime.now() else lastMeetingStartTime,
                             endTime = LocalDateTime.now(),
                             actualTranscript = if (forChat) "This Summary is generated from the conversation with chat gpt so it has no transcript." else transcript,
-                            summary = summary
+                            summary = summary,
+                            keypoints = keypoints
                         )
                     }
 
@@ -633,7 +633,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
             onError = {
                 CoroutineScope(Dispatchers.Main).launch {
                     Log.e("SpeechRecognizerClient", "Failed to summarize meeting")
-                    ttsHelper?.speak("Sorry, I couldn’t summarize the meeting.")
+                    ttsHelper?.speak("Sorry, I couldn’t summarize the meeting but, the info is stored so you can later summarize it from the app.")
                     transitionTo(AssistantState.STANDBY)
                 }
             },

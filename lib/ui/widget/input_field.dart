@@ -21,6 +21,7 @@ class CustomFormTextField extends StatefulWidget {
   final int maxLines;
   final bool showPasswordStrength;
   final String? error;
+  final FocusNode? focusNode;
 
   const CustomFormTextField({
     super.key,
@@ -40,7 +41,7 @@ class CustomFormTextField extends StatefulWidget {
     this.maxLength = 560,
     this.maxLines = 1,
     this.showPasswordStrength = false,
-    this.error,
+    this.error, this.focusNode,
   });
 
   @override
@@ -132,6 +133,7 @@ class _CustomFormTextFieldState extends State<CustomFormTextField> {
           child: SizedBox(
             width: widget.width,
             child: TextFormField(
+              focusNode: widget.focusNode,
               controller: widget.controller,
               obscureText: widget.isPassword ? isObscured : false,
               keyboardType: widget.keyboardType,

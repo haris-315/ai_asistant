@@ -5,7 +5,7 @@ class AppConstants {
     "gpt-4",
     "gpt-3.5-turbo",
   ];
-  static final baseUrl = "https://ai-assistant-backend-dk0q.onrender.com/";
+  static final baseUrl = "https://ai-assistant-backend-nine.vercel.app/";
   static String appStateKey = "asKey";
   static String appStateInitializing = "init";
   static String appStateInitialized = "done";

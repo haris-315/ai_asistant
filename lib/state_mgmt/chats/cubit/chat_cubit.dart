@@ -4,7 +4,6 @@ import 'package:ai_asistant/data/models/chats/session_model_placeholder.dart';
 import 'package:ai_asistant/data/repos/chat_repo.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 part 'chat_state.dart';
@@ -60,6 +59,9 @@ class ChatCubit extends Cubit<ChatState> {
       final SessionModelHolder currentSessionInfo = SessionModelHolder.fromMap(
         response['session'],
       );
+      if (kDebugMode) {
+        print(response);
+      }
       emit(
         ChatLoaded(
           currentActiveSession: session.copyWith(
@@ -75,6 +77,9 @@ class ChatCubit extends Cubit<ChatState> {
         refreshSessions.call();
       }
     } catch (e) {
+      if (kDebugMode) {
+        print(e);
+      }
       return emit(ChatError(message: e.toString()));
     }
   }

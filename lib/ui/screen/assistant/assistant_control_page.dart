@@ -47,7 +47,7 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
     await _checkPermission();
     await loadFirstTime();
     await _loadVoices();
-    await _loadCurrentVoice();
+    // await _loadCurrentVoice();
     await _loadKey();
   }
 
@@ -67,14 +67,14 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
     }
   }
 
-  Future<void> _loadCurrentVoice() async {
-    final currentVoice = await SettingsService.getSetting(
-      AppConstants.cuVoiceKey,
-    );
-    await NativeBridge.getOrSetAvailableVoices(currentVoice);
-    if (!_mounted) return;
-    setState(() => selectedVoice = currentVoice);
-  }
+  // Future<void> _loadCurrentVoice() async {
+  //   final currentVoice = await SettingsService.getSetting(
+  //     AppConstants.cuVoiceKey,
+  //   );
+  //   await NativeBridge.getOrSetAvailableVoices(currentVoice);
+  //   if (!_mounted) return;
+  //   setState(() => selectedVoice = currentVoice);
+  // }
 
   Future<void> _checkPermission() async {
     final status = await Permission.microphone.status;
@@ -492,6 +492,8 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
     );
   }
 
+  final FocusNode focusNode = FocusNode();
+
   @override
   Widget build(BuildContext context) {
     final isActive = !assistantServiceModel.isStoped;
@@ -518,6 +520,7 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       CustomFormTextField(
+                        focusNode: focusNode,
                         error: "Porcupine Key",
                         label: "Porcupine Key",
                         icon: Icons.lock,
@@ -529,6 +532,7 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
                             con.text.isEmpty
                                 ? null
                                 : () async {
+                                  focusNode.unfocus();
                                   if (con.text.isNotEmpty) {
                                     await _setKey(con.text.trim());
                                   }

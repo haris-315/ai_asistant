@@ -19,7 +19,8 @@ class MeetingDatabaseHelper {
             startTime TEXT,
             endTime TEXT,
             actualTranscript TEXT,
-            summary TEXT
+            summary TEXT,
+            keypoints TEXT
           )
         ''');
       },
