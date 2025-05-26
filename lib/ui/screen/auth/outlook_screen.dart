@@ -72,6 +72,7 @@
 import 'dart:convert';
 
 import 'package:ai_asistant/core/services/settings_service.dart';
+import 'package:ai_asistant/core/shared/constants.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -139,7 +140,7 @@ class _OutlookScreenState extends State<OutlookScreen> {
           )
           ..loadRequest(
             Uri.parse(
-              "https://ai-assistant-backend-dk0q.onrender.com/auth/outlook/login",
+              "${AppConstants.baseUrl}auth/outlook/login",
             ),
           );
   }

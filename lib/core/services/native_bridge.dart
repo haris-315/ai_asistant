@@ -86,7 +86,7 @@ class NativeBridge {
         isBound: false,
         isStoped: false,
         isStandBy: false,
-
+        mailsSyncHash: "",
         recognizedText: "There was an error!",
         initializing: false,
         isWarmingTts: false,

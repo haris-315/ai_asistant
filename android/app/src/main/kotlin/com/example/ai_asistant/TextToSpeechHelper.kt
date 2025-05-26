@@ -135,9 +135,13 @@ class TextToSpeechHelper(
     }
 
     fun speak(text: String) {
+
         if (!isInitialized) {
             Log.e("TTS", "TTS not initialized, attempting reinitialization")
             reinitialize()
+            return
+        }
+        if (text == null || text == "null") {
             return
         }
         if (text.isBlank()) {

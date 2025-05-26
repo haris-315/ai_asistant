@@ -5,7 +5,7 @@ class AssistantServiceModel {
   final bool isBound;
   final bool isStoped;
   final bool isStandBy;
-
+  final String mailsSyncHash;
   final String recognizedText;
   final bool initializing;
   final bool isWarmingTts;
@@ -14,7 +14,7 @@ class AssistantServiceModel {
     required this.isBound,
     required this.isStoped,
     required this.isStandBy,
-
+    required this.mailsSyncHash,
     required this.recognizedText,
     required this.initializing,
     required this.isWarmingTts,
@@ -25,7 +25,7 @@ class AssistantServiceModel {
       'isBound': isBound,
       'isStoped': isStoped,
       'isStandBy': isStandBy,
-
+      'mailsSyncHash': mailsSyncHash,
       'recognizedText': recognizedText,
       'initializing': initializing,
       'isWarmingTts': isWarmingTts,
@@ -40,6 +40,7 @@ class AssistantServiceModel {
       recognizedText: map['recognizedText'] as String? ?? "",
       initializing: map['initializing'] as bool,
       isWarmingTts: map['isWarmingTts'] as bool,
+      mailsSyncHash: map['mailsSyncHash']
     );
   }
 
@@ -47,7 +48,7 @@ class AssistantServiceModel {
     isBound: false,
     isStoped: false,
     isStandBy: false,
-
+    mailsSyncHash: "",
     recognizedText: '',
     initializing: false,
     isWarmingTts: false,
@@ -69,15 +70,16 @@ class AssistantServiceModel {
     String? recognizedText,
     bool? initializing,
     bool? isWarmingTts,
+    String? mailsSyncHash
   }) {
     return AssistantServiceModel(
       isBound: isBound ?? this.isBound,
       isStoped: isStoped ?? this.isStoped,
       isStandBy: isStandBy ?? this.isStandBy,
-
       recognizedText: recognizedText ?? this.recognizedText,
       initializing: initializing ?? this.initializing,
       isWarmingTts: isWarmingTts ?? this.isWarmingTts,
+      mailsSyncHash: mailsSyncHash ?? this.mailsSyncHash,
     );
   }
 

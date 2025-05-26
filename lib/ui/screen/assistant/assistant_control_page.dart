@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/core/services/native_bridge.dart';
 import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:ai_asistant/core/shared/constants.dart';
@@ -9,6 +10,7 @@ import 'package:ai_asistant/data/models/service_models/assistant_service_model.d
 import 'package:ai_asistant/data/models/service_models/voice.dart';
 import 'package:ai_asistant/ui/widget/input_field.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class AssistantControlPage extends StatefulWidget {
@@ -29,6 +31,7 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
   bool _loadingVoices = false;
   bool toSetAKey = false;
   Map<dynamic, dynamic>? keyRes;
+  AuthController authController = Get.find<AuthController>();
 
   // String? akey;
 
@@ -100,6 +103,7 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
   Future<void> _loadServiceInfo() async {
     while (_mounted) {
       final newData = await NativeBridge.getInfo();
+
       if (!_mounted) break;
       if (newData != assistantServiceModel) {
         setState(() => assistantServiceModel = newData);
@@ -128,7 +132,7 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
   }
 
   Future<void> _loadKey() async {
-    await SettingsService.removeSetting("akey");
+    // await SettingsService.removeSetting("akey");
     String? key = await SettingsService.getSetting("akey");
     if (key != null) {
       await NativeBridge.setKey(key);

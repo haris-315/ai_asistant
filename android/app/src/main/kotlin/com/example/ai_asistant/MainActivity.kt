@@ -16,6 +16,7 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 import com.example.openai.SharedData
 import android.net.Uri
+import com.example.openai.EmailsData
 import com.example.svc_mng.ServiceManager
 import kotlinx.coroutines.*
 
@@ -94,7 +95,7 @@ class MainActivity : FlutterActivity() {
                     val rawTasks = call.argument<List<MutableMap<String, Any>>>("tasks")
                     val taskList = rawTasks ?: emptyList()
 
-                    if (SharedData.tasks != taskList && taskList.isNotEmpty()) {
+                    if (SharedData.tasks.hashCode() != taskList.hashCode() && SharedData.tasks.size < taskList.size) {
                         SharedData.tasks = taskList
                         Log.d("TaskListener", "Received Tasks: ${SharedData.tasks}")
                     }
@@ -124,6 +125,14 @@ class MainActivity : FlutterActivity() {
                 "getDbPath" -> {
                     val dbPath = context.getDatabasePath("meeting.db").path
                     result.success(dbPath)
+                }
+
+                "dumpMails" -> {
+                    var mails: List<String> = call.argument<List<String>>("mails") ?: mutableListOf("")
+                    if (EmailsData.hashCodeId(mails)) {
+                        EmailsData.emails = mails
+                    }
+                    result.success(true)
                 }
                 else -> result.notImplemented()
             }

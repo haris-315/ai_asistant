@@ -1,6 +1,7 @@
 package com.example.svc_mng
 
 import android.speech.tts.Voice
+import com.example.openai.EmailsData
 
 object ServiceManager {
     var isStandBy: Boolean = true
@@ -12,12 +13,14 @@ object ServiceManager {
     var initializing: Boolean = false
     var ttsVoices: List<Voice> = mutableListOf<Voice>()
     var isWarmingTts: Boolean = false
+    var mailsSyncHash: String = EmailsData.fakeHashCode(EmailsData.emails)
 
     fun toMap(): Map<String, Any?> {
         return mapOf(
             "isStandBy" to isStandBy,
             "isStoped" to isStoped,
             "isBound" to isBound,
+            "mailsSyncHash" to mailsSyncHash,
             "serviceChannelName" to serviceChannelName,
             "resultEventChannel" to resultEventChannel,
             "recognizedText" to recognizedText,

@@ -1,4 +1,3 @@
-
 // ignore_for_file: library_private_types_in_public_api
 
 import 'package:flutter/material.dart';
@@ -11,7 +10,6 @@ import '../../widget/input_field.dart';
 import '../../widget/snackbar.dart';
 import 'login_screen.dart';
 
-
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
 
@@ -22,7 +20,6 @@ class RegistrationScreen extends StatefulWidget {
 class _RegistrationScreenState extends State<RegistrationScreen> {
   final AuthController controller = AuthController();
 
-
   final TextEditingController fullNameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController dateOfBirthController = TextEditingController();
@@ -30,9 +27,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final TextEditingController cpasswordController = TextEditingController();
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -42,8 +36,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
-          child:
-          Form(
+          child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -56,7 +49,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   child: Image.asset('assets/Illustration.png'),
                 ),
                 SizedBox(height: 3.h),
-
 
                 CustomFormTextField(
                   error: "Your Name",
@@ -92,11 +84,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   isPassword: true,
                   maxLength: 16,
                   showPasswordStrength: true,
-
                 ),
 
                 SizedBox(height: 1.5.h),
-                 CustomFormTextField(
+                CustomFormTextField(
                   error: "Confirm Password",
                   label: "Confirm Password",
                   icon: Icons.lock_outline_rounded,
@@ -116,49 +107,47 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   height: 50.0,
                   width: double.infinity,
                   onPressed: () async {
-                  if (_formKey.currentState!.validate()) {
-                  if(passwordController.text == cpasswordController.text){
-                    if(passwordController.text.length >= 8 && cpasswordController.text.length >= 8)
-                    {
-                      bool? response;
-                      response =  await controller.Registration(fullNameController.text, emailController.text, passwordController.text);
+                    if (_formKey.currentState!.validate()) {
+                      if (passwordController.text == cpasswordController.text) {
+                        if (passwordController.text.length >= 8 &&
+                            cpasswordController.text.length >= 8) {
+                          bool? response;
+                          response = await controller.Registration(
+                            fullNameController.text,
+                            emailController.text,
+                            passwordController.text,
+                          );
 
-                      if(response == true){
-                        fullNameController.clear();
-                        emailController.clear();
-                        passwordController.clear();
-                        cpasswordController.clear();
+                          if (response == true) {
+                            fullNameController.clear();
+                            emailController.clear();
+                            passwordController.clear();
+                            cpasswordController.clear();
 
-                        Get.to(() => LoginScreen());
+                            Get.to(() => LoginScreen());
+                          }
+                        } else {
+                          showCustomSnackbar(
+                            title: "Error",
+                            message: "Your password Length will be min 8",
+                            backgroundColor: Colors.red,
+                            icon: Icons.error,
+                          );
+                        }
+                      } else {
+                        showCustomSnackbar(
+                          title: "Error",
+                          message: "Your password is not match",
+                          backgroundColor: Colors.red,
+                          icon: Icons.error,
+                        );
                       }
-
-                    }else{
-                      showCustomSnackbar(
-                        title: "Error",
-                        message: "Your password Length will be min 8",
-                        backgroundColor: Colors.red,
-                        icon: Icons.error,
-                      );
                     }
-
-
-                  }
-                  else{
-                    showCustomSnackbar(
-                      title: "Error",
-                      message: "Your password is not match",
-                      backgroundColor: Colors.red,
-                      icon: Icons.error,
-                    );
-                  }
-
-
-                    }}
-
+                  },
                 ),
 
                 // const Spacer(),
-                SizedBox(height: 3.h,),
+                SizedBox(height: 3.h),
                 TextButton(
                   onPressed: () {
                     Get.to(() => LoginScreen());
@@ -166,7 +155,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   child: RichText(
                     text: TextSpan(
                       style: textTheme.bodyLarge?.copyWith(
-                          color: Colors.black, fontWeight: FontWeight.bold),
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                      ),
                       children: [
                         TextSpan(text: 'Already have an account?? '),
                         TextSpan(

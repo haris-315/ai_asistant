@@ -1,3 +1,4 @@
+import 'package:ai_asistant/core/shared/constants.dart';
 import 'package:ai_asistant/data/models/threadmodel.dart';
 import 'package:ai_asistant/data/repos/headers.dart';
 import 'package:dio/dio.dart';
@@ -11,7 +12,7 @@ class EmailRepo {
     try {
       final headers = await getHeaders();
       var response = await dio.request(
-        'https://ai-assistant-backend-dk0q.onrender.com/email/threads?skip=$toSkip&limit=$tillHowMany',
+        '${AppConstants.baseUrl}email/threads?skip=$toSkip&limit=$tillHowMany',
         options: Options(method: 'GET', headers: headers),
       );
 
@@ -38,7 +39,7 @@ class EmailRepo {
     try {
       final headers = await getHeaders();
       var response = await dio.request(
-        'https://ai-assistant-backend-dk0q.onrender.com/email/search?skip=$toSkip&limit=$limit&query=$query',
+        '${AppConstants.baseUrl}email/search?skip=$toSkip&limit=$limit&query=$query',
         options: Options(method: 'GET', headers: headers),
       );
 
