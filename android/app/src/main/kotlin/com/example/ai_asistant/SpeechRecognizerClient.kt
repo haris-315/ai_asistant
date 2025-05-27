@@ -55,9 +55,9 @@ class SpeechRecognizerClient private constructor(context: Context) {
     private val bufferSize = AudioRecord.getMinBufferSize(
         sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT
     ) * 2
-    private val processingTimeoutMs = 10000L
+    private val processingTimeoutMs = 30000L // Increased timeout for long responses
     private val connectionTimeoutMs = 10000L
-    private val inactivityTimeoutMs = 30000L
+    private val inactivityTimeoutMs = 45000L // Increased timeout to prevent premature standby
     private val maxReconnectAttempts = 3
     private var lastMeetingStartTime: LocalDateTime = LocalDateTime.now()
     private var reconnectAttempts = 0
@@ -76,6 +76,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
     )
 
     private var hwDetector: HotWordDetector? = null
+    private var isProcessingLongResponse = false
 
     init {
         context?.let {
@@ -236,6 +237,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
         isManualStandby = false
         reconnectAttempts = 0
         isTtsSpeaking = false
+        isProcessingLongResponse = false
         commandBuffer.clear()
         meetingTranscriptBuffer.clear()
         ServiceManager.isStoped = true
@@ -247,16 +249,21 @@ class SpeechRecognizerClient private constructor(context: Context) {
     private fun transitionTo(newState: AssistantState, fromManualStandby: Boolean = false) {
         if (state == newState) return
         Log.i("SpeechRecognizerClient", "State: $state -> $newState")
+
+        // Cancel any pending inactivity timeouts when transitioning to non-standby states
+        if (newState != AssistantState.STANDBY) {
+            handler.removeCallbacksAndMessages(null)
+        }
+
         state = newState
 
         when (newState) {
             AssistantState.STANDBY -> {
                 stopAudioStreaming()
-                if (fromManualStandby) {
+                if (fromManualStandby || isManualStandby) {
                     webSocket?.close(1000, "Manual standby")
                     webSocket = null
                 }
-                handler.removeCallbacksAndMessages(null)
                 commandBuffer.clear()
                 meetingTranscriptBuffer.clear()
                 try {
@@ -266,6 +273,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
                     ttsHelper?.speak("Hotword detection failed.")
                 }
                 ServiceManager.isStandBy = true
+                isProcessingLongResponse = false
             }
             AssistantState.LISTENING -> {
                 hwDetector?.stop()
@@ -276,9 +284,11 @@ class SpeechRecognizerClient private constructor(context: Context) {
             }
             AssistantState.PROCESSING -> {
                 stopAudioStreaming()
+                isProcessingLongResponse = true
                 handler.postDelayed({
                     if (state == AssistantState.PROCESSING) {
                         Log.w("SpeechRecognizerClient", "Processing timeout")
+                        isProcessingLongResponse = false
                         ttsHelper?.speak("Processing took too long.")
                         transitionTo(AssistantState.LISTENING)
                     }
@@ -291,6 +301,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
                 isTtsSpeaking = true
                 ServiceManager.isStoped = false
                 ServiceManager.isStandBy = false
+                isProcessingLongResponse = false
             }
             AssistantState.MEETING -> {
                 hwDetector?.stop()
@@ -312,11 +323,14 @@ class SpeechRecognizerClient private constructor(context: Context) {
     private fun resetInactivityTimeout() {
         handler.removeCallbacksAndMessages(null)
         handler.postDelayed({
-            if (state != AssistantState.STANDBY && state != AssistantState.MEETING) {
+            if (state != AssistantState.STANDBY && state != AssistantState.MEETING && !isProcessingLongResponse) {
                 Log.d("SpeechRecognizerClient", "Inactivity timeout, transitioning to STANDBY")
                 isManualStandby = false
                 ttsHelper?.speak("No activity detected. Going to standby.")
                 transitionTo(AssistantState.STANDBY)
+            } else if (isProcessingLongResponse) {
+                // Extend timeout if we're processing a long response
+                resetInactivityTimeout()
             }
         }, inactivityTimeoutMs)
     }
@@ -465,6 +479,11 @@ class SpeechRecognizerClient private constructor(context: Context) {
                     this@SpeechRecognizerClient.webSocket = null
                     webSocket.close(1000, "Closing")
                 }
+
+                override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                    Log.i("SpeechRecognizerClient", "WebSocket closed: $reason")
+                    this@SpeechRecognizerClient.webSocket = null
+                }
             })
         } catch (e: Exception) {
             Log.e("SpeechRecognizerClient", "WebSocket creation error: ${e.message}")
@@ -574,8 +593,9 @@ class SpeechRecognizerClient private constructor(context: Context) {
                         Log.d("SpeechRecognizerClient", "Ignoring OpenAI error in STANDBY")
                         return@launch
                     }
-                    ttsHelper?.speak("Sorry, I couldn’t process that.")
-                    transitionTo(AssistantState.LISTENING)
+                    ttsHelper?.speak("Sorry, I couldn't process that.", onSpoken = {
+                        transitionTo(AssistantState.LISTENING)
+                    })
                 }
             },
             onStandBy = {
@@ -587,13 +607,9 @@ class SpeechRecognizerClient private constructor(context: Context) {
             },
             onSummaryAsked = {
                 transitionTo(AssistantState.PROCESSING)
-
-                    transitionTo(AssistantState.PROCESSING)
-                    var chats = openAiClient?.getMessageHistory()?.drop(0)
-                    summarizeMeeting(chats.toString(),forChat = true)
-
+                var chats = openAiClient?.getMessageHistory()?.drop(0)
+                summarizeMeeting(chats.toString(), forChat = true)
             }
-
         )
     }
 
@@ -606,7 +622,6 @@ class SpeechRecognizerClient private constructor(context: Context) {
         }
 
         ttsHelper?.speak("Please Let me summarize the information.")
-
 
         openAiClient?.generateMeetingSummary(
             transcript = transcript,
@@ -633,7 +648,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
             onError = {
                 CoroutineScope(Dispatchers.Main).launch {
                     Log.e("SpeechRecognizerClient", "Failed to summarize meeting")
-                    ttsHelper?.speak("Sorry, I couldn’t summarize the meeting but, the info is stored so you can later summarize it from the app.")
+                    ttsHelper?.speak("Sorry, I couldn't summarize the meeting but, the info is stored so you can later summarize it from the app.")
                     transitionTo(AssistantState.STANDBY)
                 }
             },

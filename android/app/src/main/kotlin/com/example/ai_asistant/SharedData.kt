@@ -13,13 +13,13 @@ object SharedData {
 
 
 object EmailsData {
-    var emails: List<String> = mutableListOf("")
+    var emails: List<String> = mutableListOf("RRRR")
     fun hashCodeId(other: List<String>) : Boolean {
         return fakeHashCode(other) == fakeHashCode(emails)
     }
 
     fun fakeHashCode(elements: List<String>) : String {
-        val fakehash: String = elements.fold(initial = "") { init, it -> (init + it.first()) ?: "R" }
+        val fakehash: String = elements.fold(initial = "RRRR") { init, it -> (init + it.first()) ?: "R" }
         return fakehash
     }
 }

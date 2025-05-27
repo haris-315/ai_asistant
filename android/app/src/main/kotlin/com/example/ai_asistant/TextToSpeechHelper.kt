@@ -134,18 +134,14 @@ class TextToSpeechHelper(
         } ?: false
     }
 
-    fun speak(text: String) {
-
+    fun speak(text: String, onSpoken: (() -> Unit)? = null) {
         if (!isInitialized) {
             Log.e("TTS", "TTS not initialized, attempting reinitialization")
             reinitialize()
             return
         }
-        if (text == null || text == "null") {
-            return
-        }
-        if (text.isBlank()) {
-            Log.e("TTS", "Empty text provided")
+        if (text == "null" || text.isBlank()) {
+            Log.e("TTS", "Invalid text provided")
             return
         }
         try {
@@ -154,8 +150,11 @@ class TextToSpeechHelper(
         } catch (e: Exception) {
             Log.e("TTS", "Speak failed: ${e.message}")
             reinitialize()
+        } finally {
+            onSpoken?.invoke()
         }
     }
+
 
     fun stop() {
         try {

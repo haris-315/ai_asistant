@@ -30,7 +30,7 @@ class OpenAIClient(
     private val maxMessages = 50
     private var lastMeetingTime = LocalDateTime.now()
 
-    // SharedData placeholder (replace with your actual implementation)
+    // SharedData placeholder
     object SharedData {
         var tasks: List<Map<String, Any>> = emptyList()
     }
@@ -39,7 +39,7 @@ class OpenAIClient(
         val name: String
         val description: String
         val parameters: JSONObject
-        fun execute(args: JSONObject, client: OpenAIClient): Boolean
+        fun execute(args: JSONObject, client: OpenAIClient): JSONObject
     }
 
     private val functionDefinitions = listOf(
@@ -58,14 +58,16 @@ class OpenAIClient(
                     })
                     put("project_id", JSONObject().apply {
                         put("type", "integer")
-                        put("description", "Project ID (use 0 for Inbox)")
+                        put("description", "Project ID (use id of the project named Inbox if no project is specified or the specified project is not available)")
                     })
                     put("due_date", JSONObject().apply { put("type", "string"); put("description", "Due date in ISO-8601 format (optional)") })
                     put("reminder_at", JSONObject().apply { put("type", "string"); put("description", "Reminder time in ISO-8601 format (optional)") })
                 })
                 put("required", JSONArray().apply { put("content"); put("description"); put("priority"); put("project_id") })
             }
-            override fun execute(args: JSONObject, client: OpenAIClient): Boolean = client.createTask(args)
+            override fun execute(args: JSONObject, client: OpenAIClient): JSONObject {
+                return client.createTask(args)
+            }
         },
         object : FunctionDefinition {
             override val name = "update_task"
@@ -84,7 +86,9 @@ class OpenAIClient(
                 })
                 put("required", JSONArray().apply { put("id"); put("content"); put("description"); put("is_completed"); put("priority"); put("project_id") })
             }
-            override fun execute(args: JSONObject, client: OpenAIClient): Boolean = client.updateTask(args)
+            override fun execute(args: JSONObject, client: OpenAIClient): JSONObject {
+                return client.updateTask(args)
+            }
         },
         object : FunctionDefinition {
             override val name = "create_project"
@@ -103,7 +107,9 @@ class OpenAIClient(
                 })
                 put("required", JSONArray().apply { put("name"); put("color"); put("is_favorite"); put("view_style") })
             }
-            override fun execute(args: JSONObject, client: OpenAIClient): Boolean = client.createProject(args)
+            override fun execute(args: JSONObject, client: OpenAIClient): JSONObject {
+                return client.createProject(args)
+            }
         },
         object : FunctionDefinition {
             override val name = "open_app"
@@ -116,23 +122,25 @@ class OpenAIClient(
                 })
                 put("required", JSONArray().apply { put("package") })
             }
-            override fun execute(args: JSONObject, client: OpenAIClient): Boolean {
-                var success = false
-                client.openApp(args.getString("package")) { result -> success = result }
-                return success
+            override fun execute(args: JSONObject, client: OpenAIClient): JSONObject {
+                return client.openApp(args)
             }
         },
         object : FunctionDefinition {
             override val name = "standby"
             override val description = "Enter standby mode."
             override val parameters = JSONObject().apply { put("type", "object"); put("properties", JSONObject()) }
-            override fun execute(args: JSONObject, client: OpenAIClient): Boolean = true
+            override fun execute(args: JSONObject, client: OpenAIClient): JSONObject {
+                return JSONObject().apply { put("status", "standby") }
+            }
         },
         object : FunctionDefinition {
             override val name = "summarize_conversation"
             override val description = "Summarize the conversation history."
             override val parameters = JSONObject().apply { put("type", "object"); put("properties", JSONObject()) }
-            override fun execute(args: JSONObject, client: OpenAIClient): Boolean = true
+            override fun execute(args: JSONObject, client: OpenAIClient): JSONObject {
+                return JSONObject().apply { put("status", "summary_requested") }
+            }
         }
     )
 
@@ -154,7 +162,7 @@ class OpenAIClient(
         - Return short, friendly text responses for text-to-speech.
         - Use function calls for actions; do not embed details in text.
         - For apps, use exact package names (e.g., "com.google.android.youtube").
-        - Assign tasks to "Inbox" (project_id=0) if no project matches.
+        - Assign tasks the id of the project named "Inbox" if no other project matches.
         - Available projects: ${projects.joinToString()}
         - Current time: ${LocalDateTime.now()}
         - Current tasks: ${SharedData.tasks.joinToString()}
@@ -212,33 +220,19 @@ class OpenAIClient(
             messages.removeAt(0)
         }
 
-        // Validate message history
-        val validMessages = mutableListOf<JSONObject>()
-        val activeToolCallIds = mutableSetOf<String>()
-        messages.forEach { msg ->
-            if (msg.optString("role") == "assistant" && msg.has("tool_calls")) {
-                val toolCalls = msg.getJSONArray("tool_calls")
-                for (i in 0 until toolCalls.length()) {
-                    activeToolCallIds.add(toolCalls.getJSONObject(i).getString("id"))
-                }
-            }
-            if (msg.optString("role") == "tool" && !activeToolCallIds.contains(msg.optString("tool_call_id"))) {
-                Log.d("OpenAIClient", "Skipping stale tool message: ${msg.optString("tool_call_id")}")
-                return@forEach
-            }
-            validMessages.add(msg)
+        // Build message history with system prompt
+        val requestMessages = JSONArray().apply {
+            put(JSONObject().apply {
+                put("role", "system")
+                put("content", buildSystemPrompt())
+            })
+            messages.forEach { put(it) }
         }
 
         // Build initial request
         val body = JSONObject().apply {
             put("model", model)
-            put("messages", JSONArray().apply {
-                put(JSONObject().apply {
-                    put("role", "system")
-                    put("content", buildSystemPrompt())
-                })
-                validMessages.forEach { put(it) }
-            })
+            put("messages", requestMessages)
             put("tools", buildTools())
             put("tool_choice", "auto")
         }
@@ -274,67 +268,52 @@ class OpenAIClient(
                     }
 
                     // Process tool calls
+                    val toolResponses = mutableListOf<JSONObject>()
                     if (toolCalls.length() > 0) {
-                        val toolResponses = mutableListOf<JSONObject>()
                         for (i in 0 until toolCalls.length()) {
                             val toolCall = toolCalls.getJSONObject(i)
                             val toolCallId = toolCall.getString("id")
                             val function = toolCall.getJSONObject("function")
                             val name = function.getString("name")
+                            var toolResponseContent = JSONObject()
+
                             try {
                                 val args = JSONObject(function.getString("arguments"))
                                 val functionDef = functionDefinitions.find { it.name == name }
                                 if (functionDef != null) {
-                                    val success = functionDef.execute(args, this)
+                                    val result = functionDef.execute(args, this)
+                                    toolResponseContent = result
                                     if (name == "standby") {
                                         onStandBy()
-                                        toolResponses.add(JSONObject().apply {
-                                            put("role", "tool")
-                                            put("content", JSONObject().put("status", "standby").toString())
-                                            put("tool_call_id", toolCallId)
-                                            put("name", "standby")
-                                        })
                                     } else if (name == "summarize_conversation") {
                                         onSummaryAsked()
-                                        toolResponses.add(JSONObject().apply {
-                                            put("role", "tool")
-                                            put("content", JSONObject().put("status", "summary_requested").toString())
-                                            put("tool_call_id", toolCallId)
-                                            put("name", "summarize_conversation")
-                                        })
-                                    } else if (!success) {
-                                        toolResponses.add(JSONObject().apply {
-                                            put("role", "tool")
-                                            put("content", JSONObject().put("error", "Failed to execute $name").toString())
-                                            put("tool_call_id", toolCallId)
-                                            put("name", name)
-                                        })
                                     }
                                 } else {
                                     Log.w("OpenAIClient", "Unknown function: $name")
-                                    toolResponses.add(JSONObject().apply {
-                                        put("role", "tool")
-                                        put("content", JSONObject().put("error", "Unknown function $name").toString())
-                                        put("tool_call_id", toolCallId)
-                                        put("name", name)
-                                    })
+                                    toolResponseContent.put("error", "Unknown function: $name")
                                 }
                             } catch (e: Exception) {
                                 Log.e("OpenAIClient", "Error processing tool call $name: ${e.message}")
-                                toolResponses.add(JSONObject().apply {
-                                    put("role", "tool")
-                                    put("content", JSONObject().put("error", "Error: ${e.message}").toString())
-                                    put("tool_call_id", toolCallId)
-                                    put("name", name)
-                                })
+                                toolResponseContent.put("error", "Error: ${e.message}")
                             }
+
+                            // Always add a tool response
+                            toolResponses.add(JSONObject().apply {
+                                put("role", "tool")
+                                put("content", toolResponseContent.toString())
+                                put("tool_call_id", toolCallId)
+                                put("name", name)
+                            })
                         }
 
-                        // Add tool responses
+                        // Add tool responses to message history
                         toolResponses.forEach { messages.add(it) }
                         if (messages.size > maxMessages) {
                             messages.removeAt(0)
                         }
+
+                        // Log message history for debugging
+                        Log.d("OpenAIClient", "Messages before follow-up: ${messages.joinToString { it.toString() }}")
 
                         // Send follow-up request
                         val followUpBody = JSONObject().apply {
@@ -662,25 +641,29 @@ class OpenAIClient(
         }
     }
 
-    private fun openApp(packageName: String, callback: (Boolean) -> Unit) {
+    private fun openApp(args: JSONObject): JSONObject {
+        val result = JSONObject()
         try {
+            val packageName = args.getString("package")
             val intent = context.packageManager.getLaunchIntentForPackage(packageName)
             if (intent != null) {
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(intent)
                 Log.d("OpenAIClient", "Opened app: $packageName")
-                callback(true)
+                result.put("status", "success")
             } else {
                 Log.w("OpenAIClient", "No launch intent for package: $packageName")
-                callback(false)
+                result.put("error", "No launch intent for package: $packageName")
             }
         } catch (e: Exception) {
             Log.e("OpenAIClient", "Error opening app: ${e.message}")
-            callback(false)
+            result.put("error", "Error opening app: ${e.message}")
         }
+        return result
     }
 
-    private fun createTask(args: JSONObject): Boolean {
+    private fun createTask(args: JSONObject): JSONObject {
+        val result = JSONObject()
         try {
             val taskBody = JSONObject().apply {
                 put("content", args.getString("content"))
@@ -699,7 +682,6 @@ class OpenAIClient(
                 .addHeader("Content-Type", "application/json")
                 .build()
 
-            var success = false
             executeWithRetry(
                 request = request,
                 onSuccess = { response ->
@@ -719,28 +701,34 @@ class OpenAIClient(
                             }
                             SharedData.tasks = SharedData.tasks.toMutableList().apply { add(taskMap) }
                             Log.d("OpenAIClient", "Task created: $taskMap")
-                            success = true
+                            result.put("status", "success")
+                            result.put("task_id", taskId)
                         } else {
-                            Log.w("OpenAIClient", "Task creation failed: ${response.code}")
+                            val errorBody = response.body?.string() ?: "Unknown error"
+                            Log.w("OpenAIClient", "Task creation failed: ${response.code}, $errorBody")
+                            result.put("error", "Task creation failed: HTTP ${response.code}, $errorBody")
                         }
                     } catch (e: Exception) {
                         Log.e("OpenAIClient", "Error processing task creation: ${e.message}")
+                        result.put("error", "Error processing task creation: ${e.message}")
                     } finally {
                         response.close()
                     }
                 },
                 onFailure = { error ->
                     Log.e("OpenAIClient", "Task creation failed: $error")
+                    result.put("error", "Task creation failed: $error")
                 }
             )
-            return success
         } catch (e: Exception) {
             Log.e("OpenAIClient", "Error creating task: ${e.message}")
-            return false
+            result.put("error", "Error creating task: ${e.message}")
         }
+        return result
     }
 
-    private fun updateTask(args: JSONObject): Boolean {
+    private fun updateTask(args: JSONObject): JSONObject {
+        val result = JSONObject()
         try {
             val taskId = args.getString("id")
             val taskBody = JSONObject().apply {
@@ -760,7 +748,6 @@ class OpenAIClient(
                 .addHeader("Content-Type", "application/json")
                 .build()
 
-            var success = false
             executeWithRetry(
                 request = request,
                 onSuccess = { response ->
@@ -781,28 +768,33 @@ class OpenAIClient(
                                 if (index >= 0) set(index, taskMap) else add(taskMap)
                             }
                             Log.d("OpenAIClient", "Task updated: $taskMap")
-                            success = true
+                            result.put("status", "success")
                         } else {
-                            Log.w("OpenAIClient", "Task update failed: ${response.code}")
+                            val errorBody = response.body?.string() ?: "Unknown error"
+                            Log.w("OpenAIClient", "Task update failed: ${response.code}, $errorBody")
+                            result.put("error", "Task update failed: HTTP ${response.code}, $errorBody")
                         }
                     } catch (e: Exception) {
                         Log.e("OpenAIClient", "Error processing task update: ${e.message}")
+                        result.put("error", "Error processing task update: ${e.message}")
                     } finally {
                         response.close()
                     }
                 },
                 onFailure = { error ->
                     Log.e("OpenAIClient", "Task update failed: $error")
+                    result.put("error", "Task update failed: $error")
                 }
             )
-            return success
         } catch (e: Exception) {
             Log.e("OpenAIClient", "Error updating task: ${e.message}")
-            return false
+            result.put("error", "Error updating task: ${e.message}")
         }
+        return result
     }
 
-    private fun createProject(args: JSONObject): Boolean {
+    private fun createProject(args: JSONObject): JSONObject {
+        val result = JSONObject()
         try {
             val projectBody = JSONObject().apply {
                 put("name", args.getString("name"))
@@ -818,7 +810,6 @@ class OpenAIClient(
                 .addHeader("Content-Type", "application/json")
                 .build()
 
-            var success = false
             executeWithRetry(
                 request = request,
                 onSuccess = { response ->
@@ -827,25 +818,29 @@ class OpenAIClient(
                             val projectName = projectBody.getString("name")
                             projects.add(projectName)
                             Log.d("OpenAIClient", "Project created: $projectName")
-                            success = true
+                            result.put("status", "success")
                         } else {
-                            Log.w("OpenAIClient", "Project creation failed: ${response.code}")
+                            val errorBody = response.body?.string() ?: "Unknown error"
+                            Log.w("OpenAIClient", "Project creation failed: ${response.code}, $errorBody")
+                            result.put("error", "Project creation failed: HTTP ${response.code}, $errorBody")
                         }
                     } catch (e: Exception) {
                         Log.e("OpenAIClient", "Error processing project creation: ${e.message}")
+                        result.put("error", "Error processing project creation: ${e.message}")
                     } finally {
                         response.close()
                     }
                 },
                 onFailure = { error ->
                     Log.e("OpenAIClient", "Project creation failed: $error")
+                    result.put("error", "Project creation failed: $error")
                 }
             )
-            return success
         } catch (e: Exception) {
             Log.e("OpenAIClient", "Error creating project: ${e.message}")
-            return false
+            result.put("error", "Error creating project: ${e.message}")
         }
+        return result
     }
 
     private fun executeWithRetry(
