@@ -30,7 +30,7 @@ class OpenAIClient(
     private val maxMessages = 50
     private var lastMeetingTime = LocalDateTime.now()
 
-    // SharedData placeholder
+    
     object SharedData {
         var tasks: List<Map<String, Any>> = emptyList()
     }
@@ -141,10 +141,29 @@ class OpenAIClient(
             override fun execute(args: JSONObject, client: OpenAIClient): JSONObject {
                 return JSONObject().apply { put("status", "summary_requested") }
             }
+        },
+        object : FunctionDefinition {
+            override val name = "collect_user_data"
+            override val description = "Collect and store user data from prompts for personalized responses, up to 24 points."
+            override val parameters = JSONObject().apply {
+                put("type", "object")
+                put("properties", JSONObject().apply {
+                    put("data_points", JSONObject().apply {
+                        put("type", "array")
+                        put("items", JSONObject().apply { put("type", "string"); put("description", "A concise data point (e.g., 'Name is John', 'Prefers dark mode')") })
+                        put("description", "List of data points to store")
+                    })
+                })
+                put("required", JSONArray().apply { put("data_points") })
+            }
+            override fun execute(args: JSONObject, client: OpenAIClient): JSONObject {
+                return client.collectUserData(args)
+            }
         }
     )
 
     private fun buildSystemPrompt(): String {
+        val userData = fetchUserData()
         return """
         You are a helpful assistant for a task manager app that can also open Android apps. You answer general knowledge questions and hold friendly conversations.
 
@@ -157,6 +176,7 @@ class OpenAIClient(
         - Opening an Android app: Use `open_app`.
         - Entering standby mode: Use `standby`.
         - Summarizing conversation: Use `summarize_conversation`.
+        - Collecting user data: Use `collect_user_data` when the prompt contains relevant personal information (e.g., name, preferences) that could improve future responses, but only if it’s useful and not repetitive. Limit to 24 data points.
 
         Rules:
         - Return short, friendly text responses for text-to-speech.
@@ -166,13 +186,98 @@ class OpenAIClient(
         - Available projects: ${projects.joinToString()}
         - Current time: ${LocalDateTime.now()}
         - Current tasks: ${SharedData.tasks.joinToString()}
+        - User data: ${userData.joinToString()}
         - No markdown or explanations in responses.
 
         Examples:
         - "What time is it?": "The current time is 08:48 PM."
         - "Create a task to buy milk": "Task created to buy milk." + call `create_task`.
         - "Stop listening": "Entering standby mode." + call `standby`.
+        - "My name is John": "Thanks for sharing, John!" + call `collect_user_data` with "Name is John".
         """.trimIndent()
+    }
+
+    private fun fetchUserData(): List<String> {
+        val userData = mutableListOf<String>()
+        var retryCount = 0
+        val maxRetries = 3
+        while (retryCount < maxRetries) {
+            try {
+                val dbPath = context.getDatabasePath("user_data.db").path
+                val db = SQLiteDatabase.openOrCreateDatabase(dbPath, null)
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS user_data (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        data_point TEXT UNIQUE,
+                        created_at TEXT
+                    )
+                """.trimIndent())
+                val cursor = db.rawQuery("SELECT data_point FROM user_data ORDER BY created_at DESC LIMIT 24", null)
+                while (cursor.moveToNext()) {
+                    userData.add(cursor.getString(0))
+                }
+                cursor.close()
+                db.close()
+                return userData
+            } catch (e: Exception) {
+                retryCount++
+                Log.e("OpenAIClient", "Error fetching user data (attempt $retryCount): ${e.message}")
+                if (retryCount == maxRetries) {
+                    Log.e("OpenAIClient", "Max retries reached for fetching user data")
+                    return emptyList()
+                }
+                Thread.sleep(500)
+            }
+        }
+        return emptyList()
+    }
+
+    private fun collectUserData(args: JSONObject): JSONObject {
+        val result = JSONObject()
+        try {
+            val dataPoints = args.getJSONArray("data_points")
+            val dbPath = context.getDatabasePath("user_data.db").path
+            val db = SQLiteDatabase.openOrCreateDatabase(dbPath, null)
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS user_data (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    data_point TEXT UNIQUE,
+                    created_at TEXT
+                )
+            """.trimIndent())
+
+            
+            val cursor = db.rawQuery("SELECT COUNT(*) FROM user_data", null)
+            var currentCount = 0
+            if (cursor.moveToFirst()) {
+                currentCount = cursor.getInt(0)
+            }
+            cursor.close()
+
+            val newPoints = mutableListOf<String>()
+            for (i in 0 until dataPoints.length()) {
+                if (currentCount >= 24) {
+                    
+                    db.execSQL("DELETE FROM user_data WHERE id = (SELECT MIN(id) FROM user_data)")
+                    currentCount--
+                }
+                val dataPoint = dataPoints.getString(i)
+                val stmt = db.compileStatement("INSERT OR IGNORE INTO user_data (data_point, created_at) VALUES (?, ?)")
+                stmt.bindString(1, dataPoint)
+                stmt.bindString(2, LocalDateTime.now().toString())
+                stmt.executeInsert()
+                newPoints.add(dataPoint)
+                currentCount++
+            }
+            db.close()
+            Log.d("OpenAIClient", "Stored user data points: $newPoints")
+            result.put("status", "success")
+            result.put("data_points", JSONArray(newPoints))
+        } catch (e: Exception) {
+            Log.e("OpenAIClient", "Error storing user data: ${e.message}")
+            result.put("error", "Error storing user data: ${e.message}")
+        }
+        return result
     }
 
     private fun buildTools(): JSONArray {
@@ -211,7 +316,7 @@ class OpenAIClient(
             return
         }
 
-        // Add user message
+        
         messages.add(JSONObject().apply {
             put("role", "user")
             put("content", userMessage)
@@ -220,7 +325,7 @@ class OpenAIClient(
             messages.removeAt(0)
         }
 
-        // Build message history with system prompt
+        
         val requestMessages = JSONArray().apply {
             put(JSONObject().apply {
                 put("role", "system")
@@ -229,7 +334,7 @@ class OpenAIClient(
             messages.forEach { put(it) }
         }
 
-        // Build initial request
+        
         val body = JSONObject().apply {
             put("model", model)
             put("messages", requestMessages)
@@ -256,18 +361,18 @@ class OpenAIClient(
                     val chatres = content.optString("content", "").trim()
                     val toolCalls = content.optJSONArray("tool_calls") ?: JSONArray()
 
-                    // Add assistant message
+                    
                     messages.add(content)
                     if (messages.size > maxMessages) {
                         messages.removeAt(0)
                     }
 
-                    // Speak initial response
+                    
                     if (chatres.isNotEmpty()) {
                         onResponse(chatres)
                     }
 
-                    // Process tool calls
+                    
                     val toolResponses = mutableListOf<JSONObject>()
                     if (toolCalls.length() > 0) {
                         for (i in 0 until toolCalls.length()) {
@@ -297,7 +402,7 @@ class OpenAIClient(
                                 toolResponseContent.put("error", "Error: ${e.message}")
                             }
 
-                            // Always add a tool response
+                            
                             toolResponses.add(JSONObject().apply {
                                 put("role", "tool")
                                 put("content", toolResponseContent.toString())
@@ -306,16 +411,16 @@ class OpenAIClient(
                             })
                         }
 
-                        // Add tool responses to message history
+                        
                         toolResponses.forEach { messages.add(it) }
                         if (messages.size > maxMessages) {
                             messages.removeAt(0)
                         }
 
-                        // Log message history for debugging
+                        
                         Log.d("OpenAIClient", "Messages before follow-up: ${messages.joinToString { it.toString() }}")
 
-                        // Send follow-up request
+                        
                         val followUpBody = JSONObject().apply {
                             put("model", model)
                             put("messages", JSONArray().apply {
