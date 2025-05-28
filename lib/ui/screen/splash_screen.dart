@@ -25,36 +25,32 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
     _animationController = AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 1200),
-      );
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
 
-      _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
-        CurvedAnimation(
-          parent: _animationController,
-          curve: Curves.easeOutQuint,
-        ),
-      );
+    _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOutQuint),
+    );
 
-      _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-        CurvedAnimation(
-          parent: _animationController,
-          curve: const Interval(0.3, 1.0, curve: Curves.easeIn),
-        ),
-      );
-
+    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: const Interval(0.3, 1.0, curve: Curves.easeIn),
+      ),
+    );
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    precacheImage(const AssetImage('assets/output.webp'), context).then((_) {
+    precacheImage(const AssetImage('assets/splash_loading.webp'), context).then((_) {
       setState(() {
         _gifLoaded = true;
       });
 
       // Initialize animations
-      
+
       // Start animations
       _animationController.forward();
 
@@ -92,7 +88,7 @@ class _SplashScreenState extends State<SplashScreen>
           return Opacity(
             opacity: _opacityAnimation.value,
             child: Image.asset(
-              'assets/output.webp',
+              'assets/splash_loading.webp',
               fit: BoxFit.cover,
               width: double.infinity,
               height: double.infinity,

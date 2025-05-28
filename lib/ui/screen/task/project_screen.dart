@@ -71,7 +71,13 @@ class _ProjectScreenState extends State<ProjectScreen> {
                   ),
                   icon: Icon(Icons.inbox, color: Colors.blue),
                   onPressed:
-                      _controller.projects.isEmpty ? null : _handleInboxPress,
+                      !_controller.projects.any(
+                            (p) => p.isInboxProject && p.name == "Inbox",
+                          )
+                          ? null
+                          : _controller.projects.isEmpty
+                          ? null
+                          : _handleInboxPress,
                 ),
               ),
               SizedBox(width: 3.w),
@@ -228,68 +234,84 @@ class _ProjectScreenState extends State<ProjectScreen> {
           if (filteredProjects.isEmpty) {
             return _buildEmptyState(colorScheme);
           }
+          if (_controller.projects.length == 1 &&
+              _controller.projects.first.name == "Inbox" &&
+              _controller.projects.first.isInboxProject) {
+            return _buildEmptyState(colorScheme);
+          } else {
+            return ListView.separated(
+              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: filteredProjects.length,
+              separatorBuilder: (context, index) => SizedBox(height: 1.h),
+              itemBuilder: (context, index) {
+                if (filteredProjects[index].name == "Inbox" &&
+                    filteredProjects[index].isInboxProject) {
+                  return SizedBox.shrink();
+                }
+                return GestureDetector(
+                  onLongPress: () {
+                    showModalBottomSheet(
+                      context: context,
+                      builder:
+                          (_) => Container(
+                            margin: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: colorScheme.surface,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.2),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ListTile(
+                                  title: Text("Delete Project"),
+                                  leading: Icon(
+                                    Icons.delete,
+                                    color: Colors.red,
+                                  ),
+                                  onTap: () async {
+                                    await _controller.deleteProject(
+                                      filteredProjects[index].id.toString(),
+                                    );
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                                ListTile(
+                                  title: Text("Edit Project"),
+                                  leading: Icon(Icons.edit, color: Colors.blue),
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (_) => EditProjectScreen(
+                                              project: filteredProjects[index],
+                                            ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                    );
+                  },
 
-          return ListView.separated(
-            padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
-            physics: const AlwaysScrollableScrollPhysics(),
-            itemCount: filteredProjects.length,
-            separatorBuilder: (context, index) => SizedBox(height: 1.h),
-            itemBuilder: (context, index) {
-              return GestureDetector(
-                onLongPress: () {
-                  showModalBottomSheet(
-                    context: context,
-                    builder:
-                        (_) => Container(
-                          margin: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: colorScheme.surface,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.2),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              ListTile(
-                                title: Text("Delete Project"),
-                                leading: Icon(Icons.delete, color: Colors.red),
-                                onTap: () async {
-                                  await _controller.deleteProject(
-                                    filteredProjects[index].id.toString(),
-                                  );
-                                  Navigator.pop(context);
-                                },
-                              ),
-                              ListTile(
-                                title: Text("Edit Project"),
-                                leading: Icon(Icons.edit, color: Colors.blue),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (_) => EditProjectScreen(
-                                            project: filteredProjects[index],
-                                          ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                  );
-                },
-                child: _buildProjectCard(filteredProjects[index], colorScheme),
-              );
-            },
-          );
+                  child: _buildProjectCard(
+                    filteredProjects[index],
+                    colorScheme,
+                  ),
+                );
+              },
+            );
+          }
         }),
       ),
     );
