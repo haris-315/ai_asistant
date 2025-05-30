@@ -3,6 +3,7 @@ import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:ai_asistant/core/services/snackbar_service.dart';
 import 'package:ai_asistant/core/shared/constants.dart';
 import 'package:ai_asistant/core/themes/theme.dart';
+import 'package:ai_asistant/data/models/emails/email_message_adapter.dart';
 import 'package:ai_asistant/state_mgmt/chats/cubit/chat_cubit.dart';
 import 'package:ai_asistant/state_mgmt/email/cubit/email_cubit.dart';
 import 'package:ai_asistant/state_mgmt/sessions/cubit/sessions_cubit.dart';
@@ -11,6 +12,7 @@ import 'package:ai_asistant/ui/screen/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get/get.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
 import 'Controller/bar_controller.dart';
@@ -19,6 +21,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // ignore: unused_local_variable
   AuthController ac = Get.put(AuthController());
+  await Hive.initFlutter();
+  Hive.registerAdapter(HiveEmailAdapter());
   Get.put(TaskController());
   await SettingsService.storeSetting(
     AppConstants.appStateKey,

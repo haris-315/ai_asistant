@@ -1,13 +1,32 @@
+import 'dart:convert';
+
 import 'package:ai_asistant/core/shared/constants.dart';
+import 'package:ai_asistant/data/models/emails/thread_detail.dart';
 import 'package:ai_asistant/data/models/threadmodel.dart';
 import 'package:ai_asistant/data/repos/headers.dart';
+import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
+import 'package:hive/hive.dart';
 
 class EmailRepo {
-  final dio = Dio();
+  final Dio dio = Dio();
+
+  Future<Box<EmailMessage>> _openBox() async {
+    if (!Hive.isBoxOpen('emails')) {
+      await Hive.openBox<EmailMessage>('emails');
+    }
+    return Hive.box<EmailMessage>('emails');
+  }
+
+  String _generateHash(EmailMessage email) {
+    final content =
+        '${email.id}${email.subject}${email.sender}${email.bodyPlain}${email.receivedAt}';
+    return md5.convert(utf8.encode(content)).toString();
+  }
+
   Future<List<EmailThread>> getAllEmails({
     int toSkip = 0,
-    int tillHowMany = 9,
+    int tillHowMany = 15,
   }) async {
     try {
       final headers = await getHeaders();
@@ -17,7 +36,6 @@ class EmailRepo {
       );
 
       if (response.statusCode == 200) {
-        // print(response);
         List<EmailThread> threads =
             (response.data as List)
                 .map((e) => EmailThread.fromJson(e))
@@ -27,34 +45,69 @@ class EmailRepo {
         throw response.statusMessage ?? "There was an error fetching emails";
       }
     } catch (e) {
-      throw "An error occured please try again.";
+      throw "An error occurred please try again.";
     }
   }
 
-  Future<List<EmailThread>> getEmailsBySearch({
-    int toSkip = 0,
-    int limit = 15,
-    required String query,
-  }) async {
+  Future<List<EmailMessage>> loadMailsInBackground() async {
     try {
       final headers = await getHeaders();
       var response = await dio.request(
-        '${AppConstants.baseUrl}email/search?skip=$toSkip&limit=$limit&query=$query',
+        '${AppConstants.baseUrl}email/all-emails/',
         options: Options(method: 'GET', headers: headers),
       );
 
       if (response.statusCode == 200) {
-        List<EmailThread> threads =
-            (response.data as List)
-                .map((e) => EmailThread.fromJson(e))
+        List<EmailMessage> emails =
+            (response.data['emails'] as List)
+                .map((e) => EmailMessage.fromJson(e))
                 .toList();
-        return threads;
+        final box = await _openBox();
+
+        for (var email in emails) {
+          final hash = _generateHash(email);
+          final existing = box.get(email.id);
+
+          if (existing == null || _generateHash(existing) != hash) {
+            await box.put(email.id, email);
+          }
+        }
+
+        return emails;
       } else {
         throw response.statusMessage ??
-            "There was an error while searching for emails";
+            "There was an error while fetching emails";
       }
     } catch (e) {
-      throw "An error occured please try again.";
+      print(e);
+      throw "An error occurred please try again.";
+    }
+  }
+
+  Future<List<EmailMessage>> getEmailsBySearch({required String query}) async {
+    try {
+      final box = await _openBox();
+      final queryLower = query.toLowerCase();
+
+      final results =
+          box.values
+              .where(
+                (email) =>
+                    (email.subject?.toLowerCase() ?? '').contains(queryLower) ||
+                    (email.senderName?.toLowerCase() ?? '').contains(
+                      queryLower,
+                    ) ||
+                    (email.sender?.toLowerCase() ?? '').contains(queryLower) ||
+                    (email.bodyPlain?.toLowerCase() ?? '').contains(
+                      queryLower,
+                    ) ||
+                    (email.summary?.toLowerCase() ?? '').contains(queryLower),
+              )
+              .toList();
+
+      return results;
+    } catch (e) {
+      throw "An error occurred while searching emails: $e";
     }
   }
 }

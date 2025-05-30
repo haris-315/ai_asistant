@@ -1,19 +1,26 @@
 part of 'email_cubit.dart';
 
-@immutable
-sealed class EmailState {}
+abstract class EmailState {}
 
-final class EmailInitial extends EmailState {}
+class EmailInitial extends EmailState {}
 
-final class EmailSuccess extends EmailState {
+class EmailLoading extends EmailState {}
+
+class EmailSuccess extends EmailState {
   final List<EmailThread> emails;
+  final List<EmailMessage> searchEmails;
   final bool hasReachedEnd;
-  EmailSuccess({required this.emails,this.hasReachedEnd = false});
+  final bool isSearching;
+
+  EmailSuccess({
+    required this.emails,
+    required this.searchEmails,
+    required this.hasReachedEnd,
+    this.isSearching = false,
+  });
 }
 
-final class EmailLoading extends EmailState {}
-
-final class EmailError extends EmailState {
+class EmailError extends EmailState {
   final String message;
 
   EmailError({required this.message});

@@ -21,13 +21,15 @@ class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
 
   @override
-  State<HomeContent> createState() => _HomeContentState();
+  State<HomeContent> createState() => HomeContentState();
 }
 
-class _HomeContentState extends State<HomeContent> {
+class HomeContentState extends State<HomeContent> {
   AuthController authController = Get.find<AuthController>();
   HomeController homeController = Get.find<HomeController>();
   bool isSomeThingLoading = false;
+  
+
 
   void fetchTaskData() async {
     if (await SettingsService.getSetting(AppConstants.appStateKey) ==
@@ -46,6 +48,12 @@ class _HomeContentState extends State<HomeContent> {
       setState(() {
         isSomeThingLoading = !isSomeThingLoading;
       });
+    }
+  }
+
+  void updateExternalState() {
+    if (mounted) {
+      setState(() {});
     }
   }
 

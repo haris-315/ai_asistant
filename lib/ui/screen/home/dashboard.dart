@@ -1,6 +1,7 @@
 import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:ai_asistant/core/shared/constants.dart';
 import 'package:ai_asistant/data/models/projects/project_model.dart';
+import 'package:ai_asistant/state_mgmt/email/cubit/email_cubit.dart';
 import 'package:ai_asistant/ui/screen/home/emails/newemail_screen.dart';
 import 'package:ai_asistant/ui/screen/task/create_task_sheet.dart';
 import 'package:ai_asistant/ui/screen/task/project_screen.dart';
@@ -9,6 +10,7 @@ import 'package:ai_asistant/ui/screen/task/trash_screen.dart';
 import 'package:ai_asistant/ui/widget/appbar.dart';
 import 'package:animated_notch_bottom_bar/animated_notch_bottom_bar/animated_notch_bottom_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:page_transition/page_transition.dart';
@@ -42,11 +44,20 @@ class _HomeScreenState extends State<HomeScreen> {
   final AuthController authcontroller = Get.find<AuthController>();
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
   final PageController pageController = PageController();
+  GlobalKey<HomeContentState> key = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     _fetchAsync();
+  }
+
+  @override
+  void didChangeDependencies() {
+    // TODO: implement didChangeDependencies
+    super.didChangeDependencies();
+        context.read<EmailCubit>().backLoadEmails(key);
+
   }
 
   void _fetchAsync() async {
@@ -106,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 3:
         return const ProjectScreen();
       default:
-        return const HomeContent();
+        return HomeContent(key: key);
     }
   }
 

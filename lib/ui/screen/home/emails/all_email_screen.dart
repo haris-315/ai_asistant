@@ -1,16 +1,19 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:ai_asistant/Controller/auth_controller.dart';
+import 'package:ai_asistant/core/shared/functions/is_today.dart';
 import 'package:ai_asistant/core/shared/functions/show_snackbar.dart';
 import 'package:ai_asistant/data/models/threadmodel.dart';
 import 'package:ai_asistant/state_mgmt/email/cubit/email_cubit.dart';
 import 'package:ai_asistant/ui/screen/home/emails/email_details_screen.dart';
+import 'package:ai_asistant/ui/screen/home/emails/emails_search_screen.dart';
 import 'package:ai_asistant/ui/widget/dateformat.dart';
 import 'package:ai_asistant/ui/widget/snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
+import 'package:page_transition/page_transition.dart';
 
 class AllEmailScreen extends StatefulWidget {
   const AllEmailScreen({super.key});
@@ -185,41 +188,29 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                         ),
                         child: Column(
                           children: [
-                            TextField(
-                              enabled: !_loadingDetails,
-                              controller: searchController,
-                              onChanged: (value) {
-                                if (mounted) {
-                                  setState(() {
-                                    isSearching = value.isNotEmpty;
-                                    emails =
-                                        emailsAll
-                                            .where(
-                                              (email) =>
-                                                  email.subject
-                                                      ?.toLowerCase()
-                                                      .contains(
-                                                        value.toLowerCase(),
-                                                      ) ??
-                                                  false,
-                                            )
-                                            .toList();
-                                  });
-                                }
-                              },
-                              decoration: InputDecoration(
-                                hintText: 'Search emails...',
-                                prefixIcon: Icon(Icons.search),
-                                filled: true,
-                                fillColor: Colors.white,
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 16,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "You have recived ${emails.where((t) => isToday(t.lastEmailAt ?? DateTime(1999))).length} emails today",
                                 ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide.none,
+                                IconButton.outlined(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      PageTransition(
+                                        type: PageTransitionType.bottomToTop,
+                                        child: EmailSearchScreen(
+                                          initialQuery: '',
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  icon: Icon(Icons.search),
+                                  style: ButtonStyle(),
+                                  color: Colors.blue,
                                 ),
-                              ),
+                              ],
                             ),
                             SizedBox(height: 12),
                             SingleChildScrollView(
