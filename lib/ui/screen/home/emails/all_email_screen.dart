@@ -440,11 +440,20 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                                           threadData
                                                               .isNotEmpty) {
                                                         Get.to(
-                                                          () =>
-                                                              EmailDetailScreen(
-                                                                threadAndData:
-                                                                    threadData,
-                                                              ),
+                                                          () => EmailDetailScreen(
+                                                            conversationId:
+                                                                threadData['thread']
+                                                                    .summary,
+                                                            threadAndData:
+                                                                threadData,
+                                                            subject:
+                                                                threadData['thread']
+                                                                    .subject,
+                                                            summary:
+                                                                threadData['thread']
+                                                                    .summary ??
+                                                                "",
+                                                          ),
                                                         );
                                                       } else {
                                                         showCustomSnackbar(

@@ -1,10 +1,8 @@
+// ignore_for_file: public_member_api_docs, sort_constructors_first
 // ignore_for_file: unused_field
 
 import 'dart:convert';
 
-import 'package:ai_asistant/Controller/auth_controller.dart';
-import 'package:ai_asistant/ui/screen/home/emails/newemail_screen.dart';
-import 'package:ai_asistant/ui/screen/home/emails/summarization_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -13,12 +11,24 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import 'package:ai_asistant/Controller/auth_controller.dart';
+import 'package:ai_asistant/ui/screen/home/emails/newemail_screen.dart';
+import 'package:ai_asistant/ui/screen/home/emails/summarization_screen.dart';
+
 import '../../../../data/models/emails/thread_detail.dart';
 
 class EmailDetailScreen extends StatefulWidget {
   final Map<String, dynamic> threadAndData;
+  final String subject;
+  final String summary;
+  final String conversationId;
 
-  const EmailDetailScreen({super.key, required this.threadAndData});
+  const EmailDetailScreen({
+    super.key,
+    required this.threadAndData,
+    required this.subject,
+    required this.summary, required this.conversationId,
+  });
 
   @override
   State<EmailDetailScreen> createState() => _EmailDetailScreenState();
@@ -97,7 +107,7 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          widget.threadAndData['thread'].subject ?? "No Subject",
+          widget.subject,
           style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
           overflow: TextOverflow.ellipsis,
         ),
@@ -221,7 +231,7 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
                               () => NewMessageScreen(
                                 isReplying: true,
                                 toEmail: emails.last,
-                                subject: widget.threadAndData['thread'].subject,
+                                subject: widget.subject,
                               ),
                             );
                           },
@@ -234,13 +244,8 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
                           Get.to(
                             () => EmailSummaryScreen(
                               toSummarize: ThreadSummarizable(
-                                hasSummary:
-                                    widget.threadAndData['thread'].summary,
-                                conversationId:
-                                    widget
-                                        .threadAndData['thread']
-                                        .conversationId ??
-                                    "",
+                                hasSummary: widget.summary,
+                                conversationId: widget.conversationId,
                               ),
                             ),
                           );
@@ -255,9 +260,7 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
                             () => NewMessageScreen(
                               isForwarding: true,
                               forwardBody: generateForwardedThread(emails),
-                              subject:
-                                  widget.threadAndData['thread'].subject ??
-                                  "No Subject",
+                              subject: widget.subject,
                             ),
                           );
                         },
@@ -517,7 +520,7 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
                           isReplying: true,
                           toEmail: widget.threadAndData['thread_mails'].last,
                           body: reply.toString(),
-                          subject: widget.threadAndData['thread'].subject,
+                          subject: widget.subject,
                         ),
                       );
                     },

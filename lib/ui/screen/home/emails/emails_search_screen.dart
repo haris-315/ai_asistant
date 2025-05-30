@@ -1,5 +1,5 @@
-import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/data/models/emails/thread_detail.dart';
+import 'package:ai_asistant/ui/screen/home/emails/email_details_screen.dart';
 import 'package:ai_asistant/ui/widget/dateformat.dart';
 import 'package:ai_asistant/ui/widget/snackbar.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +19,6 @@ class EmailSearchScreen extends StatefulWidget {
 class _EmailSearchScreenState extends State<EmailSearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final AuthController _authController = Get.find<AuthController>();
   final FocusNode _searchFocusNode = FocusNode();
 
   List<EmailMessage> _emails = [];
@@ -28,7 +27,7 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
   bool _hasReachedEnd = false;
   bool _isLoadingDetails = false;
   int _skip = 0;
-  static const int _limit = 15;
+  static const int _limit = 6;
   String _currentQuery = '';
 
   @override
@@ -159,23 +158,122 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
         return;
       }
 
-      // Uncomment when you have the actual implementation
-      // final threadData = await _authController.GetThreadbyID(
-      //   threadId,
-      //   null,
-      //   notToShowLoader: true,
-      // );
-
-      // if (threadData != null && threadData.isNotEmpty) {
-      //   Get.to(() => EmailDetailScreen(threadAndData: threadData));
-      // } else {
-      //   _showErrorSnackbar('Failed to load email details.');
-      // }
+      Get.to(
+        () => EmailDetailScreen(
+          subject: email.subject ?? "",
+          summary: email.summary ?? "",
+          conversationId: email.id ?? "",
+          threadAndData: {
+            "thread_mails": [email],
+          },
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoadingDetails = false);
       }
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+        ),
+        title: _buildSearchField(),
+        backgroundColor: Colors.blueGrey[800],
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blueGrey[900]!, Colors.blueGrey[700]!],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        actions: [
+          if (_currentQuery.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.clear, color: Colors.white),
+              onPressed: () {
+                _searchController.clear();
+                _searchEmails('');
+              },
+            ),
+        ],
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.blue[50]!, Colors.grey[100]!],
+          ),
+        ),
+        child: _buildBody(),
+      ),
+      floatingActionButton: _buildFloatingActionButton(),
+    );
+  }
+
+  Widget _buildSearchField() {
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: TextField(
+        controller: _searchController,
+        focusNode: _searchFocusNode,
+        style: const TextStyle(color: Colors.blueGrey),
+        cursorColor: Colors.blueGrey,
+        decoration: InputDecoration(
+          hintText: 'Search emails...',
+          hintStyle: TextStyle(color: Colors.grey.withValues(alpha: 0.7)),
+          border: OutlineInputBorder(
+            borderSide: BorderSide.none,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide.none,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
+          prefixIcon: Icon(
+            Icons.search,
+            color: Colors.grey.withValues(alpha: 0.7),
+          ),
+          suffixIcon:
+              _isLoading
+                  ? const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  )
+                  : null,
+        ),
+        onChanged: (value) => _debounceSearch(value),
+        onSubmitted: (value) => _searchEmails(value),
+      ),
+    );
+  }
+
+  void _debounceSearch(String value) {
+    _searchEmails(value);
   }
 
   @override
@@ -186,87 +284,36 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-          icon: Icon(Icons.arrow_drop_down),
-        ),
-        title: _buildSearchField(),
-        actions: [
-          if (_currentQuery.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.clear),
-              onPressed: () {
-                _searchController.clear();
-                _searchEmails('');
-              },
-            ),
-        ],
-      ),
-      body: _buildBody(),
-      floatingActionButton: _buildFloatingActionButton(),
-    );
-  }
-
-  Widget _buildSearchField() {
-    return TextField(
-      controller: _searchController,
-      focusNode: _searchFocusNode,
-      decoration: InputDecoration(
-        hintText: 'Search emails...',
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide.none,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        suffixIcon:
-            _isLoading
-                ? const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                )
-                : null,
-      ),
-      onChanged: (value) => _debounceSearch(value),
-      onSubmitted: (value) => _searchEmails(value),
-    );
-  }
-
   Widget _buildBody() {
     if (_isLoading && _emails.isEmpty) {
-      return const Center(child: SpinKitSpinningLines(color: Colors.blue));
+      return const Center(
+        child: SpinKitFadingCircle(color: Colors.blue, size: 50.0),
+      );
     }
 
     if (_emails.isEmpty) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.search, size: 64, color: Colors.grey[400]),
-              const SizedBox(height: 16),
-              Text(
-                _currentQuery.isEmpty
-                    ? 'Search for emails by sender, subject or content'
-                    : 'No results found for "$_currentQuery"',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.email_outlined, size: 64, color: Colors.blue[300]),
+            const SizedBox(height: 16),
+            Text(
+              _currentQuery.isEmpty
+                  ? 'Search your emails'
+                  : 'No results for "$_currentQuery"',
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Try different keywords',
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+            ),
+          ],
         ),
       );
     }
@@ -274,16 +321,23 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: Row(
             children: [
               Text(
-                '${_emails.length} results',
-                style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                '${_emails.length} ${_emails.length == 1 ? 'result' : 'results'}',
+                style: TextStyle(
+                  color: Colors.blue[800],
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               const Spacer(),
               if (_emails.isNotEmpty)
                 TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.blue[800],
+                  ),
                   onPressed: () {
                     _scrollController.animateTo(
                       0,
@@ -291,7 +345,7 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
                       curve: Curves.easeOut,
                     );
                   },
-                  child: const Text('Top'),
+                  child: const Text('Back to top'),
                 ),
             ],
           ),
@@ -299,20 +353,145 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
         Expanded(
           child: ListView.builder(
             controller: _scrollController,
+            padding: const EdgeInsets.only(bottom: 16),
             itemCount: _emails.length + (_isLoadingMore ? 1 : 0),
             itemBuilder: (context, index) {
               if (index == _emails.length) {
                 return _buildLoadingMoreIndicator();
               }
-              return EmailSearchItem(
-                email: _emails[index],
-                onTap: () => _navigateToDetails(_emails[index]),
-                isLoadingDetails: _isLoadingDetails,
-              );
+              return _buildEmailCard(_emails[index]);
             },
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildEmailCard(EmailMessage email) {
+    final isRead = email.isRead ?? false;
+    final senderName = email.senderName ?? email.sender ?? 'Unknown';
+    final initials = senderName.isNotEmpty ? senderName[0].toUpperCase() : 'U';
+    final hasAttachment = email.hasAttachments ?? false;
+    final date = formatEmailDate(email.receivedAt?.toIso8601String() ?? '');
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _navigateToDetails(email),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color:
+                            Colors.primaries[senderName.hashCode %
+                                Colors.primaries.length],
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        initials,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  senderName,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight:
+                                        isRead
+                                            ? FontWeight.normal
+                                            : FontWeight.bold,
+                                    color:
+                                        isRead
+                                            ? Colors.grey[600]
+                                            : Colors.grey[800],
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (!isRead)
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.green,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            date,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[500],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (hasAttachment)
+                      const Padding(
+                        padding: EdgeInsets.only(left: 8),
+                        child: Icon(
+                          Icons.attach_file,
+                          size: 20,
+                          color: Colors.grey,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  email.subject ?? 'No Subject',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: isRead ? FontWeight.normal : FontWeight.w600,
+                    color: isRead ? Colors.grey[700] : Colors.black,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (email.summary?.isNotEmpty ?? false) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    email.summary!,
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -323,7 +502,10 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
         child: SizedBox(
           width: 24,
           height: 24,
-          child: CircularProgressIndicator(strokeWidth: 2),
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: Colors.blue[800],
+          ),
         ),
       ),
     );
@@ -333,7 +515,7 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
     if (_emails.isEmpty) return null;
 
     return FloatingActionButton(
-      backgroundColor: Theme.of(context).primaryColor,
+      backgroundColor: Colors.blue[800],
       child: const Icon(Icons.arrow_upward, color: Colors.white),
       onPressed: () {
         _scrollController.animateTo(
@@ -342,133 +524,6 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
           curve: Curves.easeOut,
         );
       },
-    );
-  }
-
-  void _debounceSearch(String value) {
-    // Implement debounce logic if needed
-    _searchEmails(value);
-  }
-}
-
-class EmailSearchItem extends StatelessWidget {
-  final EmailMessage email;
-  final VoidCallback onTap;
-  final bool isLoadingDetails;
-
-  const EmailSearchItem({
-    super.key,
-    required this.email,
-    required this.onTap,
-    required this.isLoadingDetails,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isRead = email.isRead ?? false;
-    final textColor = isRead ? Colors.grey[600] : Colors.grey[800];
-    final fontWeight = isRead ? FontWeight.normal : FontWeight.w500;
-    final senderName = email.senderName ?? email.sender ?? 'Unknown';
-    final initials = senderName.isNotEmpty ? senderName[0].toUpperCase() : 'U';
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: isLoadingDetails ? null : onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor:
-                        Colors.primaries[senderName.hashCode %
-                            Colors.primaries.length],
-                    child: Text(
-                      initials,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          senderName,
-                          style: TextStyle(
-                            color: textColor,
-                            fontWeight: fontWeight,
-                            fontSize: 16,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          formatEmailDate(
-                            email.receivedAt?.toIso8601String() ?? '',
-                          ),
-                          style: TextStyle(
-                            color: Colors.grey[500],
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (!isRead)
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  if (email.hasAttachments ?? false)
-                    const Padding(
-                      padding: EdgeInsets.only(left: 8),
-                      child: Icon(
-                        Icons.attach_file,
-                        size: 18,
-                        color: Colors.grey,
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                email.subject ?? 'No Subject',
-                style: TextStyle(
-                  color: textColor,
-                  fontWeight: fontWeight,
-                  fontSize: 16,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              if (email.summary?.isNotEmpty ?? false) ...[
-                const SizedBox(height: 8),
-                Text(
-                  email.summary!,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
