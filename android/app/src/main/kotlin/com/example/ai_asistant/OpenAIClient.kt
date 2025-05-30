@@ -1,8 +1,7 @@
 package com.example.openai
 
 import android.content.Context
-import android.content.Intent
-import android.database.sqlite.SQLiteDatabase
+
 import android.util.Log
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
@@ -15,12 +14,12 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 class OpenAIClient(
-    private val context: Context,
-    private val apiKey: String,
-    private val authToken: String,
-    private val projects: MutableList<String>
+    val context: Context,
+    val apiKey: String,
+    val authToken: String,
+    val projects: MutableList<String>
 ) {
-    private val client = OkHttpClient.Builder()
+    val client = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(120, TimeUnit.SECONDS)
         .writeTimeout(60, TimeUnit.SECONDS)
@@ -29,145 +28,29 @@ class OpenAIClient(
     private val messages = mutableListOf<JSONObject>()
     private val maxMessages = 50
     private var lastMeetingTime = LocalDateTime.now()
+    private val functionProvider = FunctionDefinitionProvider(this)
+    private val systemInfoProvider = SystemInfoProvider(context)
+    val dbHelper = DatabaseHelper(context)
+    private val networkHelper = NetworkHelper(client, apiKey, authToken)
 
-    
-    object SharedData {
-        var tasks: List<Map<String, Any>> = emptyList()
-    }
 
-    interface FunctionDefinition {
-        val name: String
-        val description: String
-        val parameters: JSONObject
-        fun execute(args: JSONObject, client: OpenAIClient): JSONObject
-    }
-
-    private val functionDefinitions = listOf(
-        object : FunctionDefinition {
-            override val name = "create_task"
-            override val description = "Create a new task in the task manager."
-            override val parameters = JSONObject().apply {
-                put("type", "object")
-                put("properties", JSONObject().apply {
-                    put("content", JSONObject().apply { put("type", "string"); put("description", "Task name") })
-                    put("description", JSONObject().apply { put("type", "string"); put("description", "Task description") })
-                    put("priority", JSONObject().apply {
-                        put("type", "integer")
-                        put("description", "Priority (1-3)")
-                        put("enum", JSONArray().apply { put(1); put(2); put(3) })
-                    })
-                    put("project_id", JSONObject().apply {
-                        put("type", "integer")
-                        put("description", "Project ID (use id of the project named Inbox if no project is specified or the specified project is not available)")
-                    })
-                    put("due_date", JSONObject().apply { put("type", "string"); put("description", "Due date in ISO-8601 format (optional)") })
-                    put("reminder_at", JSONObject().apply { put("type", "string"); put("description", "Reminder time in ISO-8601 format (optional)") })
-                })
-                put("required", JSONArray().apply { put("content"); put("description"); put("priority"); put("project_id") })
-            }
-            override fun execute(args: JSONObject, client: OpenAIClient): JSONObject {
-                return client.createTask(args)
-            }
-        },
-        object : FunctionDefinition {
-            override val name = "update_task"
-            override val description = "Update an existing task."
-            override val parameters = JSONObject().apply {
-                put("type", "object")
-                put("properties", JSONObject().apply {
-                    put("id", JSONObject().apply { put("type", "string"); put("description", "Task ID") })
-                    put("content", JSONObject().apply { put("type", "string"); put("description", "Task name") })
-                    put("description", JSONObject().apply { put("type", "string"); put("description", "Task description") })
-                    put("is_completed", JSONObject().apply { put("type", "boolean"); put("description", "Completion status") })
-                    put("priority", JSONObject().apply { put("type", "integer"); put("description", "Priority (1-3)") })
-                    put("project_id", JSONObject().apply { put("type", "integer"); put("description", "Project ID") })
-                    put("due_date", JSONObject().apply { put("type", "string"); put("description", "Due date in ISO-8601 format (optional)") })
-                    put("reminder_at", JSONObject().apply { put("type", "string"); put("description", "Reminder time in ISO-8601 format (optional)") })
-                })
-                put("required", JSONArray().apply { put("id"); put("content"); put("description"); put("is_completed"); put("priority"); put("project_id") })
-            }
-            override fun execute(args: JSONObject, client: OpenAIClient): JSONObject {
-                return client.updateTask(args)
-            }
-        },
-        object : FunctionDefinition {
-            override val name = "create_project"
-            override val description = "Create a new project."
-            override val parameters = JSONObject().apply {
-                put("type", "object")
-                put("properties", JSONObject().apply {
-                    put("name", JSONObject().apply { put("type", "string"); put("description", "Project name") })
-                    put("color", JSONObject().apply { put("type", "string"); put("description", "Project color") })
-                    put("is_favorite", JSONObject().apply { put("type", "boolean"); put("description", "Favorite status (default false)") })
-                    put("view_style", JSONObject().apply {
-                        put("type", "string")
-                        put("description", "View style (always 'list')")
-                        put("enum", JSONArray().apply { put("list") })
-                    })
-                })
-                put("required", JSONArray().apply { put("name"); put("color"); put("is_favorite"); put("view_style") })
-            }
-            override fun execute(args: JSONObject, client: OpenAIClient): JSONObject {
-                return client.createProject(args)
-            }
-        },
-        object : FunctionDefinition {
-            override val name = "open_app"
-            override val description = "Open an Android app by package name."
-            override val parameters = JSONObject().apply {
-                put("type", "object")
-                put("properties", JSONObject().apply {
-                    put("package", JSONObject().apply { put("type", "string"); put("description", "App package name (e.g., com.google.android.youtube)") })
-                    put("name", JSONObject().apply { put("type", "string"); put("description", "App name (optional)") })
-                })
-                put("required", JSONArray().apply { put("package") })
-            }
-            override fun execute(args: JSONObject, client: OpenAIClient): JSONObject {
-                return client.openApp(args)
-            }
-        },
-        object : FunctionDefinition {
-            override val name = "standby"
-            override val description = "Enter standby mode."
-            override val parameters = JSONObject().apply { put("type", "object"); put("properties", JSONObject()) }
-            override fun execute(args: JSONObject, client: OpenAIClient): JSONObject {
-                return JSONObject().apply { put("status", "standby") }
-            }
-        },
-        object : FunctionDefinition {
-            override val name = "summarize_conversation"
-            override val description = "Summarize the conversation history."
-            override val parameters = JSONObject().apply { put("type", "object"); put("properties", JSONObject()) }
-            override fun execute(args: JSONObject, client: OpenAIClient): JSONObject {
-                return JSONObject().apply { put("status", "summary_requested") }
-            }
-        },
-        object : FunctionDefinition {
-            override val name = "collect_user_data"
-            override val description = "Collect and store user data from prompts for personalized responses, up to 24 points."
-            override val parameters = JSONObject().apply {
-                put("type", "object")
-                put("properties", JSONObject().apply {
-                    put("data_points", JSONObject().apply {
-                        put("type", "array")
-                        put("items", JSONObject().apply { put("type", "string"); put("description", "A concise data point (e.g., 'Name is John', 'Prefers dark mode')") })
-                        put("description", "List of data points to store")
-                    })
-                })
-                put("required", JSONArray().apply { put("data_points") })
-            }
-            override fun execute(args: JSONObject, client: OpenAIClient): JSONObject {
-                return client.collectUserData(args)
-            }
-        }
-    )
 
     private fun buildSystemPrompt(): String {
-        val userData = fetchUserData()
+        val userData = dbHelper.fetchUserData()
+        val batteryPercentage = systemInfoProvider.getBatteryPercentage()
+        val deviceModel = systemInfoProvider.getDeviceModel()
+        val availableStorage = systemInfoProvider.getAvailableStorage()
+        val projects = SharedData.projects
         return """
-        You are a helpful assistant for a task manager app that can also open Android apps. You answer general knowledge questions and hold friendly conversations.
+        You are a helpful assistant for a task manager app that can also open Android apps and make phone calls. You answer general knowledge questions and hold friendly conversations. Your name is Jarvis.
 
-        Your response **must always be a plain text string (suitable response suitable for text-to-speech), and you must use function calls to handle specific actions. Do not include JSON or action details in the response text.
+        Your response **must always be a plain text string (suitable for text-to-speech), and you must use function calls to handle specific actions. Do not include JSON or action details in the response text.
+
+        When asked about system information, provide the following details when relevant:
+        - Battery percentage: $batteryPercentage%
+        - Current time: ${LocalDateTime.now()}
+        - Device model: $deviceModel
+        - Available storage: $availableStorage
 
         Actions to handle via function calls:
         - Creating a task: Use `create_task`.
@@ -177,124 +60,30 @@ class OpenAIClient(
         - Entering standby mode: Use `standby`.
         - Summarizing conversation: Use `summarize_conversation`.
         - Collecting user data: Use `collect_user_data` when the prompt contains relevant personal information (e.g., name, preferences) that could improve future responses, but only if it’s useful and not repetitive. Limit to 24 data points.
+        - Calling a contact: Use `call_contact`. If multiple contacts match the name, the function returns a list of contacts. Ask the user to choose one by name and call `call_contact` again with the contact_id.
 
         Rules:
         - Return short, friendly text responses for text-to-speech.
         - Use function calls for actions; do not embed details in text.
         - For apps, use exact package names (e.g., "com.google.android.youtube").
+        - For phone calls, if multiple contacts are found, respond with a question listing their full names and wait for user clarification.
         - Assign tasks the id of the project named "Inbox" if no other project matches.
         - Available projects: ${projects.joinToString()}
-        - Current time: ${LocalDateTime.now()}
         - Current tasks: ${SharedData.tasks.joinToString()}
         - User data: ${userData.joinToString()}
         - No markdown or explanations in responses.
 
         Examples:
         - "What time is it?": "The current time is 08:48 PM."
+        - "What's the battery level?": "The battery is at $batteryPercentage%."
+        - "What's my device model?": "Your device is a $deviceModel."
+        - "How much storage is available?": "You have $availableStorage of storage available."
         - "Create a task to buy milk": "Task created to buy milk." + call `create_task`.
         - "Stop listening": "Entering standby mode." + call `standby`.
         - "My name is John": "Thanks for sharing, John!" + call `collect_user_data` with "Name is John".
+        - "Call John": If multiple Johns, respond: "I found multiple contacts named John: John Smith, John Doe. Which one would you like to call?" + call `call_contact` with contact_id after user response.
         """.trimIndent()
     }
-
-    private fun fetchUserData(): List<String> {
-        val userData = mutableListOf<String>()
-        var retryCount = 0
-        val maxRetries = 3
-        while (retryCount < maxRetries) {
-            try {
-                val dbPath = context.getDatabasePath("user_data.db").path
-                val db = SQLiteDatabase.openOrCreateDatabase(dbPath, null)
-                db.execSQL("""
-                    CREATE TABLE IF NOT EXISTS user_data (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        data_point TEXT UNIQUE,
-                        created_at TEXT
-                    )
-                """.trimIndent())
-                val cursor = db.rawQuery("SELECT data_point FROM user_data ORDER BY created_at DESC LIMIT 24", null)
-                while (cursor.moveToNext()) {
-                    userData.add(cursor.getString(0))
-                }
-                cursor.close()
-                db.close()
-                return userData
-            } catch (e: Exception) {
-                retryCount++
-                Log.e("OpenAIClient", "Error fetching user data (attempt $retryCount): ${e.message}")
-                if (retryCount == maxRetries) {
-                    Log.e("OpenAIClient", "Max retries reached for fetching user data")
-                    return emptyList()
-                }
-                Thread.sleep(500)
-            }
-        }
-        return emptyList()
-    }
-
-    private fun collectUserData(args: JSONObject): JSONObject {
-        val result = JSONObject()
-        try {
-            val dataPoints = args.getJSONArray("data_points")
-            val dbPath = context.getDatabasePath("user_data.db").path
-            val db = SQLiteDatabase.openOrCreateDatabase(dbPath, null)
-            db.execSQL("""
-                CREATE TABLE IF NOT EXISTS user_data (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    data_point TEXT UNIQUE,
-                    created_at TEXT
-                )
-            """.trimIndent())
-
-            
-            val cursor = db.rawQuery("SELECT COUNT(*) FROM user_data", null)
-            var currentCount = 0
-            if (cursor.moveToFirst()) {
-                currentCount = cursor.getInt(0)
-            }
-            cursor.close()
-
-            val newPoints = mutableListOf<String>()
-            for (i in 0 until dataPoints.length()) {
-                if (currentCount >= 24) {
-                    
-                    db.execSQL("DELETE FROM user_data WHERE id = (SELECT MIN(id) FROM user_data)")
-                    currentCount--
-                }
-                val dataPoint = dataPoints.getString(i)
-                val stmt = db.compileStatement("INSERT OR IGNORE INTO user_data (data_point, created_at) VALUES (?, ?)")
-                stmt.bindString(1, dataPoint)
-                stmt.bindString(2, LocalDateTime.now().toString())
-                stmt.executeInsert()
-                newPoints.add(dataPoint)
-                currentCount++
-            }
-            db.close()
-            Log.d("OpenAIClient", "Stored user data points: $newPoints")
-            result.put("status", "success")
-            result.put("data_points", JSONArray(newPoints))
-        } catch (e: Exception) {
-            Log.e("OpenAIClient", "Error storing user data: ${e.message}")
-            result.put("error", "Error storing user data: ${e.message}")
-        }
-        return result
-    }
-
-    private fun buildTools(): JSONArray {
-        val tools = JSONArray()
-        functionDefinitions.forEach { def ->
-            tools.put(JSONObject().apply {
-                put("type", "function")
-                put("function", JSONObject().apply {
-                    put("name", def.name)
-                    put("description", def.description)
-                    put("parameters", def.parameters)
-                })
-            })
-        }
-        return tools
-    }
-
     fun getMessageHistory(): List<JSONObject> = messages.subList(1, messages.size.coerceAtLeast(1))
 
     fun clearHistory() {
@@ -316,7 +105,6 @@ class OpenAIClient(
             return
         }
 
-        
         messages.add(JSONObject().apply {
             put("role", "user")
             put("content", userMessage)
@@ -325,7 +113,6 @@ class OpenAIClient(
             messages.removeAt(0)
         }
 
-        
         val requestMessages = JSONArray().apply {
             put(JSONObject().apply {
                 put("role", "system")
@@ -334,11 +121,10 @@ class OpenAIClient(
             messages.forEach { put(it) }
         }
 
-        
         val body = JSONObject().apply {
             put("model", model)
             put("messages", requestMessages)
-            put("tools", buildTools())
+            put("tools", functionProvider.buildTools())
             put("tool_choice", "auto")
         }
 
@@ -349,7 +135,7 @@ class OpenAIClient(
             .post(body.toString().toRequestBody("application/json".toMediaType()))
             .build()
 
-        executeWithRetry(
+        networkHelper.executeWithRetry(
             request = request,
             onSuccess = { response ->
                 try {
@@ -361,18 +147,15 @@ class OpenAIClient(
                     val chatres = content.optString("content", "").trim()
                     val toolCalls = content.optJSONArray("tool_calls") ?: JSONArray()
 
-                    
                     messages.add(content)
                     if (messages.size > maxMessages) {
                         messages.removeAt(0)
                     }
 
-                    
                     if (chatres.isNotEmpty()) {
                         onResponse(chatres)
                     }
 
-                    
                     val toolResponses = mutableListOf<JSONObject>()
                     if (toolCalls.length() > 0) {
                         for (i in 0 until toolCalls.length()) {
@@ -384,25 +167,18 @@ class OpenAIClient(
 
                             try {
                                 val args = JSONObject(function.getString("arguments"))
-                                val functionDef = functionDefinitions.find { it.name == name }
-                                if (functionDef != null) {
-                                    val result = functionDef.execute(args, this)
-                                    toolResponseContent = result
-                                    if (name == "standby") {
-                                        onStandBy()
-                                    } else if (name == "summarize_conversation") {
-                                        onSummaryAsked()
-                                    }
-                                } else {
-                                    Log.w("OpenAIClient", "Unknown function: $name")
-                                    toolResponseContent.put("error", "Unknown function: $name")
+                                val result = functionProvider.executeFunction(name, args)
+                                toolResponseContent = result
+                                if (name == "standby") {
+                                    onStandBy()
+                                } else if (name == "summarize_conversation") {
+                                    onSummaryAsked()
                                 }
                             } catch (e: Exception) {
                                 Log.e("OpenAIClient", "Error processing tool call $name: ${e.message}")
                                 toolResponseContent.put("error", "Error: ${e.message}")
                             }
 
-                            
                             toolResponses.add(JSONObject().apply {
                                 put("role", "tool")
                                 put("content", toolResponseContent.toString())
@@ -411,16 +187,13 @@ class OpenAIClient(
                             })
                         }
 
-                        
                         toolResponses.forEach { messages.add(it) }
                         if (messages.size > maxMessages) {
                             messages.removeAt(0)
                         }
 
-                        
                         Log.d("OpenAIClient", "Messages before follow-up: ${messages.joinToString { it.toString() }}")
 
-                        
                         val followUpBody = JSONObject().apply {
                             put("model", model)
                             put("messages", JSONArray().apply {
@@ -430,7 +203,7 @@ class OpenAIClient(
                                 })
                                 messages.forEach { put(it) }
                             })
-                            put("tools", buildTools())
+                            put("tools", functionProvider.buildTools())
                             put("tool_choice", "auto")
                         }
 
@@ -441,7 +214,7 @@ class OpenAIClient(
                             .post(followUpBody.toString().toRequestBody("application/json".toMediaType()))
                             .build()
 
-                        executeWithRetry(
+                        networkHelper.executeWithRetry(
                             request = followUpRequest,
                             onSuccess = { followUpResponse ->
                                 try {
@@ -503,8 +276,7 @@ class OpenAIClient(
         if (transcript.isBlank()) {
             Log.w("OpenAIClient", "Empty transcript")
             onError("No transcript provided")
-            insertOrUpdateSummary(
-                context = context,
+            dbHelper.insertOrUpdateSummary(
                 id = UUID.randomUUID().toString(),
                 title = "Not Summarized",
                 startTime = lastMeetingTime,
@@ -563,7 +335,7 @@ class OpenAIClient(
                     }.toString().toRequestBody("application/json".toMediaType()))
                     .build()
 
-                executeWithRetry(
+                networkHelper.executeWithRetry(
                     request = request,
                     onSuccess = { response ->
                         try {
@@ -578,8 +350,7 @@ class OpenAIClient(
                             val keypointsArray = json.getJSONArray("keypoints")
                             val keypoints = (0 until keypointsArray.length()).map { keypointsArray.getString(it) }
 
-                            insertOrUpdateSummary(
-                                context = context,
+                            dbHelper.insertOrUpdateSummary(
                                 id = UUID.randomUUID().toString(),
                                 title = finalTitle,
                                 startTime = lastMeetingTime,
@@ -592,8 +363,7 @@ class OpenAIClient(
                         } catch (e: Exception) {
                             Log.e("OpenAIClient", "Error parsing final summary: ${e.message}")
                             onError("Error generating final summary")
-                            insertOrUpdateSummary(
-                                context = context,
+                            dbHelper.insertOrUpdateSummary(
                                 id = UUID.randomUUID().toString(),
                                 title = "Not Summarized",
                                 startTime = lastMeetingTime,
@@ -609,8 +379,7 @@ class OpenAIClient(
                     onFailure = { error ->
                         Log.e("OpenAIClient", "Final summary error: $error")
                         onError("Final summary error: $error")
-                        insertOrUpdateSummary(
-                            context = context,
+                        dbHelper.insertOrUpdateSummary(
                             id = UUID.randomUUID().toString(),
                             title = "Not Summarized",
                             startTime = lastMeetingTime,
@@ -643,7 +412,7 @@ class OpenAIClient(
                 }.toString().toRequestBody("application/json".toMediaType()))
                 .build()
 
-            executeWithRetry(
+            networkHelper.executeWithRetry(
                 request = request,
                 onSuccess = { response ->
                     try {
@@ -657,8 +426,7 @@ class OpenAIClient(
                     } catch (e: Exception) {
                         Log.e("OpenAIClient", "Error parsing summary part ${index + 1}: ${e.message}")
                         onError("Error summarizing part ${index + 1}")
-                        insertOrUpdateSummary(
-                            context = context,
+                        dbHelper.insertOrUpdateSummary(
                             id = UUID.randomUUID().toString(),
                             title = "Not Summarized",
                             startTime = lastMeetingTime,
@@ -674,8 +442,7 @@ class OpenAIClient(
                 onFailure = { error ->
                     Log.e("OpenAIClient", "Error summarizing part ${index + 1}: $error")
                     onError("Error summarizing part ${index + 1}")
-                    insertOrUpdateSummary(
-                        context = context,
+                    dbHelper.insertOrUpdateSummary(
                         id = UUID.randomUUID().toString(),
                         title = "Not Summarized",
                         startTime = lastMeetingTime,
@@ -689,300 +456,5 @@ class OpenAIClient(
         }
 
         summarizeChunk(0)
-    }
-
-    fun insertOrUpdateSummary(
-        context: Context,
-        id: String,
-        title: String,
-        startTime: LocalDateTime,
-        endTime: LocalDateTime,
-        actualTranscript: String,
-        summary: String,
-        keypoints: List<String>
-    ) {
-        var retryCount = 0
-        val maxRetries = 3
-        while (retryCount < maxRetries) {
-            try {
-                val dbPath = context.getDatabasePath("meeting.db").path
-                val db = SQLiteDatabase.openOrCreateDatabase(dbPath, null)
-
-                db.execSQL("""
-                    CREATE TABLE IF NOT EXISTS meetings (
-                        id TEXT PRIMARY KEY,
-                        title TEXT,
-                        startTime TEXT,
-                        endTime TEXT,
-                        actualTranscript TEXT,
-                        summary TEXT,
-                        keypoints TEXT
-                    )
-                """.trimIndent())
-
-                val stmt = db.compileStatement("""
-                    INSERT OR REPLACE INTO meetings (id, title, startTime, endTime, actualTranscript, summary, keypoints)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """.trimIndent())
-                stmt.bindString(1, id)
-                stmt.bindString(2, title)
-                stmt.bindString(3, startTime.toString())
-                stmt.bindString(4, endTime.toString())
-                stmt.bindString(5, actualTranscript)
-                stmt.bindString(6, summary)
-                stmt.bindString(7, JSONArray(keypoints).toString())
-                stmt.executeInsert()
-                db.close()
-                Log.d("OpenAIClient", "Summary inserted/updated: $title")
-                return
-            } catch (e: Exception) {
-                retryCount++
-                Log.e("OpenAIClient", "Error inserting summary (attempt $retryCount): ${e.message}")
-                if (retryCount == maxRetries) {
-                    Log.e("OpenAIClient", "Max retries reached for summary insertion")
-                }
-                Thread.sleep(500)
-            }
-        }
-    }
-
-    private fun openApp(args: JSONObject): JSONObject {
-        val result = JSONObject()
-        try {
-            val packageName = args.getString("package")
-            val intent = context.packageManager.getLaunchIntentForPackage(packageName)
-            if (intent != null) {
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                context.startActivity(intent)
-                Log.d("OpenAIClient", "Opened app: $packageName")
-                result.put("status", "success")
-            } else {
-                Log.w("OpenAIClient", "No launch intent for package: $packageName")
-                result.put("error", "No launch intent for package: $packageName")
-            }
-        } catch (e: Exception) {
-            Log.e("OpenAIClient", "Error opening app: ${e.message}")
-            result.put("error", "Error opening app: ${e.message}")
-        }
-        return result
-    }
-
-    private fun createTask(args: JSONObject): JSONObject {
-        val result = JSONObject()
-        try {
-            val taskBody = JSONObject().apply {
-                put("content", args.getString("content"))
-                put("description", args.getString("description"))
-                put("is_completed", false)
-                put("priority", args.getInt("priority"))
-                put("project_id", args.getInt("project_id"))
-                if (args.has("due_date")) put("due_date", args.getString("due_date"))
-                if (args.has("reminder_at")) put("reminder_at", args.getString("reminder_at"))
-            }
-            val body = taskBody.toString().toRequestBody("application/json".toMediaType())
-            val request = Request.Builder()
-                .url("https://ai-assistant-backend-nine.vercel.app/todo/tasks/")
-                .post(body)
-                .addHeader("Authorization", "Bearer $authToken")
-                .addHeader("Content-Type", "application/json")
-                .build()
-
-            executeWithRetry(
-                request = request,
-                onSuccess = { response ->
-                    try {
-                        if (response.isSuccessful) {
-                            val responseBody = response.body?.string() ?: throw IOException("Empty response body")
-                            val taskId = JSONObject(responseBody).optString("id")
-                            val taskMap = mutableMapOf<String, Any>().apply {
-                                put("id", taskId)
-                                put("content", taskBody.getString("content"))
-                                put("description", taskBody.getString("description"))
-                                put("is_completed", taskBody.getBoolean("is_completed"))
-                                put("priority", taskBody.getInt("priority"))
-                                put("project_id", taskBody.getInt("project_id"))
-                                if (taskBody.has("due_date")) put("due_date", taskBody.getString("due_date"))
-                                if (taskBody.has("reminder_at")) put("reminder_at", taskBody.getString("reminder_at"))
-                            }
-                            SharedData.tasks = SharedData.tasks.toMutableList().apply { add(taskMap) }
-                            Log.d("OpenAIClient", "Task created: $taskMap")
-                            result.put("status", "success")
-                            result.put("task_id", taskId)
-                        } else {
-                            val errorBody = response.body?.string() ?: "Unknown error"
-                            Log.w("OpenAIClient", "Task creation failed: ${response.code}, $errorBody")
-                            result.put("error", "Task creation failed: HTTP ${response.code}, $errorBody")
-                        }
-                    } catch (e: Exception) {
-                        Log.e("OpenAIClient", "Error processing task creation: ${e.message}")
-                        result.put("error", "Error processing task creation: ${e.message}")
-                    } finally {
-                        response.close()
-                    }
-                },
-                onFailure = { error ->
-                    Log.e("OpenAIClient", "Task creation failed: $error")
-                    result.put("error", "Task creation failed: $error")
-                }
-            )
-        } catch (e: Exception) {
-            Log.e("OpenAIClient", "Error creating task: ${e.message}")
-            result.put("error", "Error creating task: ${e.message}")
-        }
-        return result
-    }
-
-    private fun updateTask(args: JSONObject): JSONObject {
-        val result = JSONObject()
-        try {
-            val taskId = args.getString("id")
-            val taskBody = JSONObject().apply {
-                put("content", args.getString("content"))
-                put("description", args.getString("description"))
-                put("is_completed", args.getBoolean("is_completed"))
-                put("priority", args.getInt("priority"))
-                put("project_id", args.getInt("project_id"))
-                if (args.has("due_date")) put("due_date", args.getString("due_date"))
-                if (args.has("reminder_at")) put("reminder_at", args.getString("reminder_at"))
-            }
-            val body = taskBody.toString().toRequestBody("application/json".toMediaType())
-            val request = Request.Builder()
-                .url("https://ai-assistant-backend-nine.vercel.app/todo/tasks/$taskId")
-                .put(body)
-                .addHeader("Authorization", "Bearer $authToken")
-                .addHeader("Content-Type", "application/json")
-                .build()
-
-            executeWithRetry(
-                request = request,
-                onSuccess = { response ->
-                    try {
-                        if (response.isSuccessful) {
-                            val taskMap = mutableMapOf<String, Any>().apply {
-                                put("id", taskId)
-                                put("content", taskBody.getString("content"))
-                                put("description", taskBody.getString("description"))
-                                put("is_completed", taskBody.getBoolean("is_completed"))
-                                put("priority", taskBody.getInt("priority"))
-                                put("project_id", taskBody.getInt("project_id"))
-                                if (taskBody.has("due_date")) put("due_date", taskBody.getString("due_date"))
-                                if (taskBody.has("reminder_at")) put("reminder_at", taskBody.getString("reminder_at"))
-                            }
-                            SharedData.tasks = SharedData.tasks.toMutableList().apply {
-                                val index = indexOfFirst { it["id"] == taskId }
-                                if (index >= 0) set(index, taskMap) else add(taskMap)
-                            }
-                            Log.d("OpenAIClient", "Task updated: $taskMap")
-                            result.put("status", "success")
-                        } else {
-                            val errorBody = response.body?.string() ?: "Unknown error"
-                            Log.w("OpenAIClient", "Task update failed: ${response.code}, $errorBody")
-                            result.put("error", "Task update failed: HTTP ${response.code}, $errorBody")
-                        }
-                    } catch (e: Exception) {
-                        Log.e("OpenAIClient", "Error processing task update: ${e.message}")
-                        result.put("error", "Error processing task update: ${e.message}")
-                    } finally {
-                        response.close()
-                    }
-                },
-                onFailure = { error ->
-                    Log.e("OpenAIClient", "Task update failed: $error")
-                    result.put("error", "Task update failed: $error")
-                }
-            )
-        } catch (e: Exception) {
-            Log.e("OpenAIClient", "Error updating task: ${e.message}")
-            result.put("error", "Error updating task: ${e.message}")
-        }
-        return result
-    }
-
-    private fun createProject(args: JSONObject): JSONObject {
-        val result = JSONObject()
-        try {
-            val projectBody = JSONObject().apply {
-                put("name", args.getString("name"))
-                put("color", args.getString("color"))
-                put("is_favorite", args.getBoolean("is_favorite"))
-                put("view_style", args.getString("view_style"))
-            }
-            val body = projectBody.toString().toRequestBody("application/json".toMediaType())
-            val request = Request.Builder()
-                .url("https://ai-assistant-backend-nine.vercel.app/todo/projects/")
-                .post(body)
-                .addHeader("Authorization", "Bearer $authToken")
-                .addHeader("Content-Type", "application/json")
-                .build()
-
-            executeWithRetry(
-                request = request,
-                onSuccess = { response ->
-                    try {
-                        if (response.isSuccessful) {
-                            val projectName = projectBody.getString("name")
-                            projects.add(projectName)
-                            Log.d("OpenAIClient", "Project created: $projectName")
-                            result.put("status", "success")
-                        } else {
-                            val errorBody = response.body?.string() ?: "Unknown error"
-                            Log.w("OpenAIClient", "Project creation failed: ${response.code}, $errorBody")
-                            result.put("error", "Project creation failed: HTTP ${response.code}, $errorBody")
-                        }
-                    } catch (e: Exception) {
-                        Log.e("OpenAIClient", "Error processing project creation: ${e.message}")
-                        result.put("error", "Error processing project creation: ${e.message}")
-                    } finally {
-                        response.close()
-                    }
-                },
-                onFailure = { error ->
-                    Log.e("OpenAIClient", "Project creation failed: $error")
-                    result.put("error", "Project creation failed: $error")
-                }
-            )
-        } catch (e: Exception) {
-            Log.e("OpenAIClient", "Error creating project: ${e.message}")
-            result.put("error", "Error creating project: ${e.message}")
-        }
-        return result
-    }
-
-    private fun executeWithRetry(
-        request: Request,
-        onSuccess: (Response) -> Unit,
-        onFailure: (String) -> Unit,
-        maxRetries: Int = 3
-    ) {
-        var retryCount = 0
-        while (retryCount < maxRetries) {
-            try {
-                val response = client.newCall(request).execute()
-                if (response.isSuccessful) {
-                    onSuccess(response)
-                    return
-                } else {
-                    val errorBody = response.body?.string() ?: "Unknown error"
-                    Log.w("OpenAIClient", "Request failed: ${response.code}, $errorBody")
-                    response.close()
-                    if (retryCount < maxRetries - 1) {
-                        retryCount++
-                        Thread.sleep((2000 * retryCount).toLong())
-                        continue
-                    }
-                    onFailure("HTTP error: ${response.code}, $errorBody")
-                    return
-                }
-            } catch (e: IOException) {
-                retryCount++
-                Log.w("OpenAIClient", "Request attempt $retryCount failed: ${e.message}")
-                if (retryCount < maxRetries) {
-                    Thread.sleep((2000 * retryCount).toLong())
-                    continue
-                }
-                onFailure("Request failed after retries: ${e.message}")
-                return
-            }
-        }
     }
 }

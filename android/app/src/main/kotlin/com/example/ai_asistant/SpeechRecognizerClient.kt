@@ -743,8 +743,8 @@ class SpeechRecognizerClient private constructor(context: Context) {
                     CoroutineScope(Dispatchers.Main).launch {
                         Log.i("SpeechRecognizerClient", "Meeting summary: $summary")
                         context?.let { ctx ->
-                            openAiClient?.insertOrUpdateSummary(
-                                    context = ctx,
+                            openAiClient?.dbHelper?.insertOrUpdateSummary(
+//                                    context = ctx,
                                     id = UUID.randomUUID().toString(),
                                     title = title,
                                     startTime =
