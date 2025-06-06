@@ -41,7 +41,8 @@ class CustomFormTextField extends StatefulWidget {
     this.maxLength = 560,
     this.maxLines = 1,
     this.showPasswordStrength = false,
-    this.error, this.focusNode,
+    this.error,
+    this.focusNode,
   });
 
   @override
@@ -157,6 +158,9 @@ class _CustomFormTextFieldState extends State<CustomFormTextField> {
               },
               decoration: InputDecoration(
                 labelText: widget.label,
+                floatingLabelBehavior: FloatingLabelBehavior.never,
+                floatingLabelStyle: TextStyle(color: Colors.black),
+                labelStyle: TextStyle(color: Colors.grey),
                 prefixIcon:
                     widget.isDateField
                         ? Icon(Icons.calendar_today)
@@ -204,7 +208,7 @@ class _CustomFormTextFieldState extends State<CustomFormTextField> {
         ),
         if (widget.isPassword && widget.showPasswordStrength)
           Padding(
-            padding: const EdgeInsets.only(top: 5.0, left: 10.0),
+            padding: const EdgeInsets.only(top: 1.0, left: 10.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -246,7 +250,7 @@ class _CustomFormTextFieldState extends State<CustomFormTextField> {
       child: Container(
         height: 4,
         decoration: BoxDecoration(
-          color: isActive ? strengthColor : Colors.black.withValues(alpha: 0.3),
+          color: isActive ? strengthColor : Colors.white.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(5),
         ),
       ),

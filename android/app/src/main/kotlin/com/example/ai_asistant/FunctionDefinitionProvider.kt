@@ -1,6 +1,8 @@
 package com.example.openai
 
+import android.annotation.SuppressLint
 import android.content.Intent
+import android.location.Geocoder
 import android.net.Uri
 import android.provider.ContactsContract
 import android.util.Log
@@ -11,6 +13,7 @@ import org.json.JSONObject
 import okhttp3.Request
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Headers.Companion.toHeaders
+import java.util.Locale
 
 class FunctionDefinitionProvider(private val client: OpenAIClient) {
 
@@ -22,6 +25,27 @@ class FunctionDefinitionProvider(private val client: OpenAIClient) {
     }
 
     private val functionDefinitions = listOf(
+
+
+
+        object : FunctionDefinition {
+            override val name = "get_weather"
+            override val description = "Fetch current weather details for a specified location using the MET Norwegian Weather API."
+            override val parameters = JSONObject().apply {
+                put("type", "object")
+                put("properties", JSONObject().apply {
+                    put("location", JSONObject().apply {
+                        put("type", "string")
+                        put("description", "The name of the location (e.g., city, town) to fetch weather for")
+                    })
+                })
+                put("required", JSONArray().apply { put("location") })
+            }
+            override fun execute(args: JSONObject): JSONObject {
+                return getWeather(args)
+            }
+        },
+
 
         object : FunctionDefinition {
             override val name = "call_contact"
@@ -187,7 +211,71 @@ class FunctionDefinitionProvider(private val client: OpenAIClient) {
         }
     }
 
+    private fun getWeather(args: JSONObject): JSONObject {
+        val result = JSONObject()
+        try {
+            val locationName = args.getString("location")
+            val geocoder = Geocoder(client.context, Locale.getDefault())
+            @Suppress("DEPRECATION")
+            val addresses = geocoder.getFromLocationName(locationName, 1)
+                ?: return JSONObject().apply { put("error", "Could not find coordinates for location: $locationName") }
 
+            if (addresses.isEmpty()) {
+                Log.w("OpenAIClient", "No coordinates found for location: $locationName")
+                return JSONObject().apply { put("error", "No coordinates found for location: $locationName") }
+            }
+
+            val latitude = addresses[0].latitude
+            val longitude = addresses[0].longitude
+
+            val request = Request.Builder()
+                .url("https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=$latitude&lon=$longitude")
+                .addHeader("User-Agent", "OpenAIClient/1.0 (contact: your-email@example.com)")
+                .build()
+
+            NetworkHelper(client.client, client.apiKey,client.authToken).executeWithRetry(
+                request = request,
+                onSuccess = { response ->
+                    try {
+                        if (response.isSuccessful) {
+                            val responseBody = response.body?.string() ?: throw IOException("Empty response body")
+                            val json = JSONObject(responseBody)
+                            val timeseries = json.getJSONObject("properties").getJSONArray("timeseries")
+                            val current = timeseries.getJSONObject(0).getJSONObject("data")
+                            val instant = current.getJSONObject("instant").getJSONObject("details")
+                            val temperature = instant.getDouble("air_temperature")
+                            val condition = current.getJSONObject("next_1_hours")
+                                .getJSONObject("summary")
+                                .getString("symbol_code")
+
+                            result.put("status", "success")
+                            result.put("location", locationName)
+                            result.put("temperature", temperature)
+                            result.put("condition", condition)
+                            Log.d("OpenAIClient", "Weather fetched for $locationName: $temperature°C, $condition")
+                        } else {
+                            val errorBody = response.body?.string() ?: "Unknown error"
+                            Log.w("OpenAIClient", "Weather fetch failed: ${response.code}, $errorBody")
+                            result.put("error", "Weather fetch failed: HTTP ${response.code}, $errorBody")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("OpenAIClient", "Error processing weather response: ${e.message}")
+                        result.put("error", "Error processing weather response: ${e.message}")
+                    } finally {
+                        response.close()
+                    }
+                },
+                onFailure = { error ->
+                    Log.e("OpenAIClient", "Weather fetch failed: $error")
+                    result.put("error", "Weather fetch failed: $error")
+                }
+            )
+        } catch (e: Exception) {
+            Log.e("OpenAIClient", "Error fetching weather: ${e.message}")
+            result.put("error", "Error fetching weather: ${e.message}")
+        }
+        return result
+    }
     private fun callContact(args: JSONObject): JSONObject {
         val result = JSONObject()
         try {
@@ -291,7 +379,7 @@ class FunctionDefinitionProvider(private val client: OpenAIClient) {
             }
             val body = taskBody.toString().toRequestBody("application/json".toMediaType())
             val request = Request.Builder()
-                .url("https://ai-assistant-backend-nine.vercel.app/todo/tasks/")
+                .url("${SharedData.baseUrl}todo/tasks/")
                 .post(body)
                 .addHeader("Authorization", "Bearer ${client.authToken}")
                 .addHeader("Content-Type", "application/json")
@@ -357,7 +445,7 @@ class FunctionDefinitionProvider(private val client: OpenAIClient) {
             }
             val body = taskBody.toString().toRequestBody("application/json".toMediaType())
             val request = Request.Builder()
-                .url("https://ai-assistant-backend-nine.vercel.app/todo/tasks/$taskId")
+                .url("${SharedData.baseUrl}todo/tasks/$taskId")
                 .put(body)
                 .addHeader("Authorization", "Bearer ${client.authToken}")
                 .addHeader("Content-Type", "application/json")
@@ -419,7 +507,7 @@ class FunctionDefinitionProvider(private val client: OpenAIClient) {
             }
             val body = projectBody.toString().toRequestBody("application/json".toMediaType())
             val request = Request.Builder()
-                .url("https://ai-assistant-backend-nine.vercel.app/todo/projects/")
+                .url("${SharedData.baseUrl}todo/projects/")
                 .post(body)
                 .addHeader("Authorization", "Bearer ${client.authToken}")
                 .addHeader("Content-Type", "application/json")

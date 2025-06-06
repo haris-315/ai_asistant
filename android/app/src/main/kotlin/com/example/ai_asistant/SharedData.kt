@@ -8,6 +8,7 @@ object SharedData {
     var tasks: List<MutableMap<String, Any>> = emptyList()
     var currentVoice: Voice? = null
     var porcupineAK: String = ""
+    var baseUrl = "https://ai-assistant-backend-blue.vercel.app/"
 
 }
 

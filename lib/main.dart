@@ -1,3 +1,5 @@
+// ignore_for_file: unused_local_variable
+
 import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:ai_asistant/core/services/snackbar_service.dart';
@@ -7,8 +9,9 @@ import 'package:ai_asistant/data/models/emails/email_message_adapter.dart';
 import 'package:ai_asistant/state_mgmt/chats/cubit/chat_cubit.dart';
 import 'package:ai_asistant/state_mgmt/email/cubit/email_cubit.dart';
 import 'package:ai_asistant/state_mgmt/sessions/cubit/sessions_cubit.dart';
+import 'package:ai_asistant/ui/screen/frontline/quick_guide.dart';
+import 'package:ai_asistant/ui/screen/frontline/splash_screen.dart';
 import 'package:ai_asistant/ui/screen/home/dashboard.dart';
-import 'package:ai_asistant/ui/screen/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get/get.dart';
@@ -19,23 +22,27 @@ import 'Controller/bar_controller.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // ignore: unused_local_variable
   AuthController ac = Get.put(AuthController());
   await Hive.initFlutter();
   Hive.registerAdapter(HiveEmailAdapter());
   Get.put(TaskController());
+
   await SettingsService.storeSetting(
     AppConstants.appStateKey,
     AppConstants.appStateInitializing,
   );
-
-  await SettingsService.storeSetting(
-    "access_token",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoazMxNS5pbkBvdXRsb29rLmNvbSJ9.J5UFE8c37RjqtVdrHyBURAjTEKZOIcoJJjrs8xjZvxk",
-    // "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJpLmFyc2xhbmtoYWxpZEBvdXRsb29rLmNvbSJ9.6CHm10Iqv9h5FOqY2dsJdRhFP0abcyUstljKbPlUR4A",
+  // await SettingsService.customSetting(
+  //   (fn) => fn.remove(AppConstants.firstCheckKey),
+  // );
+  bool frstStart = await SettingsService.customSetting<bool>(
+    (prefs) => prefs.getBool(AppConstants.firstCheckKey) ?? true,
   );
+  // await SettingsService.storeSetting(
+  //   "access_token",
+  //   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoazMxNS5pbkBvdXRsb29rLmNvbSJ9.J5UFE8c37RjqtVdrHyBURAjTEKZOIcoJJjrs8xjZvxk",
+  // );
+  // await SettingsService.removeSetting("access_token");
 
-  // final res = await ac.hasAccess("ai_assistant");
   // if (res) {
   runApp(
     MultiBlocProvider(
@@ -44,7 +51,7 @@ void main() async {
         BlocProvider(create: (_) => ChatCubit()),
         BlocProvider(create: (_) => EmailCubit()),
       ],
-      child: MyApp(),
+      child: AIA(isFirstStart: frstStart),
     ),
   );
   // } else {
@@ -52,7 +59,6 @@ void main() async {
   //     MaterialApp(
   //       home: Container(
   //         color: Colors.white70,
-
   //         width: double.infinity,
   //         child: Center(
   //           child: Column(
@@ -68,8 +74,9 @@ void main() async {
   // }
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class AIA extends StatelessWidget {
+  final bool isFirstStart;
+  const AIA({super.key, required this.isFirstStart});
 
   @override
   Widget build(BuildContext context) {
@@ -82,8 +89,7 @@ class MyApp extends StatelessWidget {
           title: 'AI Assistant',
           debugShowCheckedModeBanner: true,
           theme: appTheme(),
-
-          home: SplashScreen(),
+          home: isFirstStart ? QuickGuide() : SplashScreen(),
           routes: {"/home": (context) => HomeScreen()},
         );
       },

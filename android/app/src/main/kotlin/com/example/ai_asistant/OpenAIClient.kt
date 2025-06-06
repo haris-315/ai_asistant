@@ -42,7 +42,7 @@ class OpenAIClient(
         val availableStorage = systemInfoProvider.getAvailableStorage()
         val projects = SharedData.projects
         return """
-        You are a helpful assistant for a task manager app that can also open Android apps and make phone calls. You answer general knowledge questions and hold friendly conversations. Your name is Jarvis.
+        You are a helpful assistant for a task manager app that can also open Android apps, make phone calls, and fetch weather details. You answer general knowledge questions and hold friendly conversations. Your name is Jarvis.
 
         Your response **must always be a plain text string (suitable for text-to-speech), and you must use function calls to handle specific actions. Do not include JSON or action details in the response text.
 
@@ -61,12 +61,14 @@ class OpenAIClient(
         - Summarizing conversation: Use `summarize_conversation`.
         - Collecting user data: Use `collect_user_data` when the prompt contains relevant personal information (e.g., name, preferences) that could improve future responses, but only if it’s useful and not repetitive. Limit to 24 data points.
         - Calling a contact: Use `call_contact`. If multiple contacts match the name, the function returns a list of contacts. Ask the user to choose one by name and call `call_contact` again with the contact_id.
+        - Fetching weather: Use `get_weather` with the location name. Return the temperature in Celsius and the weather condition in the response text.
 
         Rules:
         - Return short, friendly text responses for text-to-speech.
         - Use function calls for actions; do not embed details in text.
         - For apps, use exact package names (e.g., "com.google.android.youtube").
         - For phone calls, if multiple contacts are found, respond with a question listing their full names and wait for user clarification.
+        - For weather, use the location name provided by the user and return a concise summary (e.g., temperature and condition).
         - Assign tasks the id of the project named "Inbox" if no other project matches.
         - Available projects: ${projects.joinToString()}
         - Current tasks: ${SharedData.tasks.joinToString()}
@@ -82,6 +84,7 @@ class OpenAIClient(
         - "Stop listening": "Entering standby mode." + call `standby`.
         - "My name is John": "Thanks for sharing, John!" + call `collect_user_data` with "Name is John".
         - "Call John": If multiple Johns, respond: "I found multiple contacts named John: John Smith, John Doe. Which one would you like to call?" + call `call_contact` with contact_id after user response.
+        - "What's the weather in Oslo?": "The weather in Oslo is 15°C with partly cloudy skies." + call `get_weather` with location "Oslo".
         """.trimIndent()
     }
     fun getMessageHistory(): List<JSONObject> = messages.subList(1, messages.size.coerceAtLeast(1))
@@ -307,7 +310,7 @@ class OpenAIClient(
         fun summarizeChunk(index: Int) {
             if (index >= chunks.size) {
                 val mergePrompt = """
-                Combine these partial summaries into one coherent meeting summary, consolidate the keypoints, and generate a suitable title.
+                Combine these partial summaries into one coherent meeting summary remember to keep it as short as possible like of max 16 lines, consolidate the keypoints, and generate a suitable title.
 
                 Respond in JSON format:
                 {
@@ -350,15 +353,15 @@ class OpenAIClient(
                             val keypointsArray = json.getJSONArray("keypoints")
                             val keypoints = (0 until keypointsArray.length()).map { keypointsArray.getString(it) }
 
-                            dbHelper.insertOrUpdateSummary(
-                                id = UUID.randomUUID().toString(),
-                                title = finalTitle,
-                                startTime = lastMeetingTime,
-                                endTime = LocalDateTime.now(),
-                                actualTranscript = transcript,
-                                summary = finalSummary,
-                                keypoints = keypoints
-                            )
+//                            dbHelper.insertOrUpdateSummary(
+//                                id = UUID.randomUUID().toString(),
+//                                title = finalTitle,
+//                                startTime = lastMeetingTime,
+//                                endTime = LocalDateTime.now(),
+//                                actualTranscript = transcript,
+//                                summary = finalSummary,
+//                                keypoints = keypoints
+//                            )
                             onDone(finalTitle, finalSummary, keypoints)
                         } catch (e: Exception) {
                             Log.e("OpenAIClient", "Error parsing final summary: ${e.message}")

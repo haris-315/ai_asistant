@@ -1,4 +1,4 @@
-// ignore_for_file: library_private_types_in_public_api
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -19,162 +19,205 @@ class RegistrationScreen extends StatefulWidget {
 
 class _RegistrationScreenState extends State<RegistrationScreen> {
   final AuthController controller = AuthController();
-
   final TextEditingController fullNameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
-  final TextEditingController dateOfBirthController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController cpasswordController = TextEditingController();
-
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: <Widget>[
-                SizedBox(height: 5.h),
-                SizedBox(
-                  width: 80.w,
-                  height: 24.h,
+      body: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage("assets/splash_loading.webp"),
+                fit: BoxFit.cover,
+              ),
+            ),
+            child: Container(color: Colors.black.withValues(alpha: 0.4)),
+          ),
 
-                  child: Image.asset('assets/Illustration.png'),
-                ),
-                SizedBox(height: 3.h),
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+            child: Container(color: Colors.transparent),
+          ),
 
-                CustomFormTextField(
-                  error: "Your Name",
-                  label: "Your Name",
-                  icon: Icons.person_outline_outlined,
-                  controller: fullNameController,
-                  keyboardType: TextInputType.text,
-                ),
-                // SizedBox(height: 1.5.h),
-                // CustomFormTextField(
-                //   error: "Date of Birth",
-                //   label: "Date of Birth",
-                //   icon: Icons.calendar_today,
-                //   controller: dateOfBirthController,
-                //   isDateField: true,
-                // ),
-                SizedBox(height: 1.5.h),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(24.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    SizedBox(height: 2.h),
 
-                CustomFormTextField(
-                  error: "Email",
-                  label: "Email",
-                  icon: Icons.email_outlined,
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  isEmail: true,
-                ),
-                SizedBox(height: 1.5.h),
-                CustomFormTextField(
-                  error: "Password",
-                  label: "Password",
-                  icon: Icons.lock_outline_rounded,
-                  controller: passwordController,
-                  isPassword: true,
-                  maxLength: 16,
-                  showPasswordStrength: true,
-                ),
+                    IconButton(
+                      icon: Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Get.back(),
+                    ),
 
-                SizedBox(height: 1.5.h),
-                CustomFormTextField(
-                  error: "Confirm Password",
-                  label: "Confirm Password",
-                  icon: Icons.lock_outline_rounded,
-                  controller: cpasswordController,
-                  isPassword: true,
-                  maxLength: 16,
-                  showPasswordStrength: true,
-                ),
-                SizedBox(height: 1.5.h),
+                    SizedBox(height: 2.h),
 
-                CustomButton(
-                  title: 'Register',
-                  backgroundColor: Colors.blue,
-                  textColor: Colors.white,
-                  borderColor: Colors.blue,
-                  borderRadius: 8.0,
-                  height: 50.0,
-                  width: double.infinity,
-                  onPressed: () async {
-                    if (_formKey.currentState!.validate()) {
-                      if (passwordController.text == cpasswordController.text) {
-                        if (passwordController.text.length >= 8 &&
-                            cpasswordController.text.length >= 8) {
-                          bool? response;
-                          response = await controller.Registration(
-                            fullNameController.text,
-                            emailController.text,
-                            passwordController.text,
-                          );
-
-                          if (response == true) {
-                            fullNameController.clear();
-                            emailController.clear();
-                            passwordController.clear();
-                            cpasswordController.clear();
-
-                            Get.to(() => LoginScreen());
-                          }
-                        } else {
-                          showCustomSnackbar(
-                            title: "Error",
-                            message: "Your password Length will be min 8",
-                            backgroundColor: Colors.red,
-                            icon: Icons.error,
-                          );
-                        }
-                      } else {
-                        showCustomSnackbar(
-                          title: "Error",
-                          message: "Your password is not match",
-                          backgroundColor: Colors.red,
-                          icon: Icons.error,
-                        );
-                      }
-                    }
-                  },
-                ),
-
-                // const Spacer(),
-                SizedBox(height: 3.h),
-                TextButton(
-                  onPressed: () {
-                    Get.to(() => LoginScreen());
-                  },
-                  child: RichText(
-                    text: TextSpan(
-                      style: textTheme.bodyLarge?.copyWith(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
+                    Center(
+                      child: CircleAvatar(
+                        radius: 24.spa,
+                        backgroundImage: AssetImage(
+                          "assets/launchericon.png",
+                          
+                        ),
                       ),
-                      children: [
-                        TextSpan(text: 'Already have an account?? '),
-                        TextSpan(
-                          text: 'Sign in',
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontWeight: FontWeight.bold,
+                    ),
+
+                    SizedBox(height: 1.h),
+
+                    Center(
+                      child: Text(
+                        'Join us to get started',
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: 4.h),
+
+                    CustomFormTextField(
+                      error: "Please enter your full name",
+                      label: "Full Name",
+                      icon: Icons.person_outline,
+                      controller: fullNameController,
+                      keyboardType: TextInputType.name,
+                    ),
+
+                    SizedBox(height: 2.h),
+
+                    CustomFormTextField(
+                      error: "Please enter a valid email",
+                      label: "Email Address",
+                      icon: Icons.email_outlined,
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      isEmail: true,
+                    ),
+
+                    SizedBox(height: 2.h),
+
+                    CustomFormTextField(
+                      error: "Password must be at least 8 characters",
+                      label: "Password",
+                      icon: Icons.lock_outline,
+                      controller: passwordController,
+                      isPassword: true,
+                      maxLength: 16,
+                      showPasswordStrength: true,
+                    ),
+
+                    SizedBox(height: 2.h),
+
+                    CustomFormTextField(
+                      error: "Passwords must match",
+                      label: "Confirm Password",
+                      icon: Icons.lock_outline,
+                      controller: cpasswordController,
+                      isPassword: false,
+                      maxLength: 16,
+                    ),
+
+                    SizedBox(height: 4.h),
+
+                    _isLoading
+                        ? Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        )
+                        : CustomButton(
+                          title: 'Create Account',
+                          onPressed: () async {
+                            if (_formKey.currentState!.validate()) {
+                              if (passwordController.text ==
+                                  cpasswordController.text) {
+                                if (passwordController.text.length >= 8) {
+                                  setState(() => _isLoading = true);
+                                  bool? response =
+                                      await controller.Registration(
+                                        fullNameController.text,
+                                        emailController.text,
+                                        passwordController.text,
+                                      );
+                                  setState(() => _isLoading = false);
+
+                                  if (response == true) {
+                                    fullNameController.clear();
+                                    emailController.clear();
+                                    passwordController.clear();
+                                    cpasswordController.clear();
+                                    Get.to(() => LoginScreen());
+                                  }
+                                } else {
+                                  showCustomSnackbar(
+                                    title: "Error",
+                                    message:
+                                        "Password must be at least 8 characters",
+                                    backgroundColor: Colors.red,
+                                    icon: Icons.error,
+                                  );
+                                }
+                              } else {
+                                showCustomSnackbar(
+                                  title: "Error",
+                                  message: "Passwords do not match",
+                                  backgroundColor: Colors.red,
+                                  icon: Icons.error,
+                                );
+                              }
+                            }
+                          },
+                          backgroundColor: Colors.blueAccent,
+                          textColor: Colors.white,
+                          borderColor: Colors.blueAccent,
+                          borderRadius: 12.0,
+                          height: 45.0,
+                          width: double.infinity,
+                        ),
+
+                    SizedBox(height: 3.h),
+
+                    Center(
+                      child: TextButton(
+                        onPressed: () {
+                          Get.to(() => LoginScreen());
+                        },
+                        child: RichText(
+                          text: TextSpan(
+                            style: textTheme.bodyLarge?.copyWith(
+                              color: Colors.white,
+                            ),
+                            children: [
+                              TextSpan(text: 'Already have an account? '),
+                              TextSpan(
+                                text: 'Sign in',
+                                style: TextStyle(
+                                  color: Colors.blueAccent,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

@@ -10,4 +10,5 @@ class AppConstants {
   static String appStateInitializing = "init";
   static String appStateInitialized = "done";
   static String cuVoiceKey = "cuVK";
+  static final String firstCheckKey = "frstchk";
 }

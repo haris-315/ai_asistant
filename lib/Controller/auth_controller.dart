@@ -22,6 +22,8 @@ import '../data/models/emails/thread_detail.dart';
 import '../data/models/threadmodel.dart';
 import '../ui/widget/snackbar.dart';
 
+// Nest And Bad Code By Previous Developer Who Left The Project After Starting.
+// Also The Wrong Name "ai_asistant" Which Should Be "ai_assistant" was given by him too.
 class AuthController extends GetxController {
   final ApiService apiService = ApiService();
   // final _SettingsService = const FlutterSettingsService();

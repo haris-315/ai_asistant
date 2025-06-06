@@ -6,7 +6,7 @@ class SettingsService {
     await prefs.setString(key, value);
   }
 
-  static customSetting(Function(SharedPreferences sprefs) fn) async {
+  static Future<T> customSetting<T>(Function(SharedPreferences sprefs) fn) async {
     final prefs = await SharedPreferences.getInstance();
     return await fn(prefs);
   }

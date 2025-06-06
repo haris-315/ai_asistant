@@ -5,6 +5,7 @@ import 'package:ai_asistant/state_mgmt/chats/cubit/chat_cubit.dart';
 import 'package:ai_asistant/state_mgmt/sessions/cubit/sessions_cubit.dart';
 import 'package:ai_asistant/ui/screen/assistant/assistant_control_page.dart';
 import 'package:ai_asistant/ui/screen/home/chat_screen.dart';
+import 'package:ai_asistant/ui/screen/user/user_info_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -95,7 +96,20 @@ class _SideMenuState extends State<SideMenu> {
                     ),
                   ),
                 ),
-
+                menuItem(
+                  title: "Profile",
+                  icon: Icons.person,
+                  isSelected: false,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      PageTransition(
+                        type: PageTransitionType.topToBottom,
+                        child: ProfilePage(),
+                      ),
+                    );
+                  },
+                ),
                 menuItem(
                   title: "Assistant",
                   icon: Icons.video_camera_front_outlined,

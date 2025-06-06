@@ -1,11 +1,16 @@
 // ignore_for_file: library_private_types_in_public_api
 
+import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:ai_asistant/ui/screen/auth/login_screen.dart';
+import 'package:ai_asistant/ui/screen/frontline/no_connection_page.dart';
 import 'package:ai_asistant/ui/screen/home/dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:get/get.dart';
 import 'package:page_transition/page_transition.dart';
+
+enum NetworkState { available, notAvailable, hasError }
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -20,6 +25,8 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _scaleAnimation;
   late Animation<double> _opacityAnimation;
   bool _gifLoaded = false;
+  AuthController ac = Get.find<AuthController>();
+  NetworkState status = NetworkState.notAvailable;
 
   @override
   void initState() {
@@ -39,38 +46,64 @@ class _SplashScreenState extends State<SplashScreen>
         curve: const Interval(0.3, 1.0, curve: Curves.easeIn),
       ),
     );
+    runNetworkChecks();
+  }
+
+  void runNetworkChecks() async {
+    try {
+      bool networkTest = await ac.isInternetAvailable();
+      setState(() {
+        if (networkTest) {
+          status = NetworkState.available;
+        }
+      });
+    } catch (_) {
+    } finally {
+      Future.delayed(const Duration(seconds: 1), _checkAuthStatus);
+    }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    precacheImage(const AssetImage('assets/splash_loading.webp'), context).then((_) {
-      setState(() {
-        _gifLoaded = true;
-      });
+    precacheImage(const AssetImage('assets/splash_loading.webp'), context).then(
+      (_) {
+        setState(() {
+          _gifLoaded = true;
+        });
 
-      // Initialize animations
+        // Initialize animations
 
-      // Start animations
-      _animationController.forward();
+        // Start animations
+        _animationController.forward();
 
-      // Start splash countdown slightly longer to ensure animation is seen
-      Future.delayed(const Duration(seconds: 4), _checkAuthStatus);
-    });
+        // Start splash countdown slightly longer to ensure animation is seen
+      },
+    );
   }
 
   Future<void> _checkAuthStatus() async {
     final token = await SettingsService.getToken();
     if (!mounted) return;
-
-    Navigator.pushReplacement(
-      context,
-      PageTransition(
-        type: PageTransitionType.fade,
-        duration: const Duration(milliseconds: 800),
-        child: token == null ? const LoginScreen() : const HomeScreen(),
-      ),
-    );
+    if (status == NetworkState.available) {
+      Navigator.pushReplacement(
+        context,
+        PageTransition(
+          type: PageTransitionType.fade,
+          duration: const Duration(milliseconds: 800),
+          child: token == null ? const LoginScreen() : const HomeScreen(),
+        ),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        PageTransition(
+          type: PageTransitionType.fade,
+          duration: const Duration(milliseconds: 800),
+          child: NoConnectionPage(),
+        ),
+      );
+    }
   }
 
   @override

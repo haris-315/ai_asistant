@@ -98,7 +98,7 @@ class ChatRepo {
       var data = {"model": model, "content": message};
       if (!isNewSession) {
         data['session_id'] = sessionId;
-      }
+      } 
 
       var response = await dio.request(
         '${AppConstants.baseUrl}chat/message',

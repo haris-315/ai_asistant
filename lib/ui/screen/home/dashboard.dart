@@ -14,6 +14,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:page_transition/page_transition.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../../Controller/auth_controller.dart';
 import '../../widget/drawer.dart';
@@ -50,14 +51,31 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _fetchAsync();
+    _requestAllPermissions();
+  }
+
+  Future<void> _requestAllPermissions() async {
+    final permissions = [
+      Permission.notification,
+      Permission.microphone,
+      Permission.phone,
+      Permission.contacts,
+      Permission.storage,
+      Permission.ignoreBatteryOptimizations,
+    ];
+
+    for (final permission in permissions) {
+      final status = await permission.status;
+      if (!status.isGranted) {
+        await permission.request();
+      }
+    }
   }
 
   @override
   void didChangeDependencies() {
-    // TODO: implement didChangeDependencies
     super.didChangeDependencies();
-        context.read<EmailCubit>().backLoadEmails(key);
-
+    context.read<EmailCubit>().backLoadEmails(key);
   }
 
   void _fetchAsync() async {
