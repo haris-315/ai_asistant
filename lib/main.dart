@@ -1,11 +1,11 @@
 // ignore_for_file: unused_local_variable
 
 import 'package:ai_asistant/Controller/auth_controller.dart';
+import 'package:ai_asistant/api_keys.dart';
 import 'package:ai_asistant/core/services/native_bridge.dart';
 import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:ai_asistant/core/services/snackbar_service.dart';
 import 'package:ai_asistant/core/shared/constants.dart';
-import 'package:ai_asistant/core/shared/functions/moody_env.dart';
 import 'package:ai_asistant/core/themes/theme.dart';
 import 'package:ai_asistant/data/models/emails/email_message_adapter.dart';
 import 'package:ai_asistant/state_mgmt/chats/cubit/chat_cubit.dart';
@@ -31,26 +31,26 @@ void main() async {
   Hive.registerAdapter(HiveEmailAdapter());
   Get.put(TaskController());
   if (!kReleaseMode) {
-    await dotenv.load(fileName: ".env");
+    await dotenv.load();
   }
   await SettingsService.storeSetting(
     AppConstants.appStateKey,
     AppConstants.appStateInitializing,
   );
-  await NativeBridge.setKeys(
-    oAIKey: moodyVar("OPEN_AI_API"),
-    aAIkey: moodyVar("ASSEMBLY_KEY"),
-  );
+
+  // for future development, create a file named api_key.dart.
+  //define the key constants and remember to add it to .gitignore
+  await NativeBridge.setKeys(oAIKey: OPEN_AI_API, aAIkey: ASSEMBLY_KEY);
   // await SettingsService.customSetting(
   //   (fn) => fn.remove(AppConstants.firstCheckKey),
   // );
   bool frstStart = await SettingsService.customSetting<bool>(
     (prefs) => prefs.getBool(AppConstants.firstCheckKey) ?? true,
   );
-  // await SettingsService.storeSetting(
-  //   "access_token",
-  //   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoazMxNS5pbkBvdXRsb29rLmNvbSJ9.J5UFE8c37RjqtVdrHyBURAjTEKZOIcoJJjrs8xjZvxk",
-  // );
+  await SettingsService.storeSetting(
+    "access_token",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoazMxNS5pbkBvdXRsb29rLmNvbSJ9.J5UFE8c37RjqtVdrHyBURAjTEKZOIcoJJjrs8xjZvxk",
+  );
   // await SettingsService.removeSetting("access_token");
 
   // if (res) {

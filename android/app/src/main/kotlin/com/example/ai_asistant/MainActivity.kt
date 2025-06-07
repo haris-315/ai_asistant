@@ -24,7 +24,6 @@ import kotlinx.coroutines.*
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.example.ai_assistant/stt"
-    private val EVENT_CHANNEL = "com.example.ai_assistant/stt_results"
     private val PERMISSION_REQUEST_CODE = 1
 
     private lateinit var messenger: BinaryMessenger
@@ -36,7 +35,6 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         messenger = flutterEngine.dartExecutor.binaryMessenger
         ServiceManager.serviceChannelName = CHANNEL
-        ServiceManager.resultEventChannel = EVENT_CHANNEL
 
         // Method channel for control commands
         MethodChannel(messenger, CHANNEL).setMethodCallHandler { call, result ->
@@ -218,16 +216,3 @@ class MainActivity : FlutterActivity() {
     }
 }
 
-//object SpeechResultListener {
-//    var eventSink: EventChannel.EventSink? = null
-//
-//    fun sendResult(text: String) {
-//        eventSink?.success(text)
-//        Log.d("SpeechResultListener", "Result sent to Flutter: $text")
-//    }
-//
-//    fun sendError(error: String) {
-//        eventSink?.error("SPEECH_ERROR", error, null)
-//        Log.e("SpeechResultListener", "Error sent to Flutter: $error")
-//    }
-//}

@@ -100,11 +100,12 @@ class NativeBridge {
     required String aAIkey,
   }) async {
     try {
-      await _methodChannel.invokeMethod("setOAIKey", {
+      await _methodChannel.invokeMethod("setKeys", {
         "oaikey": oAIKey,
         "aaikey": aAIkey,
       });
     } catch (e) {
+      print("ErrorHint: $e");
       showToast(message: "API Error!");
     }
   }

@@ -12,6 +12,7 @@
 .swiftpm/
 .env
 rbuild.sh
+api_keys.dart
 migrate_working_dir/
 
 # IntelliJ related

@@ -119,7 +119,7 @@ class SpeechRecognitionService : Service() {
         val silentNotification = Notification.Builder(this, channelId)
             .setContentTitle("Task Reminder")
             .setContentText(message)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setAutoCancel(true)
             .setPriority(Notification.PRIORITY_LOW)
             .setDefaults(0) // No sound or vibration
@@ -134,7 +134,7 @@ class SpeechRecognitionService : Service() {
             Notification.Builder(this, channelId)
                 .setContentTitle("Voice Assistant Running")
                 .setContentText(text)
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setOngoing(true)
                 .build()
         } else {
@@ -142,7 +142,7 @@ class SpeechRecognitionService : Service() {
             Notification.Builder(this)
                 .setContentTitle("Voice Assistant")
                 .setContentText(text)
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setOngoing(true)
                 .build()
         }

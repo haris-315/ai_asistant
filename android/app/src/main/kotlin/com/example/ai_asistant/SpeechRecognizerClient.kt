@@ -85,7 +85,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
                     "Hey there!, What is it?",
                     "At your service.",
                     "What can I help you with.",
-                    "What do you want me to do sire?"
+                    "What do you want me to do?"
             )
 
     private var hwDetector: HotWordDetector? = null
@@ -114,8 +114,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
         context?.let {
             OpenAIClient(
                     context = it,
-                    apiKey =
-                            "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",
+                    apiKey = SharedData.openAiApiKey,
                     authToken = SharedData.authToken,
                     projects = SharedData.projects
             )
@@ -445,7 +444,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
                         .url(
                                 "wss://api.assemblyai.com/v2/realtime/ws?sample_rate=$sampleRate&utterances=true"
                         )
-                        .header("Authorization", "4bc0912e299e44b6b3e8ecab340ea0b1")
+                        .header("Authorization", SharedData.assemblyAIKey)
                         .build()
 
         val timeoutRunnable = Runnable {
@@ -702,20 +701,15 @@ class SpeechRecognizerClient private constructor(context: Context) {
                         ttsHelper?.speak(response)
                     }
                 },
-                onError = {
-                    err ->
+                onError = { err ->
                     CoroutineScope(Dispatchers.Main).launch {
                         if (state == AssistantState.STANDBY && isManualStandby) {
                             Log.d("SpeechRecognizerClient", "Ignoring OpenAI error in STANDBY")
                             return@launch
                         }
                         transitionTo(AssistantState.SPEAKING)
-                        ttsHelper?.speak(
-                                "Sorry, I couldn't process that."
-                        )
+                        ttsHelper?.speak("Sorry, I couldn't process that.")
                         Toast.makeText(context, "$err", Toast.LENGTH_LONG).show()
-
-
                     }
                 },
                 onStandBy = {
@@ -750,7 +744,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
                         Log.i("SpeechRecognizerClient", "Meeting summary: $summary")
                         context?.let { ctx ->
                             openAiClient?.dbHelper?.insertOrUpdateSummary(
-//                                    context = ctx,
+                                    //                                    context = ctx,
                                     id = UUID.randomUUID().toString(),
                                     title = title,
                                     startTime =
