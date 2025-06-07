@@ -1,9 +1,11 @@
 // ignore_for_file: unused_local_variable
 
 import 'package:ai_asistant/Controller/auth_controller.dart';
+import 'package:ai_asistant/core/services/native_bridge.dart';
 import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:ai_asistant/core/services/snackbar_service.dart';
 import 'package:ai_asistant/core/shared/constants.dart';
+import 'package:ai_asistant/core/shared/functions/moody_env.dart';
 import 'package:ai_asistant/core/themes/theme.dart';
 import 'package:ai_asistant/data/models/emails/email_message_adapter.dart';
 import 'package:ai_asistant/state_mgmt/chats/cubit/chat_cubit.dart';
@@ -12,8 +14,10 @@ import 'package:ai_asistant/state_mgmt/sessions/cubit/sessions_cubit.dart';
 import 'package:ai_asistant/ui/screen/frontline/quick_guide.dart';
 import 'package:ai_asistant/ui/screen/frontline/splash_screen.dart';
 import 'package:ai_asistant/ui/screen/home/dashboard.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
@@ -26,10 +30,16 @@ void main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(HiveEmailAdapter());
   Get.put(TaskController());
-
+  if (!kReleaseMode) {
+    await dotenv.load(fileName: ".env");
+  }
   await SettingsService.storeSetting(
     AppConstants.appStateKey,
     AppConstants.appStateInitializing,
+  );
+  await NativeBridge.setKeys(
+    oAIKey: moodyVar("OPEN_AI_API"),
+    aAIkey: moodyVar("ASSEMBLY_KEY"),
   );
   // await SettingsService.customSetting(
   //   (fn) => fn.remove(AppConstants.firstCheckKey),

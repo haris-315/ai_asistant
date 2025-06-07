@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/core/services/settings_service.dart';
+import 'package:ai_asistant/core/shared/functions/show_toast.dart';
 import 'package:ai_asistant/data/models/service_models/assistant_service_model.dart';
 import 'package:ai_asistant/data/models/service_models/voice.dart';
 import 'package:flutter/foundation.dart';
@@ -94,6 +95,20 @@ class NativeBridge {
     }
   }
 
+  static Future setKeys({
+    required String oAIKey,
+    required String aAIkey,
+  }) async {
+    try {
+      await _methodChannel.invokeMethod("setOAIKey", {
+        "oaikey": oAIKey,
+        "aaikey": aAIkey,
+      });
+    } catch (e) {
+      showToast(message: "API Error!");
+    }
+  }
+
   static Future<List<Voice>> getOrSetAvailableVoices(String? model) async {
     try {
       final List result = await _methodChannel.invokeMethod(
@@ -107,10 +122,10 @@ class NativeBridge {
     }
   }
 
-  static Future<Map<dynamic, dynamic>> setKey(String key) async {
+  static Future<Map<dynamic, dynamic>> setPorcupineKey(String key) async {
     try {
       final Map<dynamic, dynamic> result = await _methodChannel.invokeMethod(
-        "setKey",
+        "setPorcupineKey",
         {"akey": key},
       );
       // print(result);

@@ -135,7 +135,7 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
     // await SettingsService.removeSetting("akey");
     String? key = await SettingsService.getSetting("akey");
     if (key != null) {
-      await NativeBridge.setKey(key);
+      await NativeBridge.setPorcupineKey(key);
     } else {
       setState(() {
         toSetAKey = true;
@@ -146,7 +146,7 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
   Future<bool> _setKey(String key) async {
     try {
       SettingsService.storeSetting("akey", key);
-      Map<dynamic, dynamic> res = await NativeBridge.setKey(key);
+      Map<dynamic, dynamic> res = await NativeBridge.setPorcupineKey(key);
       setState(() {
         keyRes = res;
       });

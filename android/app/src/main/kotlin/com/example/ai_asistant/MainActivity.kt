@@ -16,6 +16,7 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 import com.example.openai.SharedData
 import android.net.Uri
+import android.widget.Toast
 import com.example.openai.EmailsData
 import com.example.svc_mng.ServiceManager
 import kotlinx.coroutines.*
@@ -41,6 +42,11 @@ class MainActivity : FlutterActivity() {
         MethodChannel(messenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "startListening" -> {
+                    if (SharedData.openAiApiKey.isEmpty() || SharedData.assemblyAIKey.isEmpty()) {
+                        Toast.makeText(context, "API keys not set", Toast.LENGTH_SHORT).show()
+                        result.error("NO_API_KEY", "OpenAI API key not set", null)
+                        return@setMethodCallHandler
+                    }
                     val authToken = call.argument<String>("authToken") ?: ""
                     val projects = call.argument<List<String>>("projects")?.toMutableList() ?: mutableListOf()
 
@@ -68,7 +74,7 @@ class MainActivity : FlutterActivity() {
                     result.success(true)
                 }
 
-                "setKey" -> {
+                "setPorcupineKey" -> {
                     val key = call.argument<String>("akey") ?: ""
                     SharedData.porcupineAK = key
 
@@ -126,6 +132,11 @@ class MainActivity : FlutterActivity() {
                     val dbPath = context.getDatabasePath("meeting.db").path
                     result.success(dbPath)
                 }
+                "setKeys" -> {
+                    SharedData.openAiApiKey = call.argument<String>("oaikey") ?: ""
+                    SharedData.assemblyAIKey = call.argument<String>("aaikey") ?: ""
+                    result.success(true)
+                }
 
                 "dumpMails" -> {
                     var mails: List<String> = call.argument<List<String>>("mails") ?: mutableListOf("")
@@ -137,19 +148,7 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
-        // Event channel for sending recognition results
-        eventChannel = EventChannel(messenger, EVENT_CHANNEL)
-        eventChannel.setStreamHandler(object : EventChannel.StreamHandler {
-            override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
-                SpeechResultListener.eventSink = events
-                Log.d("MainActivity", "EventChannel listener attached")
-            }
 
-            override fun onCancel(arguments: Any?) {
-                SpeechResultListener.eventSink = null
-                Log.d("MainActivity", "EventChannel listener removed")
-            }
-        })
     }
 
     private fun checkAudioPermission(): Boolean {
@@ -219,16 +218,16 @@ class MainActivity : FlutterActivity() {
     }
 }
 
-object SpeechResultListener {
-    var eventSink: EventChannel.EventSink? = null
-
-    fun sendResult(text: String) {
-        eventSink?.success(text)
-        Log.d("SpeechResultListener", "Result sent to Flutter: $text")
-    }
-
-    fun sendError(error: String) {
-        eventSink?.error("SPEECH_ERROR", error, null)
-        Log.e("SpeechResultListener", "Error sent to Flutter: $error")
-    }
-}
+//object SpeechResultListener {
+//    var eventSink: EventChannel.EventSink? = null
+//
+//    fun sendResult(text: String) {
+//        eventSink?.success(text)
+//        Log.d("SpeechResultListener", "Result sent to Flutter: $text")
+//    }
+//
+//    fun sendError(error: String) {
+//        eventSink?.error("SPEECH_ERROR", error, null)
+//        Log.e("SpeechResultListener", "Error sent to Flutter: $error")
+//    }
+//}

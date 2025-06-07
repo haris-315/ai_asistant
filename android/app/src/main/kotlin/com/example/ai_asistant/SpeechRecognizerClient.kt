@@ -10,6 +10,7 @@ import android.media.MediaRecorder
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.example.openai.OpenAIClient
 import com.example.openai.SharedData
@@ -128,6 +129,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
                     .pingInterval(30, TimeUnit.SECONDS)
                     .build()
 
+    @SuppressLint("MissingPermission")
     fun initialize(onInitialized: (TextToSpeechHelper?) -> Unit) {
         ServiceManager.initializing = true
         context
@@ -701,15 +703,19 @@ class SpeechRecognizerClient private constructor(context: Context) {
                     }
                 },
                 onError = {
+                    err ->
                     CoroutineScope(Dispatchers.Main).launch {
                         if (state == AssistantState.STANDBY && isManualStandby) {
                             Log.d("SpeechRecognizerClient", "Ignoring OpenAI error in STANDBY")
                             return@launch
                         }
+                        transitionTo(AssistantState.SPEAKING)
                         ttsHelper?.speak(
-                                "Sorry, I couldn't process that.",
-                                onSpoken = { transitionTo(AssistantState.LISTENING) }
+                                "Sorry, I couldn't process that."
                         )
+                        Toast.makeText(context, "$err", Toast.LENGTH_LONG).show()
+
+
                     }
                 },
                 onStandBy = {
