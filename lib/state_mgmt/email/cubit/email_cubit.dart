@@ -41,17 +41,22 @@ class EmailCubit extends Cubit<EmailState> {
 
       hasReachedEnd = res.length < 15; // Check for less than 15 emails
 
-      emit(EmailSuccess(
-        emails: allEmails,
-        searchEmails: searchEmails,
-        hasReachedEnd: hasReachedEnd,
-        isSearching: isSearching,
-      ));
+      emit(
+        EmailSuccess(
+          emails: allEmails,
+          searchEmails: searchEmails,
+          hasReachedEnd: hasReachedEnd,
+          isSearching: isSearching,
+        ),
+      );
     } on DioException catch (de) {
       if (de.type == DioExceptionType.connectionError) {
-        emit(EmailError(
-          message: "We are facing network issue. Please check your internet connection.",
-        ));
+        emit(
+          EmailError(
+            message:
+                "We are facing network issue. Please check your internet connection.",
+          ),
+        );
       } else {
         emit(EmailError(message: de.toString()));
       }
@@ -60,37 +65,46 @@ class EmailCubit extends Cubit<EmailState> {
     }
   }
 
-  Future<void> filterEmails(String filter, List<EmailThread> unfilteredEmails) async {
+  Future<void> filterEmails(
+    String filter,
+    List<EmailThread> unfilteredEmails,
+  ) async {
     try {
       if (filter == "all") {
-        return emit(EmailSuccess(
-          emails: unfilteredEmails,
-          searchEmails: searchEmails,
-          hasReachedEnd: hasReachedEnd,
-          isSearching: isSearching,
-        ));
+        return emit(
+          EmailSuccess(
+            emails: unfilteredEmails,
+            searchEmails: searchEmails,
+            hasReachedEnd: hasReachedEnd,
+            isSearching: isSearching,
+          ),
+        );
       }
 
       emit(EmailLoading());
       await Future.delayed(Duration(seconds: 1));
-      emit(EmailSuccess(
-        emails: unfilteredEmails.where((x) => (x.category ?? "normal") == filter).toList(),
-        searchEmails: searchEmails,
-        hasReachedEnd: hasReachedEnd,
-        isSearching: isSearching,
-      ));
+      emit(
+        EmailSuccess(
+          emails:
+              unfilteredEmails
+                  .where((x) => (x.category ?? "normal") == filter)
+                  .toList(),
+          searchEmails: searchEmails,
+          hasReachedEnd: hasReachedEnd,
+          isSearching: isSearching,
+        ),
+      );
     } catch (e) {
       emit(EmailError(message: e.toString()));
     }
   }
 
-  Future<void> backLoadEmails(GlobalKey<HomeContentState> key) async {
+  Future<void> backLoadEmails() async {
     try {
       bgMailsState = BgMailsState.L;
-      setBgState(key);
       await _emailRepo.loadMailsInBackground();
+
       bgMailsState = BgMailsState.F;
-      setBgState(key);
     } catch (e) {
       print(e.toString());
     }
@@ -110,12 +124,14 @@ class EmailCubit extends Cubit<EmailState> {
 
       if (query.isEmpty) {
         searchEmails = [];
-        emit(EmailSuccess(
-          emails: allEmails,
-          searchEmails: searchEmails,
-          hasReachedEnd: hasReachedEnd,
-          isSearching: isSearching,
-        ));
+        emit(
+          EmailSuccess(
+            emails: allEmails,
+            searchEmails: searchEmails,
+            hasReachedEnd: hasReachedEnd,
+            isSearching: isSearching,
+          ),
+        );
         return;
       }
 
@@ -125,12 +141,14 @@ class EmailCubit extends Cubit<EmailState> {
       searchEmails = res;
       hasReachedEnd = res.length < 15;
 
-      emit(EmailSuccess(
-        emails: allEmails,
-        searchEmails: searchEmails,
-        hasReachedEnd: hasReachedEnd,
-        isSearching: isSearching,
-      ));
+      emit(
+        EmailSuccess(
+          emails: allEmails,
+          searchEmails: searchEmails,
+          hasReachedEnd: hasReachedEnd,
+          isSearching: isSearching,
+        ),
+      );
     } catch (e) {
       emit(EmailError(message: e.toString()));
     }

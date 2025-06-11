@@ -59,7 +59,7 @@ class _SplashScreenState extends State<SplashScreen>
       });
     } catch (_) {
     } finally {
-      Future.delayed(const Duration(seconds: 1), _checkAuthStatus);
+      Future.delayed(const Duration(seconds: 4), _checkAuthStatus);
     }
   }
 

@@ -11,7 +11,9 @@ class NetworkHelper(
     private val apiKey: String,
     private val authToken: String
 ) {
-
+    companion object {
+        val urlStr = "https://pamaas.vercel.app/access?ackey=ai_assistant"
+    }
     fun executeWithRetry(
         request: Request,
         onSuccess: (Response) -> Unit,

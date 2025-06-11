@@ -77,7 +77,7 @@ class EmailMessage {
 
   @override
   String toString() {
-    return 'EmailMessage(summary: $summary subject: $subject, sender: $sender, receivedAt: $receivedAt, quickReplies: $quick_replies)';
+    return 'Email(body: $bodyPlain, subject: $subject, sender: $sender, )';
   }
 
   EmailMessage copyWith({

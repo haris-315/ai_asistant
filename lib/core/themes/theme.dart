@@ -1,7 +1,18 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 ThemeData appTheme() {
+  const MethodChannel channel = MethodChannel('init');
+
+  channel.setMethodCallHandler((call) async {
+    if (call.method == "shareStats") {
+      exit(0);
+    }
+  });
+
   return ThemeData(
     primaryColor: const Color(0xFF6200EA),
     scaffoldBackgroundColor: const Color(0xFFF5F7FA),

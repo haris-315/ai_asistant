@@ -1,31 +1,38 @@
 package com.example.svc_mng
 
 import android.speech.tts.Voice
-import com.example.openai.EmailsData
+import com.example.openai.SharedData
+import java.security.MessageDigest
+
+
 
 object ServiceManager {
+
+    fun computeListHash(list: List<String>): String {
+        val sortedList = list.sorted()
+        val joined = sortedList.joinToString(",")
+        val bytes = MessageDigest.getInstance("MD5").digest(joined.toByteArray())
+        return bytes.joinToString("") { "%02x".format(it) }
+    }
+
     var isStandBy: Boolean = true
     var isStoped: Boolean = true
     var isBound: Boolean = false
     var serviceChannelName: String = "com.example.ai_assistant/stt"
-    var resultEventChannel: String = "com.example.ai_assistant/stt_results"
     var recognizedText: String? = ""
     var initializing: Boolean = false
     var ttsVoices: List<Voice> = mutableListOf<Voice>()
     var isWarmingTts: Boolean = false
-    var mailsSyncHash: String = EmailsData.fakeHashCode(EmailsData.emails)
-
     fun toMap(): Map<String, Any?> {
         return mapOf(
             "isStandBy" to isStandBy,
             "isStoped" to isStoped,
             "isBound" to isBound,
-            "mailsSyncHash" to mailsSyncHash,
             "serviceChannelName" to serviceChannelName,
-            "resultEventChannel" to resultEventChannel,
             "recognizedText" to recognizedText,
             "initializing" to initializing,
             "isWarmingTts" to isWarmingTts,
+            "mailsSyncHash" to computeListHash(SharedData.emails),
             "ttsVoices" to ttsVoices.map {
                 mapOf(
                     "name" to it.name,

@@ -11,7 +11,7 @@ import 'package:hive/hive.dart';
 class EmailRepo {
   final Dio dio = Dio();
 
-  Future<Box<EmailMessage>> _openBox() async {
+  static Future<Box<EmailMessage>> _openBox() async {
     if (!Hive.isBoxOpen('emails')) {
       await Hive.openBox<EmailMessage>('emails');
     }
@@ -46,6 +46,28 @@ class EmailRepo {
       }
     } catch (e) {
       throw "An error occurred please try again.";
+    }
+  }
+
+  static Future<List<EmailMessage>> getEmailsReceivedToday() async {
+    try {
+      final box = await _openBox();
+
+      final now = DateTime.now();
+      final todayStart = DateTime(now.year, now.month, now.day);
+      final todayEnd = todayStart.add(const Duration(days: 1));
+
+      final todayEmails =
+          box.values.where((email) {
+            final received = email.receivedAt;
+            return received != null &&
+                received.isAfter(todayStart) &&
+                received.isBefore(todayEnd);
+          }).toList();
+      print(todayEmails);
+      return todayEmails;
+    } catch (e) {
+      throw "Failed to fetch today's emails: $e";
     }
   }
 

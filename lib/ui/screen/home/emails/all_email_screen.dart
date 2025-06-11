@@ -163,8 +163,8 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                       setState(() {
                         _isRefreshing = true;
                       });
+                      searchController.clear();
                     }
-                    searchController.clear();
                     await authcontroller.syncMailboxbulk();
                     await context.read<EmailCubit>().getEmails();
 

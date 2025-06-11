@@ -1,6 +1,5 @@
 package com.example.openai
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.location.Geocoder
 import android.net.Uri
@@ -12,7 +11,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import okhttp3.Request
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.Headers.Companion.toHeaders
+import com.example.openai.DatabaseHelper
 import java.util.Locale
 
 class FunctionDefinitionProvider(private val client: OpenAIClient) {
@@ -24,9 +23,44 @@ class FunctionDefinitionProvider(private val client: OpenAIClient) {
         fun execute(args: JSONObject): JSONObject
     }
 
+    val dbHelper: DatabaseHelper = DatabaseHelper(client.context)
+
     private val functionDefinitions = listOf(
 
+        object : FunctionDefinition {
+            override val name = "get_email_report_by_day"
+            override val description = "Retrieve the email report summary for a specified day from the database."
+            override val parameters = JSONObject().apply {
+                put("type", "object")
+                put("properties", JSONObject().apply {
+                    put("day", JSONObject().apply {
+                        put("type", "string")
+                        put("description", "The date to retrieve the email report for, in YYYY-MM-DD format")
+                    })
+                })
+                put("required", JSONArray().apply { put("day") })
+            }
+            override fun execute(args: JSONObject): JSONObject {
+                val result = JSONObject()
+                try {
+                    val day = args.getString("day")
+                    val response = dbHelper.getEmailReportByDay(day)
+                    if (response == null) {
 
+
+
+                        result.put("Error","There was and error while looking for the emails report.")
+                        return result
+                    }
+
+                    result.put("Success", "Report of emails recived on that day: $response")
+                    return result
+                } catch (e: Exception) {
+                    Log.e("OpenAIClient", "Error processing get_email_report_by_day: ${e.message}")
+                    result.put("error", "Error processing get_email_report_by_day: ${e.message}")
+                    return result
+                }
+            }},
 
         object : FunctionDefinition {
             override val name = "get_weather"

@@ -14,6 +14,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.example.openai.OpenAIClient
 import com.example.openai.SharedData
+import com.example.openai.getEmailReport
 import com.example.svc_mng.ServiceManager
 import com.example.tts_helper.TextToSpeechHelper
 import java.lang.ref.WeakReference
@@ -130,6 +131,24 @@ class SpeechRecognizerClient private constructor(context: Context) {
 
     @SuppressLint("MissingPermission")
     fun initialize(onInitialized: (TextToSpeechHelper?) -> Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                getEmailReport(
+                    apiKey = SharedData.openAiApiKey,
+                    emails = SharedData.emails
+                ) { report ->
+                    runBlocking(Dispatchers.IO) {
+                        openAiClient?.dbHelper?.saveEmailReport(
+                            summary = report,
+                            hash = ServiceManager.computeListHash(SharedData.emails)
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("SpeechRecognizerClient", "Failed to get email report: ${e.message}")
+            }
+        }
+
         ServiceManager.initializing = true
         context
                 ?: run {
@@ -254,6 +273,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
         stopAudioStreaming()
         webSocket?.close(1000, "Shutdown")
         webSocket = null
+        SharedData.emails = mutableListOf()
         ttsHelper?.shutdown()
         hwDetector?.release()
         synchronized(audioLock) {
@@ -744,7 +764,6 @@ class SpeechRecognizerClient private constructor(context: Context) {
                         Log.i("SpeechRecognizerClient", "Meeting summary: $summary")
                         context?.let { ctx ->
                             openAiClient?.dbHelper?.insertOrUpdateSummary(
-                                    //                                    context = ctx,
                                     id = UUID.randomUUID().toString(),
                                     title = title,
                                     startTime =

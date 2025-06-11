@@ -14,14 +14,7 @@ class NativeBridge {
   static const MethodChannel _methodChannel = MethodChannel(
     'com.example.ai_assistant/stt',
   );
-  static const EventChannel _eventChannel = EventChannel(
-    'com.example.ai_assistant/stt_results',
-  );
 
-  // Stream to listen for speech recognition results
-  static Stream<String>? _speechStream;
-
-  /// Starts the Android STT recognizer
   static Future<bool> startListening() async {
     try {
       String authToken = await SettingsService.getToken() ?? "No Token";
@@ -33,6 +26,18 @@ class NativeBridge {
       });
       return result;
     } on PlatformException catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> dumpMails(List<String> mails) async {
+    try {
+      final bool result = await _methodChannel.invokeMethod('dumpMails', {
+        "mails": mails,
+      });
+      return result;
+    } catch (e) {
+      print("There was an error while sending emails ${e.toString()}");
       return false;
     }
   }
@@ -105,7 +110,9 @@ class NativeBridge {
         "aaikey": aAIkey,
       });
     } catch (e) {
-      print("ErrorHint: $e");
+      if (kDebugMode) {
+        print("ErrorHint: $e");
+      }
       showToast(message: "API Error!");
     }
   }
@@ -137,13 +144,4 @@ class NativeBridge {
   }
 
   /// Returns a stream of speech recognition results
-  static Stream<String> getSpeechResults() {
-    _speechStream ??= _eventChannel
-        .receiveBroadcastStream()
-        .map((event) => event as String)
-        .handleError((error) {
-          throw error;
-        });
-    return _speechStream!;
-  }
 }

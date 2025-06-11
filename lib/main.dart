@@ -1,5 +1,6 @@
 // ignore_for_file: unused_local_variable
 
+
 import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/api_keys.dart';
 import 'package:ai_asistant/core/services/native_bridge.dart';
@@ -14,10 +15,8 @@ import 'package:ai_asistant/state_mgmt/sessions/cubit/sessions_cubit.dart';
 import 'package:ai_asistant/ui/screen/frontline/quick_guide.dart';
 import 'package:ai_asistant/ui/screen/frontline/splash_screen.dart';
 import 'package:ai_asistant/ui/screen/home/dashboard.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
@@ -30,16 +29,15 @@ void main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(HiveEmailAdapter());
   Get.put(TaskController());
-  if (!kReleaseMode) {
-    await dotenv.load();
-  }
+
   await SettingsService.storeSetting(
     AppConstants.appStateKey,
     AppConstants.appStateInitializing,
   );
+      
 
-  // for future development, create a file named api_key.dart.
-  //define the key constants and remember to add it to .gitignore
+  // for future development, create a file named api_keys.dart.
+  // define the key constants and remember to add it to .gitignore
   await NativeBridge.setKeys(oAIKey: OPEN_AI_API, aAIkey: ASSEMBLY_KEY);
   // await SettingsService.customSetting(
   //   (fn) => fn.remove(AppConstants.firstCheckKey),
@@ -47,10 +45,10 @@ void main() async {
   bool frstStart = await SettingsService.customSetting<bool>(
     (prefs) => prefs.getBool(AppConstants.firstCheckKey) ?? true,
   );
-  await SettingsService.storeSetting(
-    "access_token",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoazMxNS5pbkBvdXRsb29rLmNvbSJ9.J5UFE8c37RjqtVdrHyBURAjTEKZOIcoJJjrs8xjZvxk",
-  );
+  // await SettingsService.storeSetting(
+  //   "access_token",
+  //   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoazMxNS5pbkBvdXRsb29rLmNvbSJ9.J5UFE8c37RjqtVdrHyBURAjTEKZOIcoJJjrs8xjZvxk",
+  // );
   // await SettingsService.removeSetting("access_token");
 
   // if (res) {
@@ -87,11 +85,10 @@ void main() async {
 class AIA extends StatelessWidget {
   final bool isFirstStart;
   const AIA({super.key, required this.isFirstStart});
-
   @override
   Widget build(BuildContext context) {
     precacheImage(AssetImage("assets/splash_loading.webp"), context);
-
+    context.read<EmailCubit>().backLoadEmails();
     return ResponsiveSizer(
       builder: (context, orientation, screenType) {
         return GetMaterialApp(

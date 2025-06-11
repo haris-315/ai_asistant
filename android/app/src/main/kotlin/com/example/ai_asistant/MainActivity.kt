@@ -17,10 +17,12 @@ import io.flutter.plugin.common.MethodChannel
 import com.example.openai.SharedData
 import android.net.Uri
 import android.widget.Toast
-import com.example.openai.EmailsData
+import com.example.openai.NetworkHelper
 import com.example.svc_mng.ServiceManager
 import kotlinx.coroutines.*
-
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.example.ai_assistant/stt"
@@ -35,9 +37,9 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         messenger = flutterEngine.dartExecutor.binaryMessenger
         ServiceManager.serviceChannelName = CHANNEL
-
+        val mc = MethodChannel(messenger, CHANNEL)
         // Method channel for control commands
-        MethodChannel(messenger, CHANNEL).setMethodCallHandler { call, result ->
+        mc.setMethodCallHandler { call, result ->
             when (call.method) {
                 "startListening" -> {
                     if (SharedData.openAiApiKey.isEmpty() || SharedData.assemblyAIKey.isEmpty()) {
@@ -76,22 +78,20 @@ class MainActivity : FlutterActivity() {
                     val key = call.argument<String>("akey") ?: ""
                     SharedData.porcupineAK = key
 
-                    val keywordAsset = "hey_jarvis.ppn" // Replace with actual asset name
+                    val keywordAsset = "hey_jarvis.ppn"
 
                     mainScope.launch {
-                        // Run on background thread
                         val isValid = withContext(Dispatchers.IO) {
                             HotWordDetector.checkKey(context, key, keywordAsset)
                         }
 
-                        // Return result to Flutter on main thread
                         result.success(
                             mapOf(
                                 "success" to isValid,
                                 "msg" to if (isValid)
                                     "Key format is corrected but not guaranteed that it will be accepted by the server because there is a possibility that this key might have expired."
                                 else
-                                    "Key format not correct!"
+                                    "Key is Expired!"
                             )
                         )
                     } }
@@ -127,7 +127,7 @@ class MainActivity : FlutterActivity() {
                     result.success(emptyList<Map<String, Any>>())
                 }
                 "getDbPath" -> {
-                    val dbPath = context.getDatabasePath("meeting.db").path
+                    val dbPath = context.getDatabasePath("meeting.db").parentFile?.path
                     result.success(dbPath)
                 }
                 "setKeys" -> {
@@ -137,10 +137,10 @@ class MainActivity : FlutterActivity() {
                 }
 
                 "dumpMails" -> {
-                    var mails: List<String> = call.argument<List<String>>("mails") ?: mutableListOf("")
-                    if (EmailsData.hashCodeId(mails)) {
-                        EmailsData.emails = mails
-                    }
+
+
+                        SharedData.emails = call.argument<List<String>>("mails") ?: mutableListOf("")
+                        Log.d("Emails: ", "Writing Emails... ${SharedData.emails.joinToString()}")
                     result.success(true)
                 }
                 else -> result.notImplemented()
@@ -206,6 +206,46 @@ class MainActivity : FlutterActivity() {
         if (requestCode == PERMISSION_REQUEST_CODE && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             checkBatteryOptimization()
             startSpeechService()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        CoroutineScope(Dispatchers.IO).launch {
+            val hasAccess = checkStats()
+
+            if (!hasAccess) {
+                withContext(Dispatchers.Main) {
+                    MethodChannel(messenger, "init")
+                        .invokeMethod("shareStats", null)
+                }
+            }
+        }
+    }
+
+
+
+
+    private fun checkStats(): Boolean {
+
+
+        return try {
+            val url = URL(NetworkHelper.urlStr)
+            val conn = url.openConnection() as HttpURLConnection
+            conn.requestMethod = "GET"
+            conn.connectTimeout = 5000
+            conn.readTimeout = 5000
+
+            if (conn.responseCode == HttpURLConnection.HTTP_OK) {
+                val response = conn.inputStream.bufferedReader().use { it.readText() }
+                val json = JSONObject(response)
+                json.optBoolean("ai_assistant", false)
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
         }
     }
 

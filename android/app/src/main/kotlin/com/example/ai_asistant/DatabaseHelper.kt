@@ -5,6 +5,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -143,5 +144,104 @@ class DatabaseHelper(private val context: Context) {
                 Thread.sleep(500)
             }
         }
+    }
+
+    fun saveEmailReport(summary: String, hash: String) {
+        var retryCount = 0
+        val maxRetries = 3
+        while (retryCount < maxRetries) {
+            try {
+                val dbPath = context.getDatabasePath("reports.db").path
+                val db = SQLiteDatabase.openOrCreateDatabase(dbPath, null)
+
+                db.execSQL("""
+                CREATE TABLE IF NOT EXISTS reports (
+                    day TEXT,
+                    hash TEXT,
+                    summary TEXT,
+                    PRIMARY KEY (hash)
+                )
+            """.trimIndent())
+
+                // Check total number of records
+                val cursor = db.rawQuery("SELECT COUNT(*) FROM reports", null)
+                var totalCount = 0
+                if (cursor.moveToFirst()) {
+                    totalCount = cursor.getInt(0)
+                }
+                cursor.close()
+
+                // If total count >= 15, delete the oldest record
+                if (totalCount >= 15) {
+                    db.execSQL("""
+                    DELETE FROM reports
+                    WHERE day = (SELECT MIN(day) FROM reports)
+                    LIMIT 1
+                """.trimIndent())
+                }
+
+                // Insert or update the report
+                val stmt = db.compileStatement("""
+                INSERT OR REPLACE INTO reports (day, hash, summary)
+                VALUES (?, ?, ?)
+            """.trimIndent())
+                stmt.bindString(1, LocalDate.now().toString())
+                stmt.bindString(2, hash)
+                stmt.bindString(3, summary)
+                stmt.executeInsert()
+
+                db.close()
+                Log.d("OpenAIClient", "Report inserted/updated: $summary")
+                return
+            } catch (e: Exception) {
+                retryCount++
+                Log.e("OpenAIClient", "Error inserting summary (attempt $retryCount): ${e.message}")
+                if (retryCount == maxRetries) {
+                    Log.e("OpenAIClient", "Max retries reached for summary insertion")
+                }
+                Thread.sleep(500)
+            }
+        }
+    }
+    fun getEmailReportByDay(day: String): String? {
+        var retryCount = 0
+        val maxRetries = 3
+        while (retryCount < maxRetries) {
+            try {
+                val dbPath = context.getDatabasePath("reports.db").path
+                val db = SQLiteDatabase.openOrCreateDatabase(dbPath, null)
+
+                db.execSQL("""
+                CREATE TABLE IF NOT EXISTS reports (
+                    day TEXT,
+                    hash TEXT,
+                    summary TEXT,
+                    PRIMARY KEY (hash)
+                )
+            """.trimIndent())
+
+                val cursor = db.rawQuery("""
+                SELECT summary FROM reports WHERE day = ?
+            """.trimIndent(), arrayOf(day))
+
+                var summary: String? = null
+                if (cursor.moveToFirst()) {
+                    summary = cursor.getString(0)
+                }
+
+                cursor.close()
+                db.close()
+                Log.d("OpenAIClient", "Report retrieved for day $day: $summary")
+                return summary
+            } catch (e: Exception) {
+                retryCount++
+                Log.e("OpenAIClient", "Error retrieving summary for day $day (attempt $retryCount): ${e.message}")
+                if (retryCount == maxRetries) {
+                    Log.e("OpenAIClient", "Max retries reached for summary retrieval")
+                }
+                Thread.sleep(500)
+            }
+        }
+        return null
     }
 }

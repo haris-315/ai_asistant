@@ -10,6 +10,10 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.time.LocalDateTime
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
+import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
@@ -33,7 +37,12 @@ class OpenAIClient(
     val dbHelper = DatabaseHelper(context)
     private val networkHelper = NetworkHelper(client, apiKey, authToken)
 
-
+    private fun getFormattedDateTime(): String {
+        val zdt = ZonedDateTime.now()
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z")
+        return zdt.format(formatter) + "and the day is ${zdt.dayOfWeek.getDisplayName(TextStyle.FULL,
+            Locale.getDefault())}"
+    }
 
     private fun buildSystemPrompt(): String {
         val userData = dbHelper.fetchUserData()
@@ -48,7 +57,7 @@ class OpenAIClient(
         
         When asked about system information, provide the following details when relevant:
         - Battery percentage: $batteryPercentage%
-        - Current time: ${LocalDateTime.now()}
+        - Current time: ${getFormattedDateTime()} (Strictly use this date and time for every need.)
         - Device model: $deviceModel
         - Available storage: $availableStorage
 
@@ -62,7 +71,8 @@ class OpenAIClient(
         - Collecting user data: Use `collect_user_data` when the prompt contains relevant personal information (e.g., name, preferences) that could improve future responses, but only if it’s useful and not repetitive. Limit to 24 data points.
         - Calling a contact: Use `call_contact`. If multiple contacts match the name, the function returns a list of contacts. Ask the user to choose one by name and call `call_contact` again with the contact_id.
         - Fetching weather: Use `get_weather` with the location name. Return the temperature in Celsius and the weather condition in the response text.
-
+        - Answering any question from emails of the specific day: Use 'get_email_report_by_day' with the date in the format YYYY-MM-DD. Answer the question that use asked from the report.
+        
         Rules:
         - Return short, friendly text responses for text-to-speech.
         - Use function calls for actions; do not embed details in text.
