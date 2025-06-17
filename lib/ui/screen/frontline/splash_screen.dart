@@ -71,19 +71,16 @@ class _SplashScreenState extends State<SplashScreen>
         setState(() {
           _gifLoaded = true;
         });
-
-        // Initialize animations
-
-        // Start animations
         _animationController.forward();
-
-        // Start splash countdown slightly longer to ensure animation is seen
       },
     );
   }
 
   Future<void> _checkAuthStatus() async {
     final token = await SettingsService.getToken();
+    if (token != null && token.isNotEmpty) {
+      await ac.loadUserInfo();
+    }
     if (!mounted) return;
     if (status == NetworkState.available) {
       Navigator.pushReplacement(

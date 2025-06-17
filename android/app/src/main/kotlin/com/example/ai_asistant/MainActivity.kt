@@ -16,8 +16,13 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 import com.example.openai.SharedData
 import android.net.Uri
+import android.os.Bundle
+import android.os.PersistableBundle
+import android.provider.ContactsContract.Data
 import android.widget.Toast
+import com.example.openai.DatabaseHelper
 import com.example.openai.NetworkHelper
+import com.example.openai.getEmailReport
 import com.example.svc_mng.ServiceManager
 import kotlinx.coroutines.*
 import org.json.JSONObject
@@ -140,7 +145,26 @@ class MainActivity : FlutterActivity() {
 
 
                         SharedData.emails = call.argument<List<String>>("mails") ?: mutableListOf("")
-                        Log.d("Emails: ", "Writing Emails... ${SharedData.emails.joinToString()}")
+                    Log.d("Emails: ", "Writing Emails... ${SharedData.emails.joinToString()}")
+                    if (SharedData.emails.isNotEmpty()) {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            try {
+                                getEmailReport(
+                                    apiKey = SharedData.openAiApiKey,
+                                    emails = SharedData.emails
+                                ) { report ->
+                                    runBlocking(Dispatchers.IO) {
+                                        DatabaseHelper(this@MainActivity).saveEmailReport(
+                                            summaryList = report,
+                                            hash = ServiceManager.computeListHash(SharedData.emails)
+                                        )
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e("SpeechRecognizerClient", "Failed to get email report: ${e.message}")
+                            }
+                        }
+                    }
                     result.success(true)
                 }
                 else -> result.notImplemented()
@@ -208,6 +232,8 @@ class MainActivity : FlutterActivity() {
             startSpeechService()
         }
     }
+
+
 
     override fun onResume() {
         super.onResume()

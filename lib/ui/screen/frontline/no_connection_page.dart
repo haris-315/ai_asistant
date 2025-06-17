@@ -112,7 +112,9 @@ class _NoConnectionPageState extends State<NoConnectionPage> {
           SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.all(28.0),
-            child: TextAnimater(text: "Hello This is Haris"),
+            child: TextAnimater(
+              text: "It seems that there is a network issue.",
+            ),
           ),
         ],
       ),
@@ -130,37 +132,11 @@ class TextAnimater extends StatefulWidget {
 
 class _TextAnimaterState extends State<TextAnimater> {
   late String text;
-  String partFirst = "";
-  String partHigh = "";
-  String partLast = "";
+
   @override
   void initState() {
     super.initState();
     text = widget.text;
-    animteText();
-  }
-
-  void animteText() async {
-    int lastAnimIndex = 0;
-    while (true) {
-      List<String> slicedText = text.split(" ");
-      print(text);
-      print(slicedText);
-      setState(() {
-        partHigh = slicedText[lastAnimIndex].toUpperCase();
-        partFirst = slicedText.getRange(0, lastAnimIndex - 1).join(" ");
-        partLast = slicedText
-            .getRange(lastAnimIndex + 1, slicedText.length)
-            .join(" ");
-      });
-      if (lastAnimIndex >= slicedText.length) {
-        lastAnimIndex = 0;
-      } else {
-        lastAnimIndex++;
-      }
-
-      await Future.delayed(Duration(milliseconds: 1500));
-    }
   }
 
   @override
@@ -168,27 +144,8 @@ class _TextAnimaterState extends State<TextAnimater> {
     return RichText(
       textAlign: TextAlign.center,
       text: TextSpan(
-        text: partFirst,
-        children: [
-          TextSpan(
-            text: " $partHigh",
-            style: TextStyle(
-              color: Colors.blue,
-              fontSize: 18,
-              decoration: TextDecoration.none,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          TextSpan(
-            text: " $partLast",
-            style: TextStyle(
-              color: Colors.blueGrey,
-              fontSize: 18,
-              decoration: TextDecoration.none,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-        ],
+        text: text,
+
         style: TextStyle(
           color: Colors.blueGrey,
           fontSize: 18,

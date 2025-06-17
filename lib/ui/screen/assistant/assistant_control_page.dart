@@ -51,6 +51,7 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
         setState(() => assistantServiceModel = newData);
       }
       var mails = await stringifiedEmails();
+      if (mails.isEmpty) return;
       String hash = computeListHash(mails);
       if (hash != newData.mailsSyncHash) {
         await NativeBridge.dumpMails(mails);

@@ -73,8 +73,10 @@ import 'dart:convert';
 
 import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:ai_asistant/core/shared/constants.dart';
+import 'package:ai_asistant/state_mgmt/email/cubit/email_cubit.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get/get.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -138,11 +140,7 @@ class _OutlookScreenState extends State<OutlookScreen> {
               },
             ),
           )
-          ..loadRequest(
-            Uri.parse(
-              "${AppConstants.baseUrl}auth/outlook/login",
-            ),
-          );
+          ..loadRequest(Uri.parse("${AppConstants.baseUrl}auth/outlook/login"));
   }
 
   void checkForToken(String url) async {
@@ -174,6 +172,9 @@ class _OutlookScreenState extends State<OutlookScreen> {
           if (kDebugMode) {
             print("Stored Token: $extractedToken");
           }
+          try {
+            Get.context?.read<EmailCubit>().backLoadEmails();
+          } catch (_) {}
           Get.offAll(() => HomeScreen());
           if (kDebugMode) {
             print("➡ Redirecting to HomeScreen...");

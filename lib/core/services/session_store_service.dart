@@ -13,6 +13,8 @@ class SecureStorage {
   }
 
   static Future<void> deleteToken() async {
+    DateTime(1900).millisecondsSinceEpoch;
+
     await _storage.delete(key: _key);
   }
 }

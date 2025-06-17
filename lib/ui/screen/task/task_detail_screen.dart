@@ -31,7 +31,6 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     final colorScheme = theme.colorScheme;
     final createdAt = task.createdAt;
     final formattedDate = DateFormat('MMMM d, y • h:mm a').format(createdAt);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Task Details'),
@@ -185,7 +184,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                       label: 'Due Date',
                       value: DateFormat(
                         'MMMM d, y • h:mm a',
-                      ).format(task.due_date!),
+                      ).format(task.due_date!.toLocal()),
                     ),
                   ],
                   if (task.reminder_at != null) ...[

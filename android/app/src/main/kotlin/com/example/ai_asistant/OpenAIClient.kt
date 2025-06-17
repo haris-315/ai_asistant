@@ -10,6 +10,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -38,11 +39,12 @@ class OpenAIClient(
     private val networkHelper = NetworkHelper(client, apiKey, authToken)
 
     private fun getFormattedDateTime(): String {
-        val zdt = ZonedDateTime.now()
-        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z")
-        return zdt.format(formatter) + "and the day is ${zdt.dayOfWeek.getDisplayName(TextStyle.FULL,
-            Locale.getDefault())}"
+        val zdt = ZonedDateTime.now(ZoneOffset.UTC)
+        val isoDateTime = zdt.format(DateTimeFormatter.ISO_INSTANT) // Always ends in 'Z'
+        val dayOfWeek = zdt.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
+        return "$isoDateTime UTC and the day is $dayOfWeek"
     }
+
 
     private fun buildSystemPrompt(): String {
         val userData = dbHelper.fetchUserData()
@@ -57,7 +59,7 @@ class OpenAIClient(
         
         When asked about system information, provide the following details when relevant:
         - Battery percentage: $batteryPercentage%
-        - Current time: ${getFormattedDateTime()} (Strictly use this date and time for every need.)
+        - Current time and timezone: ${getFormattedDateTime()} (Strictly use these for every need.)
         - Device model: $deviceModel
         - Available storage: $availableStorage
 
@@ -90,10 +92,11 @@ class OpenAIClient(
         - "What's the battery level?": "The battery is at $batteryPercentage%."
         - "What's my device model?": "Your device is a $deviceModel."
         - "How much storage is available?": "You have $availableStorage of storage available."
+        - "What is my emails report": call get_email_report_by_day
         - "Create a task to buy milk": "Task created to buy milk." + call `create_task`.
         - "Stop listening": "Entering standby mode." + call `standby`.
         - "My name is John": "Thanks for sharing, John!" + call `collect_user_data` with "Name is John".
-        - "Call John": If multiple Johns, respond: "I found multiple contacts named John: John Smith, John Doe. Which one would you like to call?" + call `call_contact` with contact_id after user response.
+        - "Call John": If multiple Johns, respond: "I found multiple contacts named John: John Smith, John Doe. Which one would you like to call?" + call `call_contact` with contact_id after user response. Try to partially match the name if it does not matches exactly.
         - "What's the weather in Oslo?": "The weather in Oslo is 15°C with partly cloudy skies." + call `get_weather` with location "Oslo".
         """.trimIndent()
     }
@@ -312,7 +315,7 @@ class OpenAIClient(
         Respond in JSON format:
         {
           "title": "Brief meeting title",
-          "summary": "Summary paragraph (short)",
+          "summary": "Summary paragraph (extremly short max 6 lines)",
           "keypoints": ["Key point 1", "Key point 2", ...]
         }
         """.trimIndent()
@@ -320,13 +323,13 @@ class OpenAIClient(
         fun summarizeChunk(index: Int) {
             if (index >= chunks.size) {
                 val mergePrompt = """
-                Combine these partial summaries into one coherent meeting summary remember to keep it as short as possible like of max 16 lines, consolidate the keypoints, and generate a suitable title.
+                Combine these partial summaries into one coherent meeting summary remember to keep it as short as possible max 16 lines, consolidate the keypoints, and generate a suitable title.
 
                 Respond in JSON format:
                 {
                   "title": "Final title",
-                  "summary": "Merged summary paragraph",
-                  "keypoints": ["Consolidated key point 1", "Consolidated key point 2", ...]
+                  "summary": "Merged summary paragraph that is too easy to conclude the result of the meeting from. Must be as short as possible like max 16 lines.",
+                  "keypoints": ["Consolidated key point 1", "Consolidated key point 2", ...] (max 16)
                 }
 
                 Partial Summaries:
@@ -363,15 +366,15 @@ class OpenAIClient(
                             val keypointsArray = json.getJSONArray("keypoints")
                             val keypoints = (0 until keypointsArray.length()).map { keypointsArray.getString(it) }
 
-//                            dbHelper.insertOrUpdateSummary(
-//                                id = UUID.randomUUID().toString(),
-//                                title = finalTitle,
-//                                startTime = lastMeetingTime,
-//                                endTime = LocalDateTime.now(),
-//                                actualTranscript = transcript,
-//                                summary = finalSummary,
-//                                keypoints = keypoints
-//                            )
+                            dbHelper.insertOrUpdateSummary(
+                                id = UUID.randomUUID().toString(),
+                                title = finalTitle,
+                                startTime = lastMeetingTime,
+                                endTime = LocalDateTime.now(),
+                                actualTranscript = transcript,
+                                summary = finalSummary,
+                                keypoints = keypoints
+                            )
                             onDone(finalTitle, finalSummary, keypoints)
                         } catch (e: Exception) {
                             Log.e("OpenAIClient", "Error parsing final summary: ${e.message}")

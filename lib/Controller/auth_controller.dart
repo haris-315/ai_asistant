@@ -12,6 +12,7 @@ import 'package:ai_asistant/data/models/projects/label_model.dart';
 import 'package:ai_asistant/data/models/projects/project_model.dart';
 import 'package:ai_asistant/data/models/projects/section_model.dart';
 import 'package:ai_asistant/data/models/projects/task_model.dart';
+import 'package:ai_asistant/data/models/user/user.dart';
 import 'package:ai_asistant/helper/Api_handler_Z/api_services.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
@@ -22,7 +23,7 @@ import '../data/models/emails/thread_detail.dart';
 import '../data/models/threadmodel.dart';
 import '../ui/widget/snackbar.dart';
 
-// Nest And Bad Code By Previous Developer Who Left The Project After Starting.
+// Nested And Bad Code By Previous Developer Who Left The Project After Starting.
 // Also The Wrong Name "ai_asistant" Which Should Be "ai_assistant" was given by him too.
 class AuthController extends GetxController {
   final ApiService apiService = ApiService();
@@ -35,6 +36,45 @@ class AuthController extends GetxController {
   RxList<TaskModel> task = <TaskModel>[].obs;
   RxList<TaskModel> trashedTasks = <TaskModel>[].obs;
   RxList<SectionModel> sections = <SectionModel>[].obs;
+  Rx<User> userInfo =
+      User(name: "Unknown", email: "none", provider: "unknown").obs;
+
+  Future<Map<String, dynamic>?> loadUserInfo() async {
+    try {
+      String? token = await SettingsService.getToken();
+      if (token!.isEmpty) {
+        showCustomSnackbar(
+          title: "Authentication Error",
+          message: "User is not logged in.",
+          backgroundColor: Colors.red,
+        );
+        return null;
+      }
+      final res = await apiService.apiRequest(
+        "${AppConstants.baseUrl}auth/me/",
+        "GET",
+        token: token,
+      );
+      if (res == null) {
+        showCustomSnackbar(
+          title: "Authentication Error",
+          message: "User is not logged in.",
+          backgroundColor: Colors.red,
+        );
+        return null;
+      }
+      userInfo.value = User.fromMap(res);
+    } catch (e) {
+      
+      showCustomSnackbar(
+        title: "Authentication Error",
+        message: "There was an error while validating user info.",
+        backgroundColor: Colors.red,
+      );
+      return null;
+    }
+    return null;
+  }
 
   Future<List<SectionModel>?> loadProjectSectionsid(int id) async {
     try {

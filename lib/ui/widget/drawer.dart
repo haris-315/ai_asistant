@@ -1,12 +1,13 @@
 // ignore_for_file: library_private_types_in_public_api
 
+import 'package:ai_asistant/Controller/auth_controller.dart';
+import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:ai_asistant/core/shared/functions/show_snackbar.dart';
 import 'package:ai_asistant/state_mgmt/chats/cubit/chat_cubit.dart';
 import 'package:ai_asistant/state_mgmt/sessions/cubit/sessions_cubit.dart';
 import 'package:ai_asistant/ui/screen/assistant/assistant_control_page.dart';
 import 'package:ai_asistant/ui/screen/assistant/reports.dart';
 import 'package:ai_asistant/ui/screen/home/chat_screen.dart';
-import 'package:ai_asistant/ui/screen/user/user_info_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -14,7 +15,6 @@ import 'package:get/get.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
-import '../../core/services/session_store_service.dart';
 import '../screen/auth/login_screen.dart';
 
 class SideMenu extends StatefulWidget {
@@ -30,7 +30,7 @@ class _SideMenuState extends State<SideMenu> {
   bool task = false;
   bool meeting = false;
   bool aichat = true;
-
+  AuthController authController = Get.find<AuthController>();
   @override
   void initState() {
     super.initState();
@@ -68,49 +68,77 @@ class _SideMenuState extends State<SideMenu> {
       },
       builder: (context, state) {
         return Drawer(
+          backgroundColor: Colors.white,
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 10),
-            color: Colors.white,
+            color: Colors.transparent,
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
                 SizedBox(
-                  height: 10.h,
-                  child: DrawerHeader(
-                    decoration: BoxDecoration(color: Colors.white),
-                    margin: EdgeInsets.zero,
-                    padding: EdgeInsets.zero,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Image.asset('assets/launchericon.png', height: 40),
-                        SizedBox(width: 10),
-                        Text(
-                          "AI Assistant",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
+                  height: 20.h,
+                  child: Obx(
+                    () => DrawerHeader(
+                      decoration: BoxDecoration(color: Colors.white),
+                      margin: EdgeInsets.zero,
+                      padding: EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: Colors
+                                .primaries[(authController
+                                        .userInfo
+                                        .value
+                                        .name
+                                        .hashCode) %
+                                    Colors.primaries.length]
+                                .withValues(alpha: 0.7),
+                            radius: 28,
+                            child: Text(
+                              authController.userInfo.value.name[0]
+                                  .toUpperCase(),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 24,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                          SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  authController.userInfo.value.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  authController.userInfo.value.email,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-                menuItem(
-                  title: "Profile",
-                  icon: Icons.person,
-                  isSelected: false,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      PageTransition(
-                        type: PageTransitionType.topToBottom,
-                        child: ProfilePage(),
-                      ),
-                    );
-                  },
-                ),
+
                 menuItem(
                   title: "Reports",
                   icon: Icons.report_sharp,
@@ -263,9 +291,12 @@ class _SideMenuState extends State<SideMenu> {
                   textColor: Colors.red,
                   iconColor: Colors.red,
                   onTap: () async {
-                    await SecureStorage.deleteToken();
+                    await SettingsService.removeSetting("access_token");
                     Get.offAll(() => LoginScreen());
                   },
+                ),
+                SizedBox(
+                  child: Center(child: Image.asset("assets/launchericon.png")),
                 ),
               ],
             ),

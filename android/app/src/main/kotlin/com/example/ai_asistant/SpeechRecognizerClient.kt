@@ -14,12 +14,10 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.example.openai.OpenAIClient
 import com.example.openai.SharedData
-import com.example.openai.getEmailReport
 import com.example.svc_mng.ServiceManager
 import com.example.tts_helper.TextToSpeechHelper
 import java.lang.ref.WeakReference
 import java.time.LocalDateTime
-import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.*
 import okhttp3.*
@@ -79,15 +77,23 @@ class SpeechRecognizerClient private constructor(context: Context) {
     private val handler = Handler(Looper.getMainLooper())
     private val audioLock = Any()
     private val wakeResponses: List<String> =
-            listOf(
-                    "Hello, what can I help with.",
-                    "What can I do for you?",
-                    "I am listening, What do you need?",
-                    "Hey there!, What is it?",
-                    "At your service.",
-                    "What can I help you with.",
-                    "What do you want me to do?"
-            )
+        listOf(
+            "Hello, how may I assist you today?",
+            "What can I help you with?",
+            "I'm here to assist—how can I support you?",
+            "Please let me know how I can be of service.",
+            "How may I be of assistance?",
+            "At your service. What do you need?",
+            "I’m ready to help. What would you like to do?",
+            "What can I do for you today?",
+            "How can I support you at this moment?",
+            "Is there anything specific you'd like assistance with?",
+            "I'm available—how may I help?",
+            "Feel free to tell me what you need help with.",
+            "How can I make your task easier today?",
+            "Let me know how I can assist you effectively."
+        )
+
 
     private var hwDetector: HotWordDetector? = null
     private var isProcessingLongResponse = false
@@ -111,7 +117,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
         }
     }
 
-    private val openAiClient by lazy {
+    val openAiClient by lazy {
         context?.let {
             OpenAIClient(
                     context = it,
@@ -131,23 +137,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
 
     @SuppressLint("MissingPermission")
     fun initialize(onInitialized: (TextToSpeechHelper?) -> Unit) {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                getEmailReport(
-                    apiKey = SharedData.openAiApiKey,
-                    emails = SharedData.emails
-                ) { report ->
-                    runBlocking(Dispatchers.IO) {
-                        openAiClient?.dbHelper?.saveEmailReport(
-                            summary = report,
-                            hash = ServiceManager.computeListHash(SharedData.emails)
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("SpeechRecognizerClient", "Failed to get email report: ${e.message}")
-            }
-        }
+
 
         ServiceManager.initializing = true
         context
@@ -762,22 +752,22 @@ class SpeechRecognizerClient private constructor(context: Context) {
                 onDone = { title, summary, keypoints ->
                     CoroutineScope(Dispatchers.Main).launch {
                         Log.i("SpeechRecognizerClient", "Meeting summary: $summary")
-                        context?.let { ctx ->
-                            openAiClient?.dbHelper?.insertOrUpdateSummary(
-                                    id = UUID.randomUUID().toString(),
-                                    title = title,
-                                    startTime =
-                                            if (forChat) LocalDateTime.now()
-                                            else lastMeetingStartTime,
-                                    endTime = LocalDateTime.now(),
-                                    actualTranscript =
-                                            if (forChat)
-                                                    "This Summary is generated from the conversation with chat gpt so it has no transcript."
-                                            else transcript,
-                                    summary = summary,
-                                    keypoints = keypoints
-                            )
-                        }
+//                        context?.let { ctx ->
+//                            openAiClient?.dbHelper?.insertOrUpdateSummary(
+//                                    id = UUID.randomUUID().toString(),
+//                                    title = title,
+//                                    startTime =
+//                                            if (forChat) LocalDateTime.now()
+//                                            else lastMeetingStartTime,
+//                                    endTime = LocalDateTime.now(),
+//                                    actualTranscript =
+//                                            if (forChat)
+//                                                    "This Summary is generated from the conversation with chat gpt so it has no transcript."
+//                                            else transcript,
+//                                    summary = summary,
+//                                    keypoints = keypoints
+//                            )
+//                        }
 
                         ttsHelper?.speak("summary completed.")
                         transitionTo(AssistantState.STANDBY)

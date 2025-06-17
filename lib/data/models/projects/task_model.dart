@@ -15,6 +15,7 @@ class TaskModel {
   final DateTime? reminder_at;
   final String? reccurence;
   final int? label_id;
+
   TaskModel({
     required this.content,
     this.description,
@@ -44,7 +45,7 @@ class TaskModel {
     int? label_id,
     DateTime? due_date,
     DateTime? reminder_at,
-    String? reccurence
+    String? reccurence,
   }) {
     return TaskModel(
       content: content ?? this.content,
@@ -59,7 +60,7 @@ class TaskModel {
       label_id: label_id ?? this.label_id,
       reccurence: reccurence ?? this.reccurence,
       reminder_at: reminder_at ?? this.reminder_at,
-      due_date: due_date ?? this.due_date
+      due_date: due_date ?? this.due_date,
     );
   }
 
@@ -67,7 +68,7 @@ class TaskModel {
     return <String, dynamic>{
       'content': content,
       'description': description,
-      'created_at': createdAt.toString(),
+      'created_at': createdAt.toLocal().toString(),
       'project_id': project_id,
       'section_id': section_id,
       'priority': priority,
@@ -75,9 +76,9 @@ class TaskModel {
       'id': id,
       'is_deleted': is_deleted,
       'label_id': label_id,
-      'due_date' : due_date?.toIso8601String(),
-      'reminder_at' : reminder_at?.toIso8601String(),
-      'reccurence' : reccurence
+      'due_date': due_date?.toLocal().toIso8601String(),
+      'reminder_at': reminder_at?.toLocal().toIso8601String(),
+      'reccurence': reccurence,
     };
   }
 
@@ -87,9 +88,9 @@ class TaskModel {
       'priority': priority,
       'is_completed': is_completed,
       'id': id,
-      'due_date' : due_date?.toIso8601String(),
-      'reminder_at' : reminder_at?.toIso8601String(),
-      'reccurence' : reccurence
+      'due_date': due_date?.toLocal().toIso8601String(),
+      'reminder_at': reminder_at?.toLocal().toIso8601String(),
+      'reccurence': reccurence,
     };
   }
 
@@ -98,7 +99,7 @@ class TaskModel {
       content: map['content'] as String,
       description:
           map['description'] != null ? map['description'] as String : null,
-      createdAt: DateTime.parse(map['created_at']),
+      createdAt: DateTime.parse(map['created_at']).toLocal(),
       project_id: map['project_id'] != null ? map['project_id'] as int : null,
       section_id: map['section_id'] != null ? map['section_id'] as int : null,
       priority: map['priority'] != null ? map['priority'] as int : null,
@@ -107,8 +108,14 @@ class TaskModel {
       is_deleted: map['is_deleted'] != null ? map['is_deleted'] as bool : null,
       label_id: map['label_id'] != null ? map['label_id'] as int : null,
       reccurence: map['reccurence'] as String?,
-      reminder_at: map['reminder_at'] != null ? DateTime.parse(map['reminder_at']) : null,
-      due_date: map['due_date'] != null ? DateTime.parse(map['due_date']) : null
+      reminder_at:
+          map['reminder_at'] != null
+              ? DateTime.parse(map['reminder_at']).toLocal()
+              : null,
+      due_date:
+          map['due_date'] != null
+              ? DateTime.parse(map['due_date']).toLocal()
+              : null,
     );
   }
 

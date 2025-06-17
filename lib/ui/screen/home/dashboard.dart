@@ -80,6 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
         AppConstants.appStateInitialized) {
       return;
     }
+    await authcontroller.syncMailboxPeriodically();
     await authcontroller.syncMailboxbulk();
     if (authcontroller.projects.isEmpty) {
       await authcontroller.fetchProject(isInitialFetch: true);

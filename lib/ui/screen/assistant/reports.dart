@@ -12,7 +12,7 @@ class EmailReportsPage extends StatefulWidget {
 }
 
 class _EmailReportsPageState extends State<EmailReportsPage> {
-  List<Map<String, String>> _reports = [];
+  List<Map<String, dynamic>> _reports = [];
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -47,36 +47,17 @@ class _EmailReportsPageState extends State<EmailReportsPage> {
           'Email Reports',
           style: TextStyle(color: Colors.white),
         ),
-        backgroundColor: Colors.black87.withValues(alpha: .8),
+        backgroundColor: Colors.black87.withAlpha(220),
         leading: IconButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-          icon: Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
         ),
       ),
-
       body:
           _isLoading
               ? const Center(child: CircularProgressIndicator())
               : _errorMessage != null
-              ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      _errorMessage!,
-                      style: const TextStyle(color: Colors.red, fontSize: 16),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _loadReports,
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
-              )
+              ? _buildError()
               : _reports.isEmpty
               ? const Center(
                 child: Text(
@@ -84,57 +65,65 @@ class _EmailReportsPageState extends State<EmailReportsPage> {
                   style: TextStyle(fontSize: 18, color: Colors.grey),
                 ),
               )
-              : ListView.builder(
-                padding: const EdgeInsets.all(8.0),
-                itemCount: _reports.length,
-                itemBuilder: (context, index) {
-                  final report = _reports[index];
-                  return Card(
-                    margin: const EdgeInsets.symmetric(
-                      vertical: 4.0,
-                      horizontal: 8.0,
-                    ),
-                    elevation: 2,
-                    child: ListTile(
-                      title: Text(
-                        'Date: ${report['day']}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Text(
-                          report['summary'] ?? 'No summary available',
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                      ),
-                      onTap: () {
-                        // Optional: Add tap functionality to view report details
-                        showDialog(
-                          context: context,
-                          builder:
-                              (context) => AlertDialog(
-                                title: Text('Report for ${report['day']}'),
-                                content: SingleChildScrollView(
-                                  child: Text(
-                                    report['summary'] ?? 'No summary',
-                                  ),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text('Close'),
-                                  ),
-                                ],
-                              ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
+              : _buildReportList(),
+    );
+  }
+
+  Widget _buildError() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            _errorMessage!,
+            style: const TextStyle(color: Colors.red, fontSize: 16),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(onPressed: _loadReports, child: const Text('Retry')),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReportList() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(8.0),
+      itemCount: _reports.length,
+      itemBuilder: (context, index) {
+        final report = _reports[index];
+        final summary = report['summary'] as List<dynamic>?;
+
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+          elevation: 2,
+          child: ExpansionTile(
+            title: Text(
+              'Date: ${report['day']}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            children:
+                summary != null
+                    ? summary
+                        .map<Widget>(
+                          (point) => ListTile(
+                            dense: true,
+                            visualDensity: VisualDensity.compact,
+                            leading: const Text(
+                              "•",
+                              style: TextStyle(fontSize: 20),
+                            ),
+                            title: Text(
+                              point.toString(),
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ),
+                        )
+                        .toList()
+                    : [const ListTile(title: Text("No summary available"))],
+          ),
+        );
+      },
     );
   }
 }

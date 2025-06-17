@@ -131,7 +131,7 @@ class _MeetingListPageState extends State<MeetingListPage> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 12,
               spreadRadius: 2,
               offset: const Offset(0, 4),
@@ -180,7 +180,7 @@ class _MeetingListPageState extends State<MeetingListPage> {
                         decoration: BoxDecoration(
                           color: Theme.of(
                             context,
-                          ).colorScheme.primary.withOpacity(0.15),
+                          ).colorScheme.primary.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -384,6 +384,10 @@ class _MeetingListPageState extends State<MeetingListPage> {
                 end: Alignment.bottomRight,
               ),
             ),
+          ),
+          leading: IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
           ),
         ),
       ),
