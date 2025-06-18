@@ -1,5 +1,6 @@
-import 'package:hive/hive.dart';
+import 'package:ai_asistant/data/models/emails/email_task.dart';
 import 'package:ai_asistant/data/models/emails/thread_detail.dart';
+import 'package:hive/hive.dart';
 
 class HiveEmailAdapter extends TypeAdapter<EmailMessage> {
   @override
@@ -24,6 +25,7 @@ class HiveEmailAdapter extends TypeAdapter<EmailMessage> {
       summary: reader.readString(),
       topic: reader.readString(),
       ai_draft: reader.readString(),
+      extracted_tasks: reader.readList().cast<EmailTask>(),
     );
   }
 
@@ -45,5 +47,6 @@ class HiveEmailAdapter extends TypeAdapter<EmailMessage> {
     writer.writeString(obj.summary ?? '');
     writer.writeString(obj.topic ?? '');
     writer.writeString(obj.ai_draft ?? '');
+    writer.writeList(obj.extracted_tasks ?? []);
   }
 }

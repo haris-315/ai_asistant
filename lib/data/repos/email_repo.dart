@@ -64,7 +64,6 @@ class EmailRepo {
                 received.isAfter(todayStart) &&
                 received.isBefore(todayEnd);
           }).toList();
-      print(todayEmails);
       return todayEmails;
     } catch (e) {
       throw "Failed to fetch today's emails: $e";

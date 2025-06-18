@@ -1,6 +1,8 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 // ignore_for_file: non_constant_identifier_names
 
+import 'package:ai_asistant/data/models/emails/email_task.dart';
+
 class EmailMessage {
   final String? id;
   final String? subject;
@@ -18,8 +20,10 @@ class EmailMessage {
   final String? summary;
   final String? topic;
   final String? ai_draft;
+  final List<EmailTask>? extracted_tasks;
 
   EmailMessage({
+    required this.extracted_tasks,
     required this.id,
     required this.subject,
     required this.sender,
@@ -55,6 +59,12 @@ class EmailMessage {
   // }
   factory EmailMessage.fromJson(Map<String, dynamic> json) {
     return EmailMessage(
+      extracted_tasks:
+          json['extracted_tasks'] != null
+              ? (json['extracted_tasks'] as List)
+                  .map((tsk) => EmailTask.fromMap(tsk))
+                  .toList()
+              : [],
       id: json['id'],
       subject: json['subject'],
       senderName: json['sender_name'],
@@ -62,7 +72,7 @@ class EmailMessage {
       sender: json['sender'],
       recipients: json['recipients'],
       cc: json['cc'],
-      receivedAt: DateTime.parse(json['received_at']),
+      receivedAt: DateTime.parse(json['received_at']).toLocal(),
       isRead: json['is_read'],
       hasAttachments: json['has_attachments'],
       bodyPreview: json['body_preview'],
@@ -97,9 +107,11 @@ class EmailMessage {
     String? summary,
     String? topic,
     String? ai_draft,
+    List<EmailTask>? extracted_tasks,
   }) {
     return EmailMessage(
       id: id ?? this.id,
+      extracted_tasks: extracted_tasks ?? this.extracted_tasks,
       subject: subject ?? this.subject,
       senderName: senderName ?? this.senderName,
       sender: sender ?? this.sender,

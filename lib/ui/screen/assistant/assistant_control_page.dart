@@ -22,7 +22,7 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
   bool _isLoading = true;
   AssistantServiceModel assistantServiceModel = AssistantServiceModel.empty();
   bool _mounted = true;
-
+  Timer? _infoTimer;
   @override
   void initState() {
     super.initState();
@@ -44,9 +44,10 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
   }
 
   Future<void> _loadServiceInfo() async {
-    while (_mounted) {
+    _infoTimer?.cancel();
+    _infoTimer = Timer.periodic(Duration(seconds: 1), (tmr) async {
       final newData = await NativeBridge.getInfo();
-      if (!_mounted) break;
+      if (!_mounted) return;
       if (newData != assistantServiceModel) {
         setState(() => assistantServiceModel = newData);
       }
@@ -54,9 +55,10 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
       if (mails.isEmpty) return;
       String hash = computeListHash(mails);
       if (hash != newData.mailsSyncHash) {
-        await NativeBridge.dumpMails(mails);
-        print("Sending mails...");
+        // await NativeBridge.dumpMails(mails);
       }
+    });
+    while (_mounted) {
       await Future.delayed(const Duration(seconds: 1));
     }
   }
@@ -104,6 +106,7 @@ class _AssistantControlPageState extends State<AssistantControlPage> {
   @override
   void dispose() {
     _mounted = false;
+    _infoTimer?.cancel();
     super.dispose();
   }
 

@@ -10,7 +10,7 @@ object SharedData {
     var porcupineAK: String = ""
     var openAiApiKey: String = ""
     var assemblyAIKey: String = "";
-    var baseUrl = "https://ai-assistant-backend-blue.vercel.app/"
+    var baseUrl = "https://ai-assistant-backend-dk0q.onrender.com/"
     var emails: List<String> = mutableListOf()
 }
 

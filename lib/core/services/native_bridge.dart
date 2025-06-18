@@ -42,7 +42,6 @@ class NativeBridge {
     }
   }
 
-  /// Stops the Android STT recognizer
   static Future<bool> stopListening() async {
     try {
       final bool result = await _methodChannel.invokeMethod('stopListening');

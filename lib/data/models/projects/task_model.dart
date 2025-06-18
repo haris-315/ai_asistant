@@ -99,7 +99,7 @@ class TaskModel {
       content: map['content'] as String,
       description:
           map['description'] != null ? map['description'] as String : null,
-      createdAt: DateTime.parse(map['created_at']).toLocal(),
+      createdAt: DateTime.parse(map['created_at']),
       project_id: map['project_id'] != null ? map['project_id'] as int : null,
       section_id: map['section_id'] != null ? map['section_id'] as int : null,
       priority: map['priority'] != null ? map['priority'] as int : null,
@@ -110,12 +110,10 @@ class TaskModel {
       reccurence: map['reccurence'] as String?,
       reminder_at:
           map['reminder_at'] != null
-              ? DateTime.parse(map['reminder_at']).toLocal()
+              ? DateTime.parse(map['reminder_at'])
               : null,
       due_date:
-          map['due_date'] != null
-              ? DateTime.parse(map['due_date']).toLocal()
-              : null,
+          map['due_date'] != null ? DateTime.parse(map['due_date']) : null,
     );
   }
 

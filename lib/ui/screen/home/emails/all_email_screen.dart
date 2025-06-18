@@ -2,14 +2,13 @@
 
 import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/core/services/native_bridge.dart';
-import 'package:ai_asistant/core/shared/functions/is_today.dart';
 import 'package:ai_asistant/core/shared/functions/show_snackbar.dart';
 import 'package:ai_asistant/data/models/emails/thread_detail.dart';
 import 'package:ai_asistant/data/models/threadmodel.dart';
 import 'package:ai_asistant/data/repos/email_repo.dart';
 import 'package:ai_asistant/state_mgmt/email/cubit/email_cubit.dart';
 import 'package:ai_asistant/ui/screen/home/emails/email_details_screen.dart';
-import 'package:ai_asistant/ui/screen/home/emails/emails_search_screen.dart';
+import 'package:ai_asistant/ui/screen/home/emails/emails_with_tasks_screen.dart';
 import 'package:ai_asistant/ui/widget/dateformat.dart';
 import 'package:ai_asistant/ui/widget/snackbar.dart';
 import 'package:flutter/material.dart';
@@ -25,8 +24,9 @@ class AllEmailScreen extends StatefulWidget {
   State<AllEmailScreen> createState() => _AllEmailScreenState();
 }
 
+enum MailBoxType { inbox, outbox }
+
 class _AllEmailScreenState extends State<AllEmailScreen> {
-  final TextEditingController searchController = TextEditingController();
   String currentFilter = "all";
   List<EmailThread> emails = [];
   List<EmailThread> emailsAll = [];
@@ -39,13 +39,13 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
   Map<String, bool> summaryLoadingStates = {};
   bool _isRefreshing = false;
   bool _loadingDetails = false;
+  MailBoxType activeMailBox = MailBoxType.inbox;
   @override
   void initState() {
     super.initState();
     context.read<EmailCubit>().getEmails();
     _scrollController.addListener(_scrollListener);
     sendEmails();
-
   }
 
   void sendEmails() async {
@@ -160,6 +160,15 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
     }
   }
 
+  // TextStyle _boxTextStyle(bool shouldUnderline) => TextStyle(
+  //   color: shouldUnderline ? Colors.blue : Colors.blueGrey[800],
+  //   fontSize: 18,
+  //   fontWeight: FontWeight.w500,
+  //   decorationColor: Colors.blue,
+  //   decorationStyle: TextDecorationStyle.solid,
+  //   decorationThickness: 2,
+  // );
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<EmailCubit, EmailState>(
@@ -182,9 +191,8 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                       setState(() {
                         _isRefreshing = true;
                       });
-                      searchController.clear();
                     }
-                    await authcontroller.syncMailboxPeriodically();
+                    await authcontroller.syncMailboxbulk();
                     await context.read<EmailCubit>().getEmails();
 
                     if (mounted) {
@@ -207,30 +215,77 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                         ),
                         child: Column(
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  "You have recived ${emails.where((t) => isToday(t.lastEmailAt ?? DateTime(1999))).length} emails today",
-                                ),
-                                IconButton.outlined(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      PageTransition(
-                                        type: PageTransitionType.bottomToTop,
-                                        child: EmailSearchScreen(
-                                          initialQuery: '',
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  icon: Icon(Icons.search),
-                                  style: ButtonStyle(),
-                                  color: Colors.blue,
-                                ),
-                              ],
-                            ),
+                            // Row(
+                            //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            //   children: [
+                            //     Expanded(
+                            //       child: Container(
+                            //         decoration:
+                            //             activeMailBox != MailBoxType.inbox
+                            //                 ? null
+                            //                 : BoxDecoration(
+                            //                   gradient: LinearGradient(
+                            //                     colors: [
+                            //                       Colors.blue.withValues(
+                            //                         alpha: .3,
+                            //                       ),
+                            //                       Colors.blue.withValues(
+                            //                         alpha: .15,
+                            //                       ),
+                            //                       Colors.blue.withValues(
+                            //                         alpha: .1,
+                            //                       ),
+                            //                     ],
+                            //                   ),
+                            //                   borderRadius: BorderRadius.all(
+                            //                     Radius.circular(12),
+                            //                   ),
+                            //                 ),
+                            //         child: Center(
+                            //           child: Text(
+                            //             "Inbox",
+                            //             style: _boxTextStyle(
+                            //               activeMailBox == MailBoxType.inbox,
+                            //             ),
+                            //           ),
+                            //         ),
+                            //       ),
+                            //     ),
+                            //     Expanded(
+                            //       child: Container(
+                            //         decoration:
+                            //             activeMailBox != MailBoxType.outbox
+                            //                 ? null
+                            //                 : BoxDecoration(
+                            //                   borderRadius: BorderRadius.all(
+                            //                     Radius.circular(12),
+                            //                   ),
+                            //                   gradient: LinearGradient(
+                            //                     colors: [
+                            //                       Colors.blue.withValues(
+                            //                         alpha: .3,
+                            //                       ),
+                            //                       Colors.blue.withValues(
+                            //                         alpha: .15,
+                            //                       ),
+                            //                       Colors.blue.withValues(
+                            //                         alpha: .1,
+                            //                       ),
+                            //                     ],
+                            //                   ),
+                            //                 ),
+                            //         child: Center(
+                            //           child: Text(
+                            //             "Outbox",
+                            //             style: _boxTextStyle(
+                            //               activeMailBox == MailBoxType.outbox,
+                            //             ),
+                            //           ),
+                            //         ),
+                            //       ),
+                            //     ),
+                            //   ],
+                            // ),
                             SizedBox(height: 12),
                             SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
@@ -249,30 +304,26 @@ class _AllEmailScreenState extends State<AllEmailScreen> {
                                     },
                                   ),
                                   SizedBox(width: 8),
-                                  // ChoiceChip(
-                                  //   label: Text("With Tasks"),
-                                  //   selected: currentFilter == "tasks",
-                                  //   onSelected:
-                                  //       _loadingDetails
-                                  //           ? (v) {}
-                                  //           : (val) {
-                                  //             if (mounted) setState(() {
-                                  //               currentFilter = "tasks";
-                                  //               emails =
-                                  //                   emailsAll
-                                  //                       .where(
-                                  //                         (e) =>
-                                  //                             e.extracted_tasks !=
-                                  //                                 null &&
-                                  //                             e
-                                  //                                 .extracted_tasks!
-                                  //                                 .isNotEmpty,
-                                  //                       )
-                                  //                       .toList();
-                                  //             });
-                                  //           },
-                                  // ),
-                                  // SizedBox(width: 8),
+                                  ChoiceChip(
+                                    label: Text("With Tasks"),
+                                    selected: currentFilter == "tasks",
+                                    onSelected:
+                                        _loadingDetails
+                                            ? (v) {}
+                                            : (val) {
+                                              Navigator.push(
+                                                context,
+                                                PageTransition(
+                                                  type:
+                                                      PageTransitionType
+                                                          .bottomToTop,
+                                                  child:
+                                                      EmailsWithTasksScreen(),
+                                                ),
+                                              );
+                                            },
+                                  ),
+                                  SizedBox(width: 8),
                                   ChoiceChip(
                                     label: Text("Urgent"),
                                     selected: currentFilter == "urgent",

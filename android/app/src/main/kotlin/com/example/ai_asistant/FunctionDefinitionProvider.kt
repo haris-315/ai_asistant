@@ -762,6 +762,7 @@ class FunctionDefinitionProvider(private val client: OpenAIClient) {
                             request = request,
                             onSuccess = { response ->
                                 try {
+                                    Log.d("Client", "Response from the server: ${response.toString()}")
                                     if (response.isSuccessful) {
                                         val responseBody =
                                                 response.body?.string()
@@ -813,6 +814,8 @@ class FunctionDefinitionProvider(private val client: OpenAIClient) {
                                         )
                                     }
                                 } catch (e: Exception) {
+                                    Log.d("Client", "Response from the server: ${e.toString()}")
+
                                     Log.e(
                                             "OpenAIClient",
                                             "Error processing task creation: ${e.message}"

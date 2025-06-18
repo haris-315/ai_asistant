@@ -4,17 +4,19 @@ import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:ai_asistant/core/shared/constants.dart';
 import 'package:ai_asistant/core/shared/functions/is_today.dart';
-import 'package:ai_asistant/data/models/threadmodel.dart';
+import 'package:ai_asistant/data/models/emails/thread_detail.dart';
 import 'package:ai_asistant/state_mgmt/email/cubit/email_cubit.dart';
 import 'package:ai_asistant/ui/screen/assistant/assistant_control_page.dart';
 import 'package:ai_asistant/ui/screen/assistant/meetings.dart';
 import 'package:ai_asistant/ui/screen/home/chat_screen.dart';
 import 'package:ai_asistant/ui/screen/home/dashboard.dart';
 import 'package:ai_asistant/ui/screen/task/create_task_sheet.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hive/hive.dart';
 import 'package:page_transition/page_transition.dart';
 
 class HomeContent extends StatefulWidget {
@@ -28,8 +30,13 @@ class HomeContentState extends State<HomeContent> {
   AuthController authController = Get.find<AuthController>();
   HomeController homeController = Get.find<HomeController>();
   bool isSomeThingLoading = false;
-  
-
+  List<EmailMessage> todayMails = [];
+  Future<Box<EmailMessage>> _openBox() async {
+    if (!Hive.isBoxOpen('emails')) {
+      await Hive.openBox<EmailMessage>('emails');
+    }
+    return Hive.box<EmailMessage>('emails');
+  }
 
   void fetchTaskData() async {
     if (await SettingsService.getSetting(AppConstants.appStateKey) ==
@@ -37,7 +44,7 @@ class HomeContentState extends State<HomeContent> {
       return;
     }
     handleLoading();
-    context.read<EmailCubit>().getEmails();
+      context.read<EmailCubit>().backLoadEmails();
     await authController.fetchTask(initialLoad: true);
     await authController.fetchProject(isInitialFetch: true);
     handleLoading();
@@ -51,6 +58,22 @@ class HomeContentState extends State<HomeContent> {
     }
   }
 
+  Future<void> _loadTodayEmails() async {
+    try {
+      final box = await _openBox();
+      setState(() {
+        todayMails =
+            box.values
+                .where((email) => isToday(email.receivedAt ?? DateTime(1999)))
+                .toList();
+      });
+    } catch (e) {
+      if (kDebugMode) {
+        print(e.toString());
+      }
+    }
+  }
+
   void updateExternalState() {
     if (mounted) {
       setState(() {});
@@ -61,6 +84,7 @@ class HomeContentState extends State<HomeContent> {
   void initState() {
     super.initState();
     fetchTaskData();
+    _loadTodayEmails();
   }
 
   @override
@@ -114,10 +138,7 @@ class HomeContentState extends State<HomeContent> {
                     tasks.isEmpty
                         ? 0
                         : ((completedCount / tasks.length) * 100).round();
-                List<EmailThread> mails = context.watch<EmailCubit>().allEmails;
-                final todayMails = mails.where(
-                  (e) => isToday(e.lastEmailAt ?? DateTime(1999)),
-                );
+
                 return GridView.count(
                   crossAxisCount: 2,
                   crossAxisSpacing: 16,

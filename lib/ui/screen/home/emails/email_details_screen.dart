@@ -12,7 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import 'package:ai_asistant/Controller/auth_controller.dart';
-import 'package:ai_asistant/ui/screen/home/emails/newemail_screen.dart';
+import 'package:ai_asistant/ui/screen/home/emails/new_email_screen.dart';
 import 'package:ai_asistant/ui/screen/home/emails/summarization_screen.dart';
 
 import '../../../../data/models/emails/thread_detail.dart';
@@ -77,7 +77,7 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
                   if (mounted) {
                     if (mounted) {
                       setState(() {
-                        _webViewHeight = newHeight + 20; // Add padding
+                        _webViewHeight = newHeight + 20; 
                         _isWebViewLoading = false;
                       });
                     }

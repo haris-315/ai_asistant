@@ -145,7 +145,7 @@ class MainActivity : FlutterActivity() {
 
 
                         SharedData.emails = call.argument<List<String>>("mails") ?: mutableListOf("")
-                    Log.d("Emails: ", "Writing Emails... ${SharedData.emails.joinToString()}")
+//                    Log.d("Emails: ", "Writing Emails... ${SharedData.emails.joinToString()}")
                     if (SharedData.emails.isNotEmpty()) {
                         CoroutineScope(Dispatchers.IO).launch {
                             try {

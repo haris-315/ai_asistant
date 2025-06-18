@@ -1,6 +1,5 @@
 // ignore_for_file: unused_local_variable
 
-
 import 'package:ai_asistant/Controller/auth_controller.dart';
 import 'package:ai_asistant/api_keys.dart';
 import 'package:ai_asistant/core/services/native_bridge.dart';
@@ -9,6 +8,7 @@ import 'package:ai_asistant/core/services/snackbar_service.dart';
 import 'package:ai_asistant/core/shared/constants.dart';
 import 'package:ai_asistant/core/themes/theme.dart';
 import 'package:ai_asistant/data/models/emails/email_message_adapter.dart';
+import 'package:ai_asistant/data/models/emails/email_task_adapter.dart';
 import 'package:ai_asistant/state_mgmt/chats/cubit/chat_cubit.dart';
 import 'package:ai_asistant/state_mgmt/email/cubit/email_cubit.dart';
 import 'package:ai_asistant/state_mgmt/sessions/cubit/sessions_cubit.dart';
@@ -27,14 +27,15 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   AuthController ac = Get.put(AuthController());
   await Hive.initFlutter();
+  Hive.registerAdapter(EmailTaskAdapter());
   Hive.registerAdapter(HiveEmailAdapter());
+
   Get.put(TaskController());
 
   await SettingsService.storeSetting(
     AppConstants.appStateKey,
     AppConstants.appStateInitializing,
   );
-      
 
   // for future development, create a file named api_keys.dart.
   // define the key constants and remember to add it to .gitignore
@@ -45,10 +46,10 @@ void main() async {
   bool frstStart = await SettingsService.customSetting<bool>(
     (prefs) => prefs.getBool(AppConstants.firstCheckKey) ?? true,
   );
-  await SettingsService.storeSetting(
-    "access_token",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoazMxNS5pbkBvdXRsb29rLmNvbSJ9.J5UFE8c37RjqtVdrHyBURAjTEKZOIcoJJjrs8xjZvxk",
-  );
+  // await SettingsService.storeSetting(
+  //   "access_token",
+  //   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoazMxNS5pbkBvdXRsb29rLmNvbSJ9.J5UFE8c37RjqtVdrHyBURAjTEKZOIcoJJjrs8xjZvxk",
+  // );
   // await SettingsService.removeSetting("access_token");
 
   // if (res) {
@@ -94,7 +95,7 @@ class AIA extends StatelessWidget {
         return GetMaterialApp(
           scaffoldMessengerKey: SnackbarService.messengerKey,
           title: 'AI Assistant',
-          debugShowCheckedModeBanner: true,
+          debugShowCheckedModeBanner: false,
           theme: appTheme(),
           home: isFirstStart ? QuickGuide() : SplashScreen(),
           routes: {"/home": (context) => HomeScreen()},

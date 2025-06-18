@@ -1,7 +1,8 @@
 import 'package:ai_asistant/core/services/settings_service.dart';
 import 'package:ai_asistant/core/shared/constants.dart';
 import 'package:ai_asistant/data/models/projects/project_model.dart';
-import 'package:ai_asistant/ui/screen/home/emails/newemail_screen.dart';
+import 'package:ai_asistant/ui/screen/home/emails/emails_search_screen.dart';
+import 'package:ai_asistant/ui/screen/home/emails/new_email_screen.dart';
 import 'package:ai_asistant/ui/screen/task/create_task_sheet.dart';
 import 'package:ai_asistant/ui/screen/task/project_screen.dart';
 import 'package:ai_asistant/ui/screen/task/todotask_screen.dart';
@@ -82,6 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     await authcontroller.syncMailboxPeriodically();
     await authcontroller.syncMailboxbulk();
+    await authcontroller.loadUserInfo();
     if (authcontroller.projects.isEmpty) {
       await authcontroller.fetchProject(isInitialFetch: true);
     }
@@ -149,6 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   .selectedIndex
                   .value] ??
               "AI Assistant",
+          action: _appBarActions()[controller.selectedIndex.value],
         ),
         floatingActionButton: SpeedDialFab(
           selectedIndex: controller.selectedIndex.value,
@@ -225,6 +228,24 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  List<Widget?> _appBarActions() => [
+    null,
+    IconButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          PageTransition(
+            type: PageTransitionType.bottomToTop,
+            child: EmailSearchScreen(initialQuery: ""),
+          ),
+        );
+      },
+      icon: Icon(Icons.search, size: 22, color: Colors.black),
+    ),
+    null,
+    null,
+  ];
 }
 
 class SpeedDialFab extends StatefulWidget {
@@ -263,16 +284,12 @@ class _SpeedDialFabState extends State<SpeedDialFab>
 
   fabs() => [
     null,
-    FloatingActionButton.extended(
+    FloatingActionButton(
       heroTag: "compose_fab",
-      label: const Text(
-        "Compose",
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-      ),
       backgroundColor: const Color(0xFF1976D2),
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      icon: const Icon(Icons.send, color: Colors.white),
+      child: const Icon(Icons.edit, color: Colors.white),
       onPressed: () => Get.to(() => const NewMessageScreen()),
     ),
     Column(
