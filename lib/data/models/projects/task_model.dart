@@ -110,10 +110,12 @@ class TaskModel {
       reccurence: map['reccurence'] as String?,
       reminder_at:
           map['reminder_at'] != null
-              ? DateTime.parse(map['reminder_at'])
+              ? DateTime.parse(map['reminder_at']).toLocal()
               : null,
       due_date:
-          map['due_date'] != null ? DateTime.parse(map['due_date']) : null,
+          map['due_date'] != null
+              ? DateTime.parse(map['due_date']).toLocal()
+              : null,
     );
   }
 

@@ -46,10 +46,10 @@ void main() async {
   bool frstStart = await SettingsService.customSetting<bool>(
     (prefs) => prefs.getBool(AppConstants.firstCheckKey) ?? true,
   );
-  // await SettingsService.storeSetting(
-  //   "access_token",
-  //   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoazMxNS5pbkBvdXRsb29rLmNvbSJ9.J5UFE8c37RjqtVdrHyBURAjTEKZOIcoJJjrs8xjZvxk",
-  // );
+  await SettingsService.storeSetting(
+    "access_token",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoazMxNS5pbkBvdXRsb29rLmNvbSJ9.J5UFE8c37RjqtVdrHyBURAjTEKZOIcoJJjrs8xjZvxk",
+  );
   // await SettingsService.removeSetting("access_token");
 
   // if (res) {

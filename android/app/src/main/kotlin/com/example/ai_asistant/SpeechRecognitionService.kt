@@ -1,26 +1,27 @@
 package com.example.ai_asistant
-import android.os.SystemClock
-import kotlinx.coroutines.delay
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.time.Duration
+
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.Notification
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.os.SystemClock
 import android.util.Log
 import com.example.openai.SharedData
 import com.example.tts_helper.TextToSpeechHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.time.Duration
 import java.time.Instant
+import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 class SpeechRecognitionService : Service() {
 
@@ -28,22 +29,22 @@ class SpeechRecognitionService : Service() {
     private val channelId = "speech_service_channel"
     private val notificationId = 1
     private lateinit var ttsHelper: TextToSpeechHelper
+
     override fun onCreate() {
         super.onCreate()
         recognizerClient = SpeechRecognizerClient.getInstance(applicationContext)
         createNotificationChannel()
         startForeground(notificationId, createNotification("Up & Running"))
-        recognizerClient.initialize(onInitialized = {
-            tts ->
+        recognizerClient.initialize(onInitialized = { tts ->
             if (tts != null)
                 ttsHelper = tts
-            startNotifier()})
+            startNotifier()
+        })
         Log.d("SpeechRecognitionService", "Service created and initialized")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d("SpeechRecognitionService", "Service started with intent: $intent")
-        // Ensure the service restarts if killed by the system
         return START_STICKY
     }
 
@@ -61,10 +62,11 @@ class SpeechRecognitionService : Service() {
             val channel = NotificationChannel(
                 channelId,
                 "Speech Recognition",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
                 description = "Notification for Speech Recognition Service"
-                setShowBadge(false)
+                setShowBadge(true)
+                enableVibration(true)
             }
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
@@ -74,7 +76,6 @@ class SpeechRecognitionService : Service() {
     private var notifierJob: Job? = null
 
     private fun startNotifier() {
-        // Avoid multiple notifier loops
         if (notifierJob?.isActive == true) return
 
         notifierJob = CoroutineScope(Dispatchers.IO).launch {
@@ -90,20 +91,15 @@ class SpeechRecognitionService : Service() {
                     if (notifiedTasks.contains(reminderAt)) return@forEach
 
                     try {
-                        val reminderTime = LocalDateTime.parse(
-                            reminderAt,
-                            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS")
-                        ).atZone(ZoneId.systemDefault()).toInstant()
-
+                        val reminderTime = Instant.parse(reminderAt)
                         val secondsDiff = Duration.between(now, reminderTime).seconds
 
                         if (secondsDiff in -15..15) {
-                            sendSilentNotification(content)
-                            ttsHelper.speak("You have an upcoming task in 10 minutes, $content")
+                            sendTaskNotification(content)
+                            ttsHelper.speak("Reminder: $content is due soon")
                             notifiedTasks.add(reminderAt)
-                            Log.d("Notifier", "Sent reminder for task: $content")
+                            Log.d("Notifier", "Sent reminder for task: $content at $reminderAt")
                         }
-
                     } catch (e: Exception) {
                         Log.e("Notifier", "Error parsing reminder time: $reminderAt", e)
                     }
@@ -114,19 +110,19 @@ class SpeechRecognitionService : Service() {
         }
     }
 
-    private fun sendSilentNotification(message: String) {
+    private fun sendTaskNotification(message: String) {
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val silentNotification = Notification.Builder(this, channelId)
+        val notification = Notification.Builder(this, channelId)
             .setContentTitle("Task Reminder")
             .setContentText(message)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setAutoCancel(true)
-            .setPriority(Notification.PRIORITY_LOW)
-            .setDefaults(0) // No sound or vibration
+            .setPriority(Notification.PRIORITY_HIGH)
+            .setDefaults(Notification.DEFAULT_SOUND or Notification.DEFAULT_VIBRATE)
             .build()
 
         val id = (SystemClock.uptimeMillis() % Int.MAX_VALUE).toInt()
-        manager.notify(id, silentNotification)
+        manager.notify(id, notification)
     }
 
     private fun createNotification(text: String): Notification {

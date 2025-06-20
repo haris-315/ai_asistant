@@ -3,6 +3,12 @@ package com.example.openai
 import android.content.Context
 
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -83,7 +89,7 @@ class OpenAIClient(
         - For weather, use the location name provided by the user and return a concise summary (e.g., temperature and condition).
         - Assign tasks the id of the project named "Inbox" if no other project matches.
         - Available projects: ${projects.joinToString()}
-        - Current tasks: ${SharedData.tasks.joinToString()} (If asked about specific task, provide the info of that task if available.)
+        - Current tasks: ${SharedData.tasks.joinToString()} (If asked about specific task or anything related to tasks, provide the info of that task if available.)
         - User data: ${userData.joinToString()}
         - No markdown or explanations in responses.
 
@@ -295,7 +301,7 @@ class OpenAIClient(
             dbHelper.insertOrUpdateSummary(
                 id = UUID.randomUUID().toString(),
                 title = "Not Summarized",
-                startTime = lastMeetingTime,
+                startTime = LocalDateTime.now(),
                 endTime = LocalDateTime.now(),
                 actualTranscript = "",
                 summary = "No transcript provided",
@@ -304,39 +310,78 @@ class OpenAIClient(
             return
         }
 
-        lastMeetingTime = LocalDateTime.now()
-        val chunkSize = 3000
-        val chunks = transcript.chunked(chunkSize)
-        val partialSummaries = mutableListOf<JSONObject>()
+        val job = CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val startTime = LocalDateTime.now()
+                val chunkSize = 3000
+                val chunks = transcript.chunked(chunkSize)
+                val basePrompt = """
+                You are a smart assistant. Summarize the provided meeting transcript clearly and concisely, identify key points, and generate a relevant title.
 
-        val basePrompt = """
-        You are a smart assistant. Summarize the provided meeting transcript clearly and concisely, identify key points, and generate a relevant title.
+                Respond in JSON format:
+                {
+                  "title": "Brief meeting title",
+                  "summary": "Summary paragraph (max 6 lines)",
+                  "keypoints": ["Key point 1", "Key point 2", ...]
+                }
+            """.trimIndent()
 
-        Respond in JSON format:
-        {
-          "title": "Brief meeting title",
-          "summary": "Summary paragraph (extremly short max 6 lines)",
-          "keypoints": ["Key point 1", "Key point 2", ...]
-        }
-        """.trimIndent()
+                // Process chunks in parallel
+                val partialSummaries = chunks.mapIndexed { index, chunk ->
+                    CoroutineScope(Dispatchers.IO).async {
+                        val request = Request.Builder()
+                            .url("https://api.openai.com/v1/chat/completions")
+                            .addHeader("Authorization", "Bearer $apiKey")
+                            .addHeader("Content-Type", "application/json")
+                            .post(JSONObject().apply {
+                                put("model", model)
+                                put("messages", JSONArray().apply {
+                                    put(JSONObject().apply {
+                                        put("role", "system")
+                                        put("content", basePrompt)
+                                    })
+                                    put(JSONObject().apply {
+                                        put("role", "user")
+                                        put("content", "Part ${index + 1} of the meeting transcript:\n$chunk")
+                                    })
+                                })
+                            }.toString().toRequestBody("application/json".toMediaType()))
+                            .build()
 
-        fun summarizeChunk(index: Int) {
-            if (index >= chunks.size) {
+                        networkHelper.executeWithRetry(
+                            request = request,
+                            onSuccess = { response ->
+                                try {
+                                    val content = JSONObject(response.body?.string() ?: "{}")
+                                        .getJSONArray("choices")
+                                        .getJSONObject(0)
+                                        .getJSONObject("message")
+                                        .getString("content")
+                                    JSONObject(content)
+                                } finally {
+                                    response.close()
+                                }
+                            },
+                            onFailure = { error -> throw Exception("Error summarizing part ${index + 1}: $error") }
+                        )
+                    }
+                }.awaitAll()
+                // Merge partial summaries
                 val mergePrompt = """
-                Combine these partial summaries into one coherent meeting summary remember to keep it as short as possible max 16 lines, consolidate the keypoints, and generate a suitable title.
+                Combine these partial summaries into one coherent meeting summary (max 16 lines), consolidate keypoints (max 16), and generate a suitable title.
 
                 Respond in JSON format:
                 {
                   "title": "Final title",
-                  "summary": "Merged summary paragraph that is too easy to conclude the result of the meeting from. Must be as short as possible like max 16 lines.",
-                  "keypoints": ["Consolidated key point 1", "Consolidated key point 2", ...] (max 16)
+                  "summary": "Merged summary paragraph (max 16 lines)",
+                  "keypoints": ["Consolidated key point 1", "Consolidated key point 2", ...]
                 }
 
                 Partial Summaries:
-                ${partialSummaries.joinToString("\n") { it.toString() }}
-                """.trimIndent()
+                ${partialSummaries.joinToString("\n") { summary -> summary.toString() }}
+            """.trimIndent()
 
-                val request = Request.Builder()
+                val mergeRequest = Request.Builder()
                     .url("https://api.openai.com/v1/chat/completions")
                     .addHeader("Authorization", "Bearer $apiKey")
                     .addHeader("Content-Type", "application/json")
@@ -352,7 +397,7 @@ class OpenAIClient(
                     .build()
 
                 networkHelper.executeWithRetry(
-                    request = request,
+                    request = mergeRequest,
                     onSuccess = { response ->
                         try {
                             val content = JSONObject(response.body?.string() ?: "{}")
@@ -364,113 +409,56 @@ class OpenAIClient(
                             val finalTitle = json.getString("title")
                             val finalSummary = json.getString("summary")
                             val keypointsArray = json.getJSONArray("keypoints")
-                            val keypoints = (0 until keypointsArray.length()).map { keypointsArray.getString(it) }
+                            val keypoints = (0 until keypointsArray.length()).map { idx -> keypointsArray.getString(idx) }
 
                             dbHelper.insertOrUpdateSummary(
                                 id = UUID.randomUUID().toString(),
                                 title = finalTitle,
-                                startTime = lastMeetingTime,
+                                startTime = startTime,
                                 endTime = LocalDateTime.now(),
                                 actualTranscript = transcript,
                                 summary = finalSummary,
                                 keypoints = keypoints
                             )
                             onDone(finalTitle, finalSummary, keypoints)
-                        } catch (e: Exception) {
-                            Log.e("OpenAIClient", "Error parsing final summary: ${e.message}")
-                            onError("Error generating final summary")
-                            dbHelper.insertOrUpdateSummary(
-                                id = UUID.randomUUID().toString(),
-                                title = "Not Summarized",
-                                startTime = lastMeetingTime,
-                                endTime = LocalDateTime.now(),
-                                actualTranscript = transcript,
-                                summary = "Failed summarizing",
-                                keypoints = emptyList()
-                            )
                         } finally {
                             response.close()
                         }
                     },
-                    onFailure = { error ->
-                        Log.e("OpenAIClient", "Final summary error: $error")
-                        onError("Final summary error: $error")
-                        dbHelper.insertOrUpdateSummary(
-                            id = UUID.randomUUID().toString(),
-                            title = "Not Summarized",
-                            startTime = lastMeetingTime,
-                            endTime = LocalDateTime.now(),
-                            actualTranscript = transcript,
-                            summary = "Failed summarizing",
-                            keypoints = emptyList()
-                        )
-                    }
+                    onFailure = { error -> throw Exception("Error generating final summary: $error") }
                 )
-                return
+
+            } catch (e: Exception) {
+                Log.e("OpenAIClient", "Error: ${e.message}")
+                onError("Error: ${e.message}")
+                dbHelper.insertOrUpdateSummary(
+                    id = UUID.randomUUID().toString(),
+                    title = "Not Summarized",
+                    startTime = LocalDateTime.now(),
+                    endTime = LocalDateTime.now(),
+                    actualTranscript = transcript,
+                    summary = "Failed summarizing: ${e.message}",
+                    keypoints = emptyList()
+                )
             }
-
-            val request = Request.Builder()
-                .url("https://api.openai.com/v1/chat/completions")
-                .addHeader("Authorization", "Bearer $apiKey")
-                .addHeader("Content-Type", "application/json")
-                .post(JSONObject().apply {
-                    put("model", model)
-                    put("messages", JSONArray().apply {
-                        put(JSONObject().apply {
-                            put("role", "system")
-                            put("content", basePrompt)
-                        })
-                        put(JSONObject().apply {
-                            put("role", "user")
-                            put("content", "Part ${index + 1} of the meeting transcript:\n${chunks[index]}")
-                        })
-                    })
-                }.toString().toRequestBody("application/json".toMediaType()))
-                .build()
-
-            networkHelper.executeWithRetry(
-                request = request,
-                onSuccess = { response ->
-                    try {
-                        val content = JSONObject(response.body?.string() ?: "{}")
-                            .getJSONArray("choices")
-                            .getJSONObject(0)
-                            .getJSONObject("message")
-                            .getString("content")
-                        partialSummaries.add(JSONObject(content))
-                        summarizeChunk(index + 1)
-                    } catch (e: Exception) {
-                        Log.e("OpenAIClient", "Error parsing summary part ${index + 1}: ${e.message}")
-                        onError("Error summarizing part ${index + 1}")
-                        dbHelper.insertOrUpdateSummary(
-                            id = UUID.randomUUID().toString(),
-                            title = "Not Summarized",
-                            startTime = lastMeetingTime,
-                            endTime = LocalDateTime.now(),
-                            actualTranscript = transcript,
-                            summary = "Failed summarizing part ${index + 1}",
-                            keypoints = emptyList()
-                        )
-                    } finally {
-                        response.close()
-                    }
-                },
-                onFailure = { error ->
-                    Log.e("OpenAIClient", "Error summarizing part ${index + 1}: $error")
-                    onError("Error summarizing part ${index + 1}")
-                    dbHelper.insertOrUpdateSummary(
-                        id = UUID.randomUUID().toString(),
-                        title = "Not Summarized",
-                        startTime = lastMeetingTime,
-                        endTime = LocalDateTime.now(),
-                        actualTranscript = transcript,
-                        summary = "Failed summarizing part ${index + 1}",
-                        keypoints = emptyList()
-                    )
-                }
-            )
         }
 
-        summarizeChunk(0)
+        // Timeout mechanism
+        CoroutineScope(Dispatchers.IO).launch {
+            delay(60000)
+            if (job.isActive) {
+                job.cancel()
+                onError("Summary generation timed out")
+                dbHelper.insertOrUpdateSummary(
+                    id = UUID.randomUUID().toString(),
+                    title = "Not Summarized",
+                    startTime = LocalDateTime.now(),
+                    endTime = LocalDateTime.now(),
+                    actualTranscript = transcript,
+                    summary = "Summary generation timed out",
+                    keypoints = emptyList()
+                )
+            }
+        }
     }
 }

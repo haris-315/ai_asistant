@@ -750,28 +750,7 @@ class SpeechRecognizerClient private constructor(context: Context) {
         openAiClient?.generateMeetingSummary(
                 transcript = transcript,
                 onDone = { title, summary, keypoints ->
-                    CoroutineScope(Dispatchers.Main).launch {
-                        Log.i("SpeechRecognizerClient", "Meeting summary: $summary")
-//                        context?.let { ctx ->
-//                            openAiClient?.dbHelper?.insertOrUpdateSummary(
-//                                    id = UUID.randomUUID().toString(),
-//                                    title = title,
-//                                    startTime =
-//                                            if (forChat) LocalDateTime.now()
-//                                            else lastMeetingStartTime,
-//                                    endTime = LocalDateTime.now(),
-//                                    actualTranscript =
-//                                            if (forChat)
-//                                                    "This Summary is generated from the conversation with chat gpt so it has no transcript."
-//                                            else transcript,
-//                                    summary = summary,
-//                                    keypoints = keypoints
-//                            )
-//                        }
-
-                        ttsHelper?.speak("summary completed.")
-                        transitionTo(AssistantState.STANDBY)
-                    }
+                    ttsHelper?.speak("summary completed.")
                 },
                 onError = {
                     CoroutineScope(Dispatchers.Main).launch {
